@@ -459,17 +459,23 @@ export class RandmixFilter extends BaseDspFilter {
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     const tail = this.tail;
+    const prev = this.prev;
+    const w = this.w;
+    let idx = this.idx;
 
     for (let i = 0; i < len; i++) {
-      this.prev[this.idx] = samples[i];
+      prev[idx] = samples[i];
       let s = 0;
+      let pIdx = idx;
       for (let j = 0; j < tail; j++) {
-        s += this.prev[(this.idx - j + tail) % tail] * this.w[j];
+        s += prev[pIdx] * w[j];
+        if (--pIdx < 0) pIdx = tail - 1;
       }
-      this.prev[this.idx] = s;
-      this.idx = (this.idx + 1) % tail;
+      prev[idx] = s;
+      if (++idx >= tail) idx = 0;
       samples[i] = s !== s ? 0 : s;
     }
+    this.idx = idx;
   }
 }
 

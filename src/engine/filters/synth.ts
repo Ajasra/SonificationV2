@@ -195,17 +195,21 @@ export class PluckedStringFilter extends BaseDspFilter {
     let prevV = this.previousV;
     let prevW = this.previousW;
 
+    let targetIdx = ((hPos + loopDel) % hLen + hLen) % hLen;
+    const hist = this.history;
+
     for (let i = 0; i < len; i++) {
       const inVal = samples[i];
-      const w = inVal * (1 - pows) + pows * this.history[hPos];
+      const w = inVal * (1 - pows) + pows * hist[hPos];
       const v = a * w + prevW - a * prevV;
-      const res = (v + prevV) / 2;
+      const res = (v + prevV) * 0.5;
 
-      const targetIdx = (hLen + loopDel + hPos) % hLen;
-      this.history[targetIdx] = res;
+      hist[targetIdx] = res;
       prevV = v;
       prevW = w;
-      hPos = (hPos + 1) % hLen;
+
+      if (++hPos >= hLen) hPos = 0;
+      if (++targetIdx >= hLen) targetIdx = 0;
 
       samples[i] = res !== res ? 0 : res;
     }

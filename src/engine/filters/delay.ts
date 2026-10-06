@@ -212,32 +212,42 @@ export class CanyonDelayFilter extends BaseDspFilter {
     const len = samples.length;
     const dSize = this.dataSize;
     let pos = this.pos;
+    let pos1 = ((pos - this.rtlOffset) % dSize + dSize) % dSize;
+    let pos2 = ((pos - this.ltrOffset) % dSize + dSize) % dSize;
     let accL = this.accumL;
     let accR = this.accumR;
+
+    const rtlInv = this.rtlInvmag;
+    const rtlFb = this.rtlFeedback;
+    const ltrInv = this.ltrInvmag;
+    const ltrFb = this.ltrFeedback;
+    const fInv = this.filterInvmag;
+    const fMag = this.filterMag;
+    const dL = this.dataL;
+    const dR = this.dataR;
 
     for (let i = 0; i < len; i += 2) {
       let l = samples[i];
       let r = i + 1 < len ? samples[i + 1] : l;
 
-      const pos1 = (pos - this.rtlOffset + dSize) % dSize;
-      const pos2 = (pos - this.ltrOffset + dSize) % dSize;
+      l = l * rtlInv + dR[pos1] * rtlFb;
+      r = r * ltrInv + dL[pos2] * ltrFb;
 
-      l = l * this.rtlInvmag + this.dataR[pos1] * this.rtlFeedback;
-      r = r * this.ltrInvmag + this.dataL[pos2] * this.ltrFeedback;
-
-      l = accL * this.filterInvmag + l * this.filterMag;
-      r = accR * this.filterInvmag + r * this.filterMag;
+      l = accL * fInv + l * fMag;
+      r = accR * fInv + r * fMag;
 
       accL = l;
       accR = r;
 
-      this.dataL[pos] = l;
-      this.dataR[pos] = r;
+      dL[pos] = l;
+      dR[pos] = r;
 
       samples[i] = l !== l ? 0 : l;
       if (i + 1 < len) samples[i + 1] = r !== r ? 0 : r;
 
-      pos = (pos + 1) % dSize;
+      if (++pos >= dSize) pos = 0;
+      if (++pos1 >= dSize) pos1 = 0;
+      if (++pos2 >= dSize) pos2 = 0;
     }
 
     this.pos = pos;

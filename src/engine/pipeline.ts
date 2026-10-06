@@ -16,11 +16,14 @@ export class SonificationPipeline {
   private activeFilters: IDspFilter[] = [];
   private currentFilterStateKey = '';
 
-  // Preallocated working buffers
+  // Preallocated working buffers and zero-allocation chunk views
   private workRgbaBuffer = new Uint8ClampedArray(0);
   private workAudioBuffer = new Float32Array(0);
+  private chunkViews: Float32Array[] = [];
+  private lastChunkSamples = 0;
+  private static readonly CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
 
-  private ensureBuffers(numPixels: number): void {
+  private ensureBuffers(numPixels: number, numSamples: number): void {
     const rgbaBytes = numPixels * 4;
     const audioSamples = numPixels * 3;
 
@@ -29,6 +32,17 @@ export class SonificationPipeline {
     }
     if (this.workAudioBuffer.length < audioSamples) {
       this.workAudioBuffer = new Float32Array(audioSamples);
+      this.lastChunkSamples = 0;
+    }
+
+    if (this.lastChunkSamples !== numSamples) {
+      this.chunkViews = [];
+      const CHUNK_SIZE = SonificationPipeline.CHUNK_SIZE;
+      for (let offset = 0; offset < numSamples; offset += CHUNK_SIZE) {
+        const end = Math.min(offset + CHUNK_SIZE, numSamples);
+        this.chunkViews.push(this.workAudioBuffer.subarray(offset, end));
+      }
+      this.lastChunkSamples = numSamples;
     }
   }
 
@@ -67,7 +81,8 @@ export class SonificationPipeline {
   ): PipelineResult {
     const t0 = performance.now();
     const numPixels = width * height;
-    this.ensureBuffers(numPixels);
+    const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
+    this.ensureBuffers(numPixels, numSamples);
 
     const outRgba = outputTargetRgba || new Uint8ClampedArray(numPixels * 4);
 
@@ -82,24 +97,22 @@ export class SonificationPipeline {
     }
 
     // 3. Encode image pixels into 1D audio sample stream [-1.0, 1.0]
-    const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
     const audioStream = imageToAudioStream(
       srcRgba.subarray(0, numPixels * 4),
       preset.reader,
       this.workAudioBuffer.subarray(0, numSamples)
     );
 
-    // 4. Run audio DSP chain in-place with L1 cache chunk fusion (32 KB tile)
+    // 4. Run audio DSP chain in-place with preallocated L1 cache chunk fusion
     this.syncFilterInstances(preset);
     const numFilters = this.activeFilters.length;
     if (numFilters === 1) {
       this.activeFilters[0].processBlock(audioStream);
     } else if (numFilters > 1) {
-      const CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
-      const totalLen = audioStream.length;
-      for (let offset = 0; offset < totalLen; offset += CHUNK_SIZE) {
-        const end = Math.min(offset + CHUNK_SIZE, totalLen);
-        const chunk = audioStream.subarray(offset, end);
+      const chunks = this.chunkViews;
+      const numChunks = chunks.length;
+      for (let c = 0; c < numChunks; c++) {
+        const chunk = chunks[c];
         for (let f = 0; f < numFilters; f++) {
           this.activeFilters[f].processBlock(chunk);
         }
@@ -134,62 +147,81 @@ export class SonificationPipeline {
   private blend(orig: Uint8ClampedArray, dest: Uint8ClampedArray, mode: BlendMode, amt: number): void {
     const len = dest.length;
     const invAmt = 1.0 - amt;
+    const inv255 = 1.0 / 255.0;
 
-    for (let i = 0; i < len; i += 4) {
-      const rA = orig[i];
-      const gA = orig[i + 1];
-      const bA = orig[i + 2];
-
-      const rB = dest[i];
-      const gB = dest[i + 1];
-      const bB = dest[i + 2];
-
-      let rBlended = rB;
-      let gBlended = gB;
-      let bBlended = bB;
-
-      switch (mode) {
-        case 'OVERLAY': {
-          rBlended = rA < 128 ? (2 * rA * rB) / 255 : 255 - (2 * (255 - rA) * (255 - rB)) / 255;
-          gBlended = gA < 128 ? (2 * gA * gB) / 255 : 255 - (2 * (255 - gA) * (255 - gB)) / 255;
-          bBlended = bA < 128 ? (2 * bA * bB) / 255 : 255 - (2 * (255 - bA) * (255 - bB)) / 255;
-          break;
+    switch (mode) {
+      case 'OVERLAY': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          const rBlended = rA < 128 ? (2 * rA * rB) * inv255 : 255 - (2 * (255 - rA) * (255 - rB)) * inv255;
+          const gBlended = gA < 128 ? (2 * gA * gB) * inv255 : 255 - (2 * (255 - gA) * (255 - gB)) * inv255;
+          const bBlended = bA < 128 ? (2 * bA * bB) * inv255 : 255 - (2 * (255 - bA) * (255 - bB)) * inv255;
+          dest[i] = (rB * invAmt + rBlended * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + gBlended * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + bBlended * amt + 0.5) | 0;
         }
-        case 'SCREEN': {
-          rBlended = 255 - ((255 - rA) * (255 - rB)) / 255;
-          gBlended = 255 - ((255 - gA) * (255 - gB)) / 255;
-          bBlended = 255 - ((255 - bA) * (255 - bB)) / 255;
-          break;
-        }
-        case 'MULTIPLY': {
-          rBlended = (rA * rB) / 255;
-          gBlended = (gA * gB) / 255;
-          bBlended = (bA * bB) / 255;
-          break;
-        }
-        case 'DIFFERENCE': {
-          rBlended = Math.abs(rA - rB);
-          gBlended = Math.abs(gA - gB);
-          bBlended = Math.abs(bA - bB);
-          break;
-        }
-        case 'ADD': {
-          rBlended = Math.min(255, rA + rB);
-          gBlended = Math.min(255, gA + gB);
-          bBlended = Math.min(255, bA + bB);
-          break;
-        }
-        case 'EXCLUSION': {
-          rBlended = rA + rB - (2 * rA * rB) / 255;
-          gBlended = gA + gB - (2 * gA * gB) / 255;
-          bBlended = bA + bB - (2 * bA * bB) / 255;
-          break;
-        }
+        break;
       }
-
-      dest[i] = Math.round(rB * invAmt + rBlended * amt);
-      dest[i + 1] = Math.round(gB * invAmt + gBlended * amt);
-      dest[i + 2] = Math.round(bB * invAmt + bBlended * amt);
+      case 'SCREEN': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          const rBlended = 255 - ((255 - rA) * (255 - rB)) * inv255;
+          const gBlended = 255 - ((255 - gA) * (255 - gB)) * inv255;
+          const bBlended = 255 - ((255 - bA) * (255 - bB)) * inv255;
+          dest[i] = (rB * invAmt + rBlended * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + gBlended * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + bBlended * amt + 0.5) | 0;
+        }
+        break;
+      }
+      case 'MULTIPLY': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          dest[i] = (rB * invAmt + (rA * rB * inv255) * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + (gA * gB * inv255) * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + (bA * bB * inv255) * amt + 0.5) | 0;
+        }
+        break;
+      }
+      case 'DIFFERENCE': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          dest[i] = (rB * invAmt + Math.abs(rA - rB) * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + Math.abs(gA - gB) * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + Math.abs(bA - bB) * amt + 0.5) | 0;
+        }
+        break;
+      }
+      case 'ADD': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          const rBlended = (rA + rB) > 255 ? 255 : (rA + rB);
+          const gBlended = (gA + gB) > 255 ? 255 : (gA + gB);
+          const bBlended = (bA + bB) > 255 ? 255 : (bA + bB);
+          dest[i] = (rB * invAmt + rBlended * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + gBlended * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + bBlended * amt + 0.5) | 0;
+        }
+        break;
+      }
+      case 'EXCLUSION': {
+        for (let i = 0; i < len; i += 4) {
+          const rA = orig[i], gA = orig[i + 1], bA = orig[i + 2];
+          const rB = dest[i], gB = dest[i + 1], bB = dest[i + 2];
+          const rBlended = rA + rB - (2 * rA * rB) * inv255;
+          const gBlended = gA + gB - (2 * gA * gB) * inv255;
+          const bBlended = bA + bB - (2 * bA * bB) * inv255;
+          dest[i] = (rB * invAmt + rBlended * amt + 0.5) | 0;
+          dest[i + 1] = (gB * invAmt + gBlended * amt + 0.5) | 0;
+          dest[i + 2] = (bB * invAmt + bBlended * amt + 0.5) | 0;
+        }
+        break;
+      }
     }
   }
 }

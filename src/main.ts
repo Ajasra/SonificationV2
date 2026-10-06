@@ -535,13 +535,13 @@ class SonificationApp {
       this.stopVideoFile();
       if (this.cameraManager.isActive()) {
         this.cameraManager.stop();
-        btnCamera.textContent = '📹 Live Camera';
+        btnCamera.textContent = 'Live camera';
         btnCamera.classList.remove('btn-hw-primary');
         btnFlipCamera.classList.add('hidden');
       } else {
         try {
           await this.cameraManager.start(640, 480);
-          btnCamera.textContent = '⏹ Stop Sensor';
+          btnCamera.textContent = 'Stop camera';
           btnCamera.classList.add('btn-hw-primary');
           btnFlipCamera.classList.remove('hidden');
           this.startLiveLoop();
@@ -569,34 +569,51 @@ class SonificationApp {
       btnAudio.classList.toggle('active', !isMuted);
     };
 
-    // Photo Snapshot (Shutter)
+    // Photo Snapshot (Shutter) — Always Exports Full Resolution
     document.getElementById('btn-shutter')!.onclick = () => {
-      const link = document.createElement('a');
-      link.download = `sonification_${Date.now()}.png`;
-      link.href = this.canvas.toDataURL('image/png');
-      link.click();
+      this.saveFullResolutionSnapshot();
     };
 
     document.getElementById('btn-save-image')!.onclick = () => {
-      document.getElementById('btn-shutter')!.click();
+      this.saveFullResolutionSnapshot();
     };
 
-    // Video Recording
+    // Video Recording — Switches to Full Resolution during recording
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement;
     btnRec.onclick = async () => {
       if (!this.videoRecorder.getIsRecording()) {
+        const prevRes = this.liveResolution;
+        (btnRec as any)._prevRes = prevRes;
+
+        // Elevate to native full resolution for master video recording
+        this.liveResolution = 'native';
+        if (this.loadedImageElement) {
+          this.refreshLoadedImage();
+        } else {
+          this.requestRender();
+        }
+
         this.videoRecorder.startRecording(this.canvas);
-        btnRec.innerHTML = '<span class="rec-led"></span><span>⏹ STOP</span>';
+        btnRec.innerHTML = '<span class="rec-led"></span><span>STOP</span>';
         btnRec.classList.add('recording');
       } else {
         const blob = await this.videoRecorder.stopRecording();
-        btnRec.innerHTML = '<span class="rec-led"></span><span>⏺ REC</span>';
+        btnRec.innerHTML = '<span class="rec-led"></span><span>REC</span>';
         btnRec.classList.remove('recording');
+
+        // Restore preview resolution
+        const prevRes = (btnRec as any)._prevRes || '480p';
+        this.liveResolution = prevRes;
+        if (this.loadedImageElement) {
+          this.refreshLoadedImage();
+        } else {
+          this.requestRender();
+        }
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sonification_study_${Date.now()}.webm`;
+        a.download = `sonification_fullres_${Date.now()}.webm`;
         a.click();
       }
     };
@@ -667,7 +684,7 @@ class SonificationApp {
     this.cameraManager.stop();
     const btnCam = document.getElementById('btn-toggle-camera');
     if (btnCam) {
-      btnCam.textContent = '📹 Live Camera';
+      btnCam.textContent = 'Live camera';
       btnCam.classList.remove('btn-hw-primary');
     }
     document.getElementById('btn-flip-camera')?.classList.add('hidden');
@@ -757,7 +774,7 @@ class SonificationApp {
       this.cameraManager.stop();
       const btnCam = document.getElementById('btn-toggle-camera');
       if (btnCam) {
-        btnCam.textContent = '📹 Live Camera';
+        btnCam.textContent = 'Live camera';
         btnCam.classList.remove('btn-hw-primary');
       }
       document.getElementById('btn-flip-camera')?.classList.add('hidden');

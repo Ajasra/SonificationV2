@@ -113,26 +113,35 @@ export class AuPhaserFilter extends BaseDspFilter {
     const numStages = Math.min(24, Math.max(1, this.stages));
     const dry = (255.0 - this.dryWet) / 255.0;
     const wet = this.dryWet / 255.0;
+    const fbScale = this.feedback / 101.0;
+    const invExp4 = 1.0 / Math.exp(4.0);
+    const depthScale = this.depth / 255.0;
+    const old = this.old;
+    let sc = this.skipcount;
+    let period = sc % 20;
 
     for (let i = 0; i < len; i++) {
       const inVal = samples[i];
-      let m = inVal + (this.fbout * this.feedback) / 101.0;
+      let m = inVal + this.fbout * fbScale;
 
-      if (this.skipcount++ % 20 === 0) {
-        let g = (1.0 + Math.cos(this.skipcount * this.lfoskip + this.phaseRad)) / 2.0;
-        g = Math.exp(g * 4.0) / Math.exp(4.0);
-        this.gain = 1.0 - (g / 255.0) * this.depth;
+      if (period === 0) {
+        let g = (1.0 + Math.cos(sc * this.lfoskip + this.phaseRad)) * 0.5;
+        g = Math.exp(g * 4.0) * invExp4;
+        this.gain = 1.0 - g * depthScale;
       }
+      sc++;
+      if (++period === 20) period = 0;
 
       for (let j = 0; j < numStages; j++) {
-        const tmp = this.old[j];
-        this.old[j] = this.gain * tmp + m;
-        m = tmp - this.gain * this.old[j];
+        const tmp = old[j];
+        old[j] = this.gain * tmp + m;
+        m = tmp - this.gain * old[j];
       }
       this.fbout = m;
       const res = m * wet + inVal * dry;
       samples[i] = res !== res ? 0 : res;
     }
+    this.skipcount = sc;
   }
 }
 
@@ -303,24 +312,35 @@ export class LFOPhaserFilter extends BaseDspFilter {
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;
+    const mod = this.mod;
+    let count = this.count;
+    const ap = this.ap;
+    const lfoTbl = this.lfoTbl;
+    const lfoDepth = this.lfoDepth;
+    const spreadConst = this.spread * 0.01562;
+    const fb = this.fb;
+    let ym1 = this.ym1;
+
     for (let i = 0; i < len; i++) {
-      if (++this.count % this.mod === 0) {
+      if (++count >= mod) {
         this.lfoPos = (this.lfoPos + 1) & 0x7ff;
-        this.count = 0;
-        const d = this.lfoTbl[this.lfoPos] * this.lfoDepth;
-        this.ap[0].setDelay(d);
-        let ofs = this.spread * 0.01562;
+        count = 0;
+        const d = lfoTbl[this.lfoPos] * lfoDepth;
+        ap[0].setDelay(d);
+        let ofs = spreadConst;
         for (let j = 1; j < 6; j++) {
-          this.ap[j].setDelay(d + ofs);
+          ap[j].setDelay(d + ofs);
           ofs *= 2.0;
         }
       }
 
-      let y = this.ap[0].run(samples[i] + this.ym1 * this.fb);
-      for (let j = 1; j < 6; j++) y = this.ap[j].run(y);
-      this.ym1 = y;
+      let y = ap[0].run(samples[i] + ym1 * fb);
+      for (let j = 1; j < 6; j++) y = ap[j].run(y);
+      ym1 = y;
       samples[i] = y !== y ? 0 : y;
     }
+    this.count = count;
+    this.ym1 = ym1;
   }
 }
 
@@ -481,22 +501,32 @@ export class AutoPhaserFilter extends BaseDspFilter {
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;
+    const ap = this.ap;
+    const env = this.env;
+    const depth = this.depth;
+    const spreadConst = this.spread * 0.01562;
+    const fb = this.fb;
+    let ym1 = this.ym1;
+    let count = this.count;
+
     for (let i = 0; i < len; i++) {
       const s = samples[i];
-      if (this.count++ % 4 === 0) {
-        const d = this.env.run(s) * this.depth;
-        this.ap[0].setDelay(d);
-        let ofs = this.spread * 0.01562;
+      if ((count++ & 3) === 0) {
+        const d = env.run(s) * depth;
+        ap[0].setDelay(d);
+        let ofs = spreadConst;
         for (let j = 1; j < 6; j++) {
-          this.ap[j].setDelay(d + ofs);
+          ap[j].setDelay(d + ofs);
           ofs *= 2.0;
         }
       }
-      let y = this.ap[0].run(s + this.ym1 * this.fb);
-      for (let j = 1; j < 6; j++) y = this.ap[j].run(y);
-      this.ym1 = y;
+      let y = ap[0].run(s + ym1 * fb);
+      for (let j = 1; j < 6; j++) y = ap[j].run(y);
+      ym1 = y;
       samples[i] = y !== y ? 0 : y;
     }
+    this.count = count;
+    this.ym1 = ym1;
   }
 }
 
@@ -508,7 +538,6 @@ export class TapAutopanFilter extends BaseDspFilter {
   phaseStep = 10.0;
 
   private phase = 0.0;
-  private sidx = 0;
   private cosTable = new Float32Array(1024);
 
   constructor(sampleRate: number = 44100) {
@@ -521,7 +550,6 @@ export class TapAutopanFilter extends BaseDspFilter {
 
   init(): void {
     this.phase = 0.0;
-    this.sidx = 0;
   }
 
   randomize(): void {
@@ -553,24 +581,30 @@ export class TapAutopanFilter extends BaseDspFilter {
     const gLinear = this.gain > -90.0 ? Math.pow(10.0, this.gain * 0.05) : 0.0;
     const dNorm = this.depth / 100.0;
     const pStep = 1.0 / Math.max(1e-6, this.phaseStep);
+    const cosTbl = this.cosTable;
+
+    const phaseInc = (1024.0 * this.freq) / this.sampleRate + pStep;
+    let ph = this.phase;
+
+    const baseMod = gLinear * (1 - 0.5 * dNorm);
+    const modScale = gLinear * (0.5 * dNorm);
 
     for (let i = 0; i < len; i += 2) {
-      let phaseL = ((1024.0 * this.freq * this.sidx) / this.sampleRate + this.phase) % 1024.0;
-      let phaseR = (phaseL + 512.0) % 1024.0;
+      const idxL = (ph | 0) & 1023;
+      const idxR = (idxL + 512) & 1023;
 
-      const idxL = Math.floor(phaseL) & 1023;
-      const idxR = Math.floor(phaseR) & 1023;
-
-      const leftMod = gLinear * (1 - 0.5 * dNorm + 0.5 * dNorm * this.cosTable[idxL]);
-      const rightMod = gLinear * (1 - 0.5 * dNorm + 0.5 * dNorm * this.cosTable[idxR]);
+      const leftMod = baseMod + modScale * cosTbl[idxL];
+      const rightMod = baseMod + modScale * cosTbl[idxR];
 
       samples[i] *= leftMod;
       if (i + 1 < len) {
         samples[i + 1] *= rightMod;
       }
 
-      this.phase = (this.phase + pStep) % 1024.0;
-      this.sidx++;
+      ph += phaseInc;
+      if (ph >= 1024.0) ph -= 1024.0;
     }
+
+    this.phase = ph;
   }
 }

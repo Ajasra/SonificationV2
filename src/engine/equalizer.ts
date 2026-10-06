@@ -71,10 +71,13 @@ export function equalizeHistogram(rgba: Uint8ClampedArray): void {
     mapB[i] = clamp8(((mapB[i] - minB) / rangeB) * 255);
   }
 
-  // Fast mapping pass
-  for (let i = 0; i < len; i += 4) {
-    rgba[i] = mapR[rgba[i]];
-    rgba[i + 1] = mapG[rgba[i + 1]];
-    rgba[i + 2] = mapB[rgba[i + 2]];
+  // Fast 32-bit mapping pass (1 load, 3 lookups, 1 store per pixel, preserves alpha)
+  const in32 = new Uint32Array(rgba.buffer, rgba.byteOffset, numPixels);
+  for (let i = 0; i < numPixels; i++) {
+    const pix = in32[i];
+    const r = mapR[pix & 0xff];
+    const g = mapG[(pix >> 8) & 0xff];
+    const b = mapB[(pix >> 16) & 0xff];
+    in32[i] = (pix & 0xff000000) | (b << 16) | (g << 8) | r;
   }
 }
