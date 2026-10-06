@@ -347,20 +347,31 @@ class SonificationApp {
       this.requestRender();
     };
 
-    // File input
+    // File input (Image)
     const fileInput = document.getElementById('input-file') as HTMLInputElement;
     fileInput.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) this.loadImageFromFile(file);
     };
 
-    // Drag and drop image
+    // File input (Video)
+    const videoFileInput = document.getElementById('input-video-file') as HTMLInputElement;
+    videoFileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) this.loadVideoFromFile(file);
+    };
+
+    // Drag and drop image or video
     window.addEventListener('dragover', (e) => e.preventDefault());
     window.addEventListener('drop', (e) => {
       e.preventDefault();
       const file = e.dataTransfer?.files?.[0];
-      if (file && file.type.startsWith('image/')) {
-        this.loadImageFromFile(file);
+      if (file) {
+        if (file.type.startsWith('video/')) {
+          this.loadVideoFromFile(file);
+        } else if (file.type.startsWith('image/')) {
+          this.loadImageFromFile(file);
+        }
       }
     });
 
@@ -369,6 +380,7 @@ class SonificationApp {
     const btnFlipCamera = document.getElementById('btn-flip-camera') as HTMLButtonElement;
 
     btnCamera.onclick = async () => {
+      this.stopVideoFile();
       if (this.cameraManager.isActive()) {
         this.cameraManager.stop();
         btnCamera.textContent = '📹 Live Camera';
@@ -440,7 +452,58 @@ class SonificationApp {
     };
   }
 
+  private stopVideoFile(): void {
+    if (this.loadedVideoElement) {
+      this.loadedVideoElement.pause();
+      this.loadedVideoElement.src = '';
+      this.loadedVideoElement = null;
+    }
+  }
+
+  private loadedVideoElement: HTMLVideoElement | null = null;
+
+  private loadVideoFromFile(file: File): void {
+    this.cameraManager.stop();
+    document.getElementById('btn-toggle-camera')!.textContent = '📹 Live Camera';
+    document.getElementById('btn-toggle-camera')!.classList.remove('btn-primary');
+    document.getElementById('btn-flip-camera')!.classList.add('hidden');
+
+    this.stopVideoFile();
+
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = () => {
+      video.play();
+      this.loadedVideoElement = video;
+      this.startVideoFileLoop();
+    };
+  }
+
+  private startVideoFileLoop(): void {
+    const loop = () => {
+      if (this.loadedVideoElement && !this.loadedVideoElement.paused) {
+        const v = this.loadedVideoElement;
+        if (this.canvas.width !== v.videoWidth || this.canvas.height !== v.videoHeight) {
+          this.canvas.width = v.videoWidth || 640;
+          this.canvas.height = v.videoHeight || 480;
+        }
+        this.ctx.drawImage(v, 0, 0, this.canvas.width, this.canvas.height);
+        this.inputImageBuffer = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        this.processAndBlit();
+        this.animFrameId = requestAnimationFrame(loop);
+      }
+    };
+    if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+    this.animFrameId = requestAnimationFrame(loop);
+  }
+
   private loadImageFromFile(file: File): void {
+    this.stopVideoFile();
     const img = new Image();
     img.onload = () => {
       this.cameraManager.stop();
