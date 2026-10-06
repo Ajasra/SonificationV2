@@ -189,6 +189,28 @@ body.studio-theme {
   gap: 6px;
 }
 
+.hero-meta-clickable {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.hero-meta-clickable:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-mid);
+}
+
+.hero-meta-clickable:hover .meta-val {
+  color: var(--accent-phosphor);
+}
+
+.hero-meta-clickable:active {
+  transform: translateY(1px);
+}
+
 .meta-label {
   font-size: 0.65rem;
   letter-spacing: 0.12em;
@@ -251,24 +273,127 @@ body.studio-theme {
 
 .viewport-label-group {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.view-tag {
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  align-items: center;
+  gap: 14px;
 }
 
 .view-meta {
   font-size: 0.72rem;
+  letter-spacing: 0.06em;
   color: var(--accent-phosphor);
+  font-weight: 600;
+}
+
+.perf-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  border-left: 1px solid var(--border-mid);
+  padding-left: 14px;
 }
 
 .viewport-tools {
   display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Live Camera-Style Recording Timer */
+.rec-timer-badge {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  background: #1a080a;
+  border: 1px solid #5a1920;
+  color: #ff8b94;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.rec-blink-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red);
+  animation: blink-rec 0.9s infinite alternate;
+}
+
+@keyframes blink-rec {
+  from { opacity: 1; transform: scale(1.1); }
+  to { opacity: 0.2; transform: scale(0.8); }
+}
+
+/* Compact Hardware REC Button */
+.btn-rec-compact {
+  background: #240c10;
+  border: 1px solid #521820;
+  color: #ff8b94;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-rec-compact:hover {
+  border-color: #ff4d61;
+}
+
+.btn-rec-compact.recording {
+  background: #420f16;
+  border-color: #ff3344;
+  box-shadow: 0 0 8px rgba(255, 51, 68, 0.4);
+}
+
+/* Compact Hardware Shutter Button */
+.btn-shutter-compact {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shutter-bezel-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-bright);
+  background: radial-gradient(circle, #252e22 0%, #121611 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  transition: all 0.1s ease;
+}
+
+.btn-shutter-compact:hover .shutter-bezel-sm {
+  border-color: var(--accent-phosphor);
+  transform: scale(1.05);
+}
+
+.btn-shutter-compact:active .shutter-bezel-sm {
+  transform: scale(0.92);
+}
+
+.shutter-core-sm {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
 .tool-btn {
@@ -343,54 +468,16 @@ body.studio-theme {
   font-size: 1.1rem;
 }
 
-/* Telemetry Status Bar */
-.viewport-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 16px;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-darkest);
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-}
-
-.status-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-led {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.led-green {
-  background: var(--accent-phosphor);
-  box-shadow: 0 0 5px var(--accent-phosphor);
-}
-
-.perf-badge {
-  color: var(--accent-phosphor);
-}
-
-.pcb-sig {
-  color: var(--accent-copper);
-}
 
 /* Viewport Transport / Hardware Toolbar (Sound Devices Field Recorder Style) */
 .viewport-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 10px 16px;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
-  gap: 12px;
+  gap: 20px;
 }
 
 .toolbar-cluster {
@@ -714,6 +801,86 @@ body.studio-theme {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* Collapsible Rack Cards */
+.collapsible-card .rack-card-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapsible-card .rack-card-header:hover .card-title {
+  color: var(--accent-phosphor);
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-collapse-toggle {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-collapse-toggle:hover {
+  color: var(--accent-phosphor);
+  border-color: var(--accent-phosphor);
+}
+
+.card-collapse-body {
+  transition: opacity 0.2s ease;
+}
+
+.collapsible-card.is-collapsed {
+  padding-bottom: 8px;
+}
+
+.collapsible-card.is-collapsed .card-collapse-body {
+  display: none;
+}
+
+.collapsible-card.is-collapsed .rack-card-header {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.collapsible-card.is-collapsed .btn-collapse-toggle {
+  transform: rotate(-90deg);
+}
+
+/* 00 / Input Controls Grid */
+.input-controls-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 01 / Sound Module Controls */
+.sound-rack-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+
 .card-title {
   font-size: 0.75rem;
   font-weight: 700;
@@ -758,6 +925,67 @@ body.studio-theme {
 
 .select-block {
   width: 100%;
+}
+
+/* Preset Description & Action Bar */
+.preset-desc-box {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-desc-textarea {
+  background: var(--bg-darkest);
+  color: var(--text-primary);
+  border: 1px solid var(--border-mid);
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  border-radius: 2px;
+  resize: vertical;
+  min-height: 48px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.preset-desc-textarea:focus {
+  border-color: var(--accent-phosphor);
+}
+
+.preset-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.preset-actions-bar .btn-hw {
+  flex: 1;
+  justify-content: center;
+  font-size: 0.7rem;
+  padding: 5px 8px;
+}
+
+.btn-hw-danger {
+  background: #231214;
+  border-color: #551c22;
+  color: #ff8b94;
+}
+
+.btn-hw-danger:hover {
+  background: #38151a;
+  border-color: #ff4757;
+  color: #ff4757;
+}
+
+.btn-hw-danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+  background: transparent;
 }
 
 .toggle-field {

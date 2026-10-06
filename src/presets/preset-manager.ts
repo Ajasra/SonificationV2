@@ -47,6 +47,19 @@ export class PresetManager {
     this.persistUserPresets();
   }
 
+  deletePreset(id: string): boolean {
+    const idx = this.presets.findIndex((p) => p.id === id);
+    if (idx === -1) return false;
+    // Remove from in-memory array
+    this.presets.splice(idx, 1);
+    this.persistUserPresets();
+    return true;
+  }
+
+  isFactoryPreset(id: string): boolean {
+    return FACTORY_PRESETS.some((fp) => fp.id === id);
+  }
+
   private persistUserPresets(): void {
     try {
       const userOnly = this.presets.filter(

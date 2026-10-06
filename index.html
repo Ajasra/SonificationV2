@@ -58,20 +58,20 @@
             <span class="meta-label">PATCH</span>
             <span id="study-number" class="meta-val-accent">01</span>
           </div>
-          <div class="hero-meta-item">
+          <div class="hero-meta-item hero-meta-clickable" id="btn-hero-seed" title="Click to randomize patch seed">
             <span class="meta-label">SEED</span>
             <span id="patch-seed" class="meta-val">4821</span>
           </div>
-          <div class="hero-meta-item">
+          <div class="hero-meta-item hero-meta-clickable" id="btn-hero-bus" title="Click to toggle DAC bus sample rate (8kHz, 11kHz, 22kHz, 32kHz, 44.1kHz, 48kHz, 96kHz)">
             <span class="meta-label">BUS</span>
-            <span class="meta-val">44.1 kHz</span>
+            <span id="bus-rate" class="meta-val">44.1 kHz</span>
           </div>
         </div>
       </section>
 
       <!-- Main Workspace (Spacious Left Control Rack + Right Fitted Viewport) -->
       <main class="workspace-grid">
-        <!-- Left Panel: Eurorack Modular DSP & Stream Architecture (Bigger, more controls) -->
+        <!-- Left Panel: Modular Eurorack Hardware Console (Collapsible Modules) -->
         <aside class="sidebar-rack-panel">
           <!-- PCB Header Silkscreen -->
           <div class="rack-silkscreen-bar">
@@ -80,100 +80,205 @@
             <span>GND ⊕</span>
           </div>
 
-          <!-- Presets & Study Selection -->
-          <div class="rack-card preset-card">
-            <div class="rack-card-header">
-              <div class="card-title">01 / PRESET MATRIX <span class="card-subtitle">Active Study</span></div>
-              <button id="btn-save-custom-preset" class="btn-hw btn-hw-secondary btn-sm">+ Save Study</button>
+          <!-- 00 / INPUT Module -->
+          <div class="rack-card collapsible-card" id="card-input">
+            <div class="rack-card-header" data-toggle="collapse">
+              <div class="card-title">00 / INPUT <span class="card-subtitle">Media & Sensor Source</span></div>
+              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
             </div>
-            <div class="preset-selector-row">
-              <select id="select-preset" class="select-hw select-block"></select>
-            </div>
-          </div>
-
-          <!-- Stream & Color Topology Architecture -->
-          <div class="rack-card generator-card">
-            <div class="rack-card-header">
-              <div class="card-title">02 / TOPOLOGY <span class="card-subtitle">Stream & Color Architecture</span></div>
-            </div>
-
-            <div class="generator-controls">
-              <div class="hw-field">
-                <label class="hw-label">COLOR SPACE</label>
-                <select id="select-colorspace" class="select-hw select-block">
-                  <option value="RGB">RGB (Linear Byte Map)</option>
-                  <option value="LAB">LAB (Perceptual Opponent)</option>
-                  <option value="LUV">LUV (Uniform Chromaticity)</option>
-                  <option value="HCL">HCL (Chroma & Hue Polarity)</option>
-                  <option value="XYZ">XYZ (CIE Colorimetric Tristimulus)</option>
-                  <option value="YXY">Yxy (Luminance Chromaticity)</option>
-                  <option value="CMY">CMY (Subtractive Print Dyes)</option>
-                  <option value="OHTA">OHTA (Decoupled Color Variance)</option>
-                </select>
-              </div>
-
-              <div class="hw-field-row">
-                <div class="hw-field">
-                  <label class="hw-label">TOPOLOGY</label>
-                  <select id="select-rawtype" class="select-hw">
-                    <option value="PLANAR">Planar (Color Sweeps)</option>
-                    <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
-                  </select>
-                </div>
-
-                <div class="hw-field">
-                  <label class="hw-label">BIT DEPTH</label>
-                  <select id="select-bitdepth" class="select-hw">
-                    <option value="8">8-bit</option>
-                    <option value="16">16-bit</option>
-                    <option value="24">24-bit</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="hw-field-row">
-                <div class="hw-field">
-                  <label class="hw-label">COMPANDING LAW</label>
-                  <select id="select-law" class="select-hw">
-                    <option value="A_LAW">A-Law (Europe G.711)</option>
-                    <option value="U_LAW">μ-Law (USA G.711)</option>
-                    <option value="NONE">Linear (None)</option>
-                  </select>
-                </div>
-
-                <div class="hw-field toggle-field">
-                  <label class="hw-label">HISTOGRAM</label>
-                  <label class="hw-toggle-switch">
-                    <input type="checkbox" id="check-equalize" checked />
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-text">Equalize</span>
+            <div class="card-collapse-body">
+              <div class="input-controls-grid">
+                <div class="input-btn-row">
+                  <label class="btn-hw btn-hw-primary file-label" title="Load Still Image">
+                    <span>Open image</span>
+                    <input type="file" id="input-file" accept="image/*" hidden />
                   </label>
+                  <label class="btn-hw btn-hw-secondary file-label" title="Load Video">
+                    <span>Open video</span>
+                    <input type="file" id="input-video-file" accept="video/*" hidden />
+                  </label>
+                  <button id="btn-toggle-camera" class="btn-hw btn-hw-secondary" title="Live Camera Feed">
+                    Live camera
+                  </button>
+                  <button id="btn-flip-camera" class="btn-hw btn-hw-icon hidden" title="Flip Camera">
+                    Flip
+                  </button>
+                </div>
+                <div class="hw-field" style="margin-top: 8px;">
+                  <label class="hw-label">PREVIEW RESOLUTION</label>
+                  <select id="select-resolution" class="select-hw select-block" title="Live Preview Resolution">
+                    <option value="360p">360p (Fast)</option>
+                    <option value="480p" selected>480p (Balanced)</option>
+                    <option value="720p">720p (HD)</option>
+                    <option value="native">Native (Full RAW)</option>
+                  </select>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Modular DSP Rack with Rotary Knobs -->
-          <div class="rack-card modular-chain-card">
-            <div class="rack-card-header">
-              <div class="card-title">03 / DSP RACK <span class="card-subtitle">Modular Processing Chain</span></div>
-              <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-sm">+ Add Module</button>
+          <!-- 01 / SOUND Module -->
+          <div class="rack-card collapsible-card" id="card-sound">
+            <div class="rack-card-header" data-toggle="collapse">
+              <div class="card-title">01 / SOUND <span class="card-subtitle">Transducer & Master Gain</span></div>
+              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
             </div>
+            <div class="card-collapse-body">
+              <div class="sound-rack-controls">
+                <button id="btn-toggle-audio" class="btn-audio-hw" title="Toggle Sound Output">
+                  <span class="audio-led"></span>
+                  <span id="audio-btn-label">AUDIO: MUTED</span>
+                </button>
+                <div id="master-gain-knob-slot" class="master-knob-slot"></div>
+                <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.5" hidden />
+              </div>
+            </div>
+          </div>
 
-            <!-- Filter modules with rotary knobs -->
-            <div id="filter-rack-container" class="filter-rack-stack"></div>
+          <!-- 02 / PRESET MATRIX Module -->
+          <div class="rack-card collapsible-card" id="card-preset">
+            <div class="rack-card-header" data-toggle="collapse">
+              <div class="card-title">02 / PRESET MATRIX <span class="card-subtitle">Active Study</span></div>
+              <div class="header-action-group">
+                <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+              </div>
+            </div>
+            <div class="card-collapse-body">
+              <div class="preset-selector-row">
+                <select id="select-preset" class="select-hw select-block"></select>
+              </div>
+
+              <!-- Editable Preset Description -->
+              <div class="preset-desc-box">
+                <label class="hw-label" for="input-preset-desc">STUDY DESCRIPTION / NOTES</label>
+                <textarea id="input-preset-desc" class="preset-desc-textarea" rows="2" placeholder="Study description and sonic notes..."></textarea>
+              </div>
+
+              <!-- Study Actions: Save As New, Update Existing, Delete -->
+              <div class="preset-actions-bar">
+                <button id="btn-preset-save" class="btn-hw btn-hw-primary btn-sm" title="Save current settings as a new custom study">
+                  + Save New
+                </button>
+                <button id="btn-preset-update" class="btn-hw btn-hw-secondary btn-sm" title="Update the selected study with current settings and description">
+                  Update
+                </button>
+                <button id="btn-preset-delete" class="btn-hw btn-hw-danger btn-sm" title="Delete this custom study">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 03 / TOPOLOGY Module -->
+          <div class="rack-card collapsible-card" id="card-topology">
+            <div class="rack-card-header" data-toggle="collapse">
+              <div class="card-title">03 / TOPOLOGY <span class="card-subtitle">Stream & Color Architecture</span></div>
+              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+            </div>
+            <div class="card-collapse-body">
+              <div class="generator-controls">
+                <div class="hw-field">
+                  <label class="hw-label">COLOR SPACE</label>
+                  <select id="select-colorspace" class="select-hw select-block">
+                    <option value="RGB">RGB (Linear Byte Map)</option>
+                    <option value="LAB">LAB (Perceptual Opponent)</option>
+                    <option value="LUV">LUV (Uniform Chromaticity)</option>
+                    <option value="HCL">HCL (Chroma & Hue Polarity)</option>
+                    <option value="XYZ">XYZ (CIE Colorimetric Tristimulus)</option>
+                    <option value="YXY">Yxy (Luminance Chromaticity)</option>
+                    <option value="CMY">CMY (Subtractive Print Dyes)</option>
+                    <option value="OHTA">OHTA (Decoupled Color Variance)</option>
+                  </select>
+                </div>
+
+                <div class="hw-field-row">
+                  <div class="hw-field">
+                    <label class="hw-label">TOPOLOGY</label>
+                    <select id="select-rawtype" class="select-hw">
+                      <option value="PLANAR">Planar (Color Sweeps)</option>
+                      <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
+                    </select>
+                  </div>
+
+                  <div class="hw-field">
+                    <label class="hw-label">BIT DEPTH</label>
+                    <select id="select-bitdepth" class="select-hw">
+                      <option value="8">8-bit</option>
+                      <option value="16">16-bit</option>
+                      <option value="24">24-bit</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="hw-field-row">
+                  <div class="hw-field">
+                    <label class="hw-label">COMPANDING LAW</label>
+                    <select id="select-law" class="select-hw">
+                      <option value="A_LAW">A-Law (Europe G.711)</option>
+                      <option value="U_LAW">μ-Law (USA G.711)</option>
+                      <option value="NONE">Linear (None)</option>
+                    </select>
+                  </div>
+
+                  <div class="hw-field toggle-field">
+                    <label class="hw-label">HISTOGRAM</label>
+                    <label class="hw-toggle-switch">
+                      <input type="checkbox" id="check-equalize" checked />
+                      <span class="toggle-slider"></span>
+                      <span class="toggle-text">Equalize</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 04 / DSP RACK Module -->
+          <div class="rack-card collapsible-card modular-chain-card" id="card-dsp">
+            <div class="rack-card-header" data-toggle="collapse">
+              <div class="card-title">04 / DSP RACK <span class="card-subtitle">Modular Processing Chain</span></div>
+              <div class="header-action-group">
+                <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-sm">+ Add Module</button>
+                <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+              </div>
+            </div>
+            <div class="card-collapse-body">
+              <div id="filter-rack-container" class="filter-rack-stack"></div>
+            </div>
           </div>
         </aside>
 
         <!-- Right Panel: Viewport Area (Max 2/3 of screen, fits all resolutions cleanly) -->
         <section class="viewport-card">
-          <!-- Viewport Bar -->
+          <!-- Viewport Bar (Top of Preview Window) -->
           <div class="viewport-header">
             <div class="viewport-label-group">
-              <span class="view-tag">LIVE SENSOR MONITOR</span>
-              <span id="status-resolution" class="view-meta">640 × 480</span>
+              <span id="status-resolution" class="view-meta">MODEL RESOLUTION 640 × 480</span>
+              <span id="perf-badge" class="perf-badge">-- FPS | -- ms</span>
             </div>
+
+            <!-- Top-Right Viewport Controls (Recording Timer, REC, Shutter, Tools) -->
             <div class="viewport-tools">
+              <!-- Live Camera-style Recording Timer -->
+              <div id="rec-timer-badge" class="rec-timer-badge hidden">
+                <span class="rec-blink-dot"></span>
+                <span id="rec-time-display">00:00</span>
+              </div>
+
+              <!-- Compact Hardware REC Button -->
+              <button id="btn-record-video" class="btn-rec-compact" title="Record Full-Resolution Video">
+                <span class="rec-led"></span>
+                <span id="rec-btn-text">REC</span>
+              </button>
+
+              <!-- Compact Hardware Shutter Button -->
+              <button id="btn-shutter" class="btn-shutter-compact" title="Snapshot Photo (Full Resolution)">
+                <div class="shutter-bezel-sm">
+                  <div class="shutter-core-sm"></div>
+                </div>
+              </button>
+
+              <!-- Viewport Framing Tools -->
               <button id="btn-reset-view" class="tool-btn" title="Reset Frame">⟳</button>
               <button id="btn-fullscreen" class="tool-btn" title="Fullscreen">⛶</button>
             </div>
@@ -190,78 +295,6 @@
 
             <div id="drop-overlay" class="drop-overlay hidden">
               <span>Drop Image or Video Here</span>
-            </div>
-          </div>
-
-          <!-- Telemetry Status Bar -->
-          <div class="viewport-status-bar">
-            <div class="status-left">
-              <span class="status-led led-green"></span>
-              <span id="status-engine-text">ENGINE ACTIVE</span>
-            </div>
-            <div class="status-center">
-              <span id="perf-badge" class="perf-badge">-- FPS | -- ms</span>
-            </div>
-            <div class="status-right">
-              <span class="pcb-sig">[SIG_OK • 32-BIT FLOAT]</span>
-            </div>
-          </div>
-
-          <!-- Hardware Transport & I/O Bar (Sound Devices style) -->
-          <div class="viewport-toolbar">
-            <!-- Source Inputs -->
-            <div class="toolbar-cluster source-cluster">
-              <label class="btn-hw btn-hw-primary file-label" title="Load Still Image">
-                <span>Open image</span>
-                <input type="file" id="input-file" accept="image/*" hidden />
-              </label>
-              <label class="btn-hw btn-hw-secondary file-label" title="Load Video">
-                <span>Open video</span>
-                <input type="file" id="input-video-file" accept="video/*" hidden />
-              </label>
-              <button id="btn-toggle-camera" class="btn-hw btn-hw-secondary" title="Live Camera Feed">
-                Live camera
-              </button>
-              <button id="btn-flip-camera" class="btn-hw btn-hw-icon hidden" title="Flip Camera">
-                Flip
-              </button>
-              <select id="select-resolution" class="select-hw" title="Live Preview Resolution">
-                <option value="360p">360p (Fast)</option>
-                <option value="480p" selected>480p (Balanced)</option>
-                <option value="720p">720p (HD)</option>
-                <option value="native">Native (Full RAW)</option>
-              </select>
-            </div>
-
-            <!-- Shutter & REC Capture -->
-            <div class="toolbar-cluster capture-cluster">
-              <button id="btn-shutter" class="btn-shutter-hw" title="Snapshot Photo (Full Resolution)">
-                <div class="shutter-bezel">
-                  <div class="shutter-core"></div>
-                </div>
-                <span class="shutter-label">SHUTTER</span>
-              </button>
-
-              <button id="btn-record-video" class="btn-record-hw" title="Record Full-Resolution Video">
-                <span class="rec-led"></span>
-                <span>REC</span>
-              </button>
-            </div>
-
-            <!-- Master Audio Transducer Section -->
-            <div class="toolbar-cluster audio-cluster">
-              <button id="btn-toggle-audio" class="btn-audio-hw" title="Toggle Sound Output">
-                <span class="audio-led"></span>
-                <span id="audio-btn-label">AUDIO: MUTED</span>
-              </button>
-
-              <!-- Master Volume Rotary Knob -->
-              <div id="master-gain-knob-slot" class="master-knob-slot"></div>
-              <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.5" hidden />
-
-              <button id="btn-save-image" class="btn-hw btn-hw-save" title="Export Full-Resolution PNG">
-                Save frame
-              </button>
             </div>
           </div>
         </section>

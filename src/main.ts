@@ -28,6 +28,10 @@ class SonificationApp {
   private perfBadge = document.getElementById('perf-badge') as HTMLDivElement;
 
   private selectPreset = document.getElementById('select-preset') as HTMLSelectElement;
+  private inputPresetDesc = document.getElementById('input-preset-desc') as HTMLTextAreaElement;
+  private btnPresetSave = document.getElementById('btn-preset-save') as HTMLButtonElement;
+  private btnPresetUpdate = document.getElementById('btn-preset-update') as HTMLButtonElement;
+  private btnPresetDelete = document.getElementById('btn-preset-delete') as HTMLButtonElement;
   private selectColorSpace = document.getElementById('select-colorspace') as HTMLSelectElement;
   private selectRawType = document.getElementById('select-rawtype') as HTMLSelectElement;
   private selectBitDepth = document.getElementById('select-bitdepth') as HTMLSelectElement;
@@ -42,13 +46,27 @@ class SonificationApp {
   private addFilterModal = document.getElementById('add-filter-modal') as HTMLDivElement;
   private filterLibraryList = document.getElementById('filter-library-list') as HTMLDivElement;
 
-  // Editorial Elements
+  // Editorial & Hardware Telemetry Elements
   private fieldNoteTitle = document.getElementById('field-note-title');
   private fieldNoteDesc = document.getElementById('field-note-desc');
   private studyNumber = document.getElementById('study-number');
   private patchSeed = document.getElementById('patch-seed');
+  private busRate = document.getElementById('bus-rate');
   private statusSeedCode = document.getElementById('status-seed-code');
   private statusResolution = document.getElementById('status-resolution');
+
+  // Interactive Seed and DAC Bus Clock
+  private currentSeed = 4821;
+  private static readonly BUS_RATES: { label: string; rate: number }[] = [
+    { label: '8.0 kHz', rate: 8000 },
+    { label: '11.0 kHz', rate: 11025 },
+    { label: '22.05 kHz', rate: 22050 },
+    { label: '32.0 kHz', rate: 32000 },
+    { label: '44.1 kHz', rate: 44100 },
+    { label: '48.0 kHz', rate: 48000 },
+    { label: '96.0 kHz', rate: 96000 },
+  ];
+  private currentBusIndex = 4; // default: 44.1 kHz
 
   // Master Volume Rotary Knob
   private masterGainKnob!: RotaryKnob;
@@ -67,7 +85,7 @@ class SonificationApp {
     this.initPreset();
     this.initCanvasPlaceholder();
     this.initMasterKnob();
-    this.initDarkroomLogs();
+    this.initCollapsibleCards();
     this.bindEvents();
     this.renderFilterRack();
     this.renderFilterLibrary();
@@ -163,7 +181,21 @@ class SonificationApp {
     this.selectBitDepth.value = String(this.activePreset.reader.bits);
     this.selectLaw.value = this.activePreset.reader.law;
     this.checkEqualize.checked = this.activePreset.equalize;
+    if (this.inputPresetDesc) {
+      this.inputPresetDesc.value = this.activePreset.description || '';
+    }
+    this.updatePresetButtonsState();
     this.updateEditorialHeaders();
+  }
+
+  private updatePresetButtonsState(): void {
+    const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
+    if (this.btnPresetDelete) {
+      this.btnPresetDelete.disabled = isFactory;
+      this.btnPresetDelete.title = isFactory
+        ? 'Factory studies cannot be deleted'
+        : 'Delete this custom study';
+    }
   }
 
   private renderPresetDropdown(): void {
@@ -177,6 +209,7 @@ class SonificationApp {
       opt.selected = p.id === this.activePreset.id;
       this.selectPreset.appendChild(opt);
     }
+    this.updatePresetButtonsState();
   }
 
   private renderFilterRack(): void {
@@ -322,7 +355,7 @@ class SonificationApp {
       }
     });
 
-    // Preset dropdown
+    // Preset dropdown selection
     this.selectPreset.onchange = () => {
       const found = this.presetManager.getPresetById(this.selectPreset.value);
       if (found) {
@@ -333,17 +366,100 @@ class SonificationApp {
       }
     };
 
-    // Save custom preset
-    document.getElementById('btn-save-custom-preset')!.onclick = () => {
-      const name = prompt('Preset Name:', 'Custom Glitch');
-      if (name) {
-        this.activePreset.id = 'usr_' + Date.now();
-        this.activePreset.name = name;
+    // Preset description editing
+    if (this.inputPresetDesc) {
+      this.inputPresetDesc.oninput = () => {
+        this.activePreset.description = this.inputPresetDesc.value;
+        if (this.fieldNoteDesc) {
+          this.fieldNoteDesc.textContent = this.activePreset.description;
+        }
+      };
+    }
+
+    // Save as New custom study
+    if (this.btnPresetSave) {
+      this.btnPresetSave.onclick = () => {
+        const defaultName = this.activePreset.name.endsWith('(Copy)') 
+          ? this.activePreset.name 
+          : `${this.activePreset.name} (Copy)`;
+        const name = prompt('New Study Name:', defaultName);
+        if (name && name.trim()) {
+          const newPreset: SonificationPreset = JSON.parse(JSON.stringify(this.activePreset));
+          newPreset.id = 'usr_' + Date.now();
+          newPreset.name = name.trim();
+          newPreset.description = this.inputPresetDesc ? this.inputPresetDesc.value : (newPreset.description || '');
+          this.activePreset = newPreset;
+          this.presetManager.savePreset(this.activePreset);
+          this.renderPresetDropdown();
+          this.updateEditorialHeaders();
+        }
+      };
+    }
+
+    // Update current active study
+    if (this.btnPresetUpdate) {
+      this.btnPresetUpdate.onclick = () => {
+        const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
+        if (isFactory) {
+          // If trying to overwrite a factory preset, prompt user to save as a custom study
+          const newName = prompt(
+            'Factory studies are read-only. Enter a name to save as your custom study:',
+            `${this.activePreset.name} (Custom)`
+          );
+          if (newName && newName.trim()) {
+            this.activePreset.id = 'usr_' + Date.now();
+            this.activePreset.name = newName.trim();
+            if (this.inputPresetDesc) {
+              this.activePreset.description = this.inputPresetDesc.value;
+            }
+            this.presetManager.savePreset(this.activePreset);
+            this.renderPresetDropdown();
+            this.updateEditorialHeaders();
+          }
+          return;
+        }
+
+        // Update custom preset in-place
+        if (this.inputPresetDesc) {
+          this.activePreset.description = this.inputPresetDesc.value;
+        }
         this.presetManager.savePreset(this.activePreset);
         this.renderPresetDropdown();
         this.updateEditorialHeaders();
-      }
-    };
+
+        // Visual flash feedback on the Update button
+        const prevText = this.btnPresetUpdate.textContent;
+        this.btnPresetUpdate.textContent = 'Updated ✓';
+        this.btnPresetUpdate.style.borderColor = 'var(--accent-phosphor)';
+        this.btnPresetUpdate.style.color = 'var(--accent-phosphor)';
+        setTimeout(() => {
+          this.btnPresetUpdate.textContent = prevText;
+          this.btnPresetUpdate.style.borderColor = '';
+          this.btnPresetUpdate.style.color = '';
+        }, 1200);
+      };
+    }
+
+    // Delete current custom study
+    if (this.btnPresetDelete) {
+      this.btnPresetDelete.onclick = () => {
+        const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
+        if (isFactory) {
+          alert('Factory studies cannot be deleted.');
+          return;
+        }
+
+        if (confirm(`Delete study "${this.activePreset.name}"?`)) {
+          this.presetManager.deletePreset(this.activePreset.id);
+          const remaining = this.presetManager.getAllPresets();
+          this.activePreset = JSON.parse(JSON.stringify(remaining[0]));
+          this.syncFormWithPreset();
+          this.renderFilterRack();
+          this.renderPresetDropdown();
+          this.requestRender();
+        }
+      };
+    }
 
     // Export & Import Series JSON
     document.getElementById('btn-export-series')?.addEventListener('click', () => {
@@ -414,7 +530,11 @@ class SonificationApp {
     if (this.selectResolution) {
       this.selectResolution.onchange = () => {
         this.liveResolution = this.selectResolution.value as '360p' | '480p' | '720p' | 'native';
-        this.requestRender();
+        if (this.loadedImageElement) {
+          this.refreshLoadedImage();
+        } else {
+          this.requestRender();
+        }
       };
     }
 
@@ -533,6 +653,7 @@ class SonificationApp {
 
     btnCamera.onclick = async () => {
       this.stopVideoFile();
+      this.loadedImageElement = null;
       if (this.cameraManager.isActive()) {
         this.cameraManager.stop();
         btnCamera.textContent = 'Live camera';
@@ -574,99 +695,65 @@ class SonificationApp {
       this.saveFullResolutionSnapshot();
     };
 
-    document.getElementById('btn-save-image')!.onclick = () => {
-      this.saveFullResolutionSnapshot();
-    };
-
-    // Video Recording — Switches to Full Resolution during recording
+    // Video Recording — Switches to Full Resolution during recording with live timer
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement;
+    const recText = document.getElementById('rec-btn-text');
+    const recTimerBadge = document.getElementById('rec-timer-badge');
+    const recTimeDisplay = document.getElementById('rec-time-display');
+    let recTimerInterval: number | null = null;
+    let recStartTime = 0;
+
     btnRec.onclick = async () => {
       if (!this.videoRecorder.getIsRecording()) {
-        const prevRes = this.liveResolution;
-        (btnRec as any)._prevRes = prevRes;
-
-        // Elevate to native full resolution for master video recording
-        this.liveResolution = 'native';
-        if (this.loadedImageElement) {
-          this.refreshLoadedImage();
-        } else {
-          this.requestRender();
-        }
-
-        this.videoRecorder.startRecording(this.canvas);
-        btnRec.innerHTML = '<span class="rec-led"></span><span>STOP</span>';
+        this.videoRecorder.startRecording(this.canvas, this.audioEngine.getAudioMediaStream());
         btnRec.classList.add('recording');
-      } else {
-        const blob = await this.videoRecorder.stopRecording();
-        btnRec.innerHTML = '<span class="rec-led"></span><span>REC</span>';
-        btnRec.classList.remove('recording');
+        if (recText) recText.textContent = 'STOP';
 
-        // Restore preview resolution
-        const prevRes = (btnRec as any)._prevRes || '480p';
-        this.liveResolution = prevRes;
-        if (this.loadedImageElement) {
-          this.refreshLoadedImage();
-        } else {
-          this.requestRender();
+        // Start live camera elapsed recording timer
+        recStartTime = Date.now();
+        recTimerBadge?.classList.remove('hidden');
+        if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
+
+        recTimerInterval = window.setInterval(() => {
+          const elapsedSec = Math.floor((Date.now() - recStartTime) / 1000);
+          const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+          const s = String(elapsedSec % 60).padStart(2, '0');
+          if (recTimeDisplay) recTimeDisplay.textContent = `${m}:${s}`;
+        }, 500);
+      } else {
+        if (recTimerInterval) {
+          clearInterval(recTimerInterval);
+          recTimerInterval = null;
         }
+        recTimerBadge?.classList.add('hidden');
+        if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
+
+        const { blob, ext } = await this.videoRecorder.stopRecording();
+        btnRec.classList.remove('recording');
+        if (recText) recText.textContent = 'REC';
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sonification_fullres_${Date.now()}.webm`;
+        a.download = `sonification_${Date.now()}.${ext}`;
         a.click();
       }
     };
   }
 
-  private initDarkroomLogs(): void {
-    const btnAdd = document.getElementById('btn-add-log-entry');
-    const inputBatch = document.getElementById('log-input-batch') as HTMLInputElement;
-    const inputExposure = document.getElementById('log-input-exposure') as HTMLInputElement;
-    const inputProcess = document.getElementById('log-input-process') as HTMLInputElement;
-    const inputResult = document.getElementById('log-input-result') as HTMLInputElement;
-    const list = document.getElementById('darkroom-log-entries');
-    const counter = document.getElementById('log-entry-count');
-
-    const STORAGE_LOG_KEY = 'sonification_v2_darkroom_log';
-    let logs: Array<{ batch: string; exposure: string; process: string; result: string; time: string }> = [];
-
-    try {
-      const saved = localStorage.getItem(STORAGE_LOG_KEY);
-      if (saved) logs = JSON.parse(saved);
-    } catch (_) {}
-
-    const renderLogs = () => {
-      if (!list) return;
-      list.innerHTML = '';
-      if (counter) counter.textContent = `${logs.length} ENTRIES`;
-      logs.slice(-4).reverse().forEach((l) => {
-        const div = document.createElement('div');
-        div.className = 'log-entry-item';
-        div.innerHTML = `<b>${l.time}</b> — ${l.batch || 'Batch'} | ${l.exposure || 'Direct'} | <em>${l.result || 'Active'}</em>`;
-        list.appendChild(div);
-      });
-    };
-
-    renderLogs();
-
-    btnAdd?.addEventListener('click', () => {
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      logs.push({
-        batch: inputBatch?.value || 'Study 01',
-        exposure: inputExposure?.value || '44.1 kHz / 32-bit',
-        process: inputProcess?.value || `${this.activePreset.reader.colorSpace} ${this.activePreset.reader.rawType}`,
-        result: inputResult?.value || 'Observed timbre harmonics',
-        time,
-      });
-      try {
-        localStorage.setItem(STORAGE_LOG_KEY, JSON.stringify(logs));
-      } catch (_) {}
-      if (inputBatch) inputBatch.value = '';
-      if (inputExposure) inputExposure.value = '';
-      if (inputProcess) inputProcess.value = '';
-      if (inputResult) inputResult.value = '';
-      renderLogs();
+  private initCollapsibleCards(): void {
+    const cards = document.querySelectorAll('.collapsible-card');
+    cards.forEach((card) => {
+      const header = card.querySelector('.rack-card-header');
+      if (header) {
+        header.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('button:not(.btn-collapse-toggle), select, input, label')) {
+            return;
+          }
+          card.classList.toggle('is-collapsed');
+        });
+      }
     });
   }
 
@@ -690,6 +777,7 @@ class SonificationApp {
     document.getElementById('btn-flip-camera')?.classList.add('hidden');
 
     this.stopVideoFile();
+    this.loadedImageElement = null;
 
     const video = document.createElement('video');
     video.src = URL.createObjectURL(file);
@@ -767,6 +855,27 @@ class SonificationApp {
     }
   }
 
+  private loadedImageElement: HTMLImageElement | null = null;
+
+  private refreshLoadedImage(): void {
+    if (!this.loadedImageElement) return;
+    const img = this.loadedImageElement;
+    const dims = this.getTargetDimensions(img.naturalWidth || img.width, img.naturalHeight || img.height);
+
+    if (this.offscreenCanvas.width !== dims.w || this.offscreenCanvas.height !== dims.h) {
+      this.offscreenCanvas.width = dims.w;
+      this.offscreenCanvas.height = dims.h;
+    }
+    if (this.canvas.width !== dims.w || this.canvas.height !== dims.h) {
+      this.canvas.width = dims.w;
+      this.canvas.height = dims.h;
+    }
+
+    this.offscreenCtx.drawImage(img, 0, 0, dims.w, dims.h);
+    this.inputImageBuffer = this.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
+    this.processAndBlit();
+  }
+
   private loadImageFromFile(file: File): void {
     this.stopVideoFile();
     const img = new Image();
@@ -779,16 +888,55 @@ class SonificationApp {
       }
       document.getElementById('btn-flip-camera')?.classList.add('hidden');
 
-      this.offscreenCanvas.width = img.width;
-      this.offscreenCanvas.height = img.height;
-      this.canvas.width = img.width;
-      this.canvas.height = img.height;
-
-      this.offscreenCtx.drawImage(img, 0, 0);
-      this.inputImageBuffer = this.offscreenCtx.getImageData(0, 0, img.width, img.height);
-      this.requestRender();
+      this.loadedImageElement = img;
+      this.refreshLoadedImage();
     };
     img.src = URL.createObjectURL(file);
+  }
+
+  private saveFullResolutionSnapshot(): void {
+    let fullW = this.canvas.width;
+    let fullH = this.canvas.height;
+    let sourceDrawable: CanvasImageSource = this.canvas;
+
+    if (this.loadedImageElement) {
+      fullW = this.loadedImageElement.naturalWidth || this.loadedImageElement.width;
+      fullH = this.loadedImageElement.naturalHeight || this.loadedImageElement.height;
+      sourceDrawable = this.loadedImageElement;
+    } else if (this.loadedVideoElement) {
+      fullW = this.loadedVideoElement.videoWidth || fullW;
+      fullH = this.loadedVideoElement.videoHeight || fullH;
+      sourceDrawable = this.loadedVideoElement;
+    } else if (this.cameraManager.isActive()) {
+      const cam = this.cameraManager.getVideoElement();
+      fullW = cam.videoWidth || fullW;
+      fullH = cam.videoHeight || fullH;
+      sourceDrawable = cam;
+    }
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = fullW;
+    exportCanvas.height = fullH;
+    const exportCtx = exportCanvas.getContext('2d', { willReadFrequently: true })!;
+    exportCtx.drawImage(sourceDrawable, 0, 0, fullW, fullH);
+
+    const srcData = exportCtx.getImageData(0, 0, fullW, fullH);
+    const outData = exportCtx.createImageData(fullW, fullH);
+
+    this.pipeline.processFrame(
+      srcData.data,
+      fullW,
+      fullH,
+      this.activePreset,
+      outData.data
+    );
+
+    exportCtx.putImageData(outData, 0, 0);
+
+    const link = document.createElement('a');
+    link.download = `sonification_${fullW}x${fullH}_${Date.now()}.png`;
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
   }
 
   private startLiveLoop(): void {
@@ -884,6 +1032,11 @@ class SonificationApp {
     }
 
     this.ctx.putImageData(this.cachedImageData, 0, 0);
+
+    // Lockstep video frame capture for recording
+    if (this.videoRecorder.getIsRecording()) {
+      this.videoRecorder.captureFrame();
+    }
 
     // Audio transmission
     this.audioEngine.playFrameSamples(res.audioSamples);

@@ -9,6 +9,7 @@ export class SoundCameraAudio {
 
   private currentSource: AudioBufferSourceNode | null = null;
   private playbackBuffer: AudioBuffer | null = null;
+  private streamDest: MediaStreamAudioDestinationNode | null = null;
   private static readonly PLAYBACK_SIZE = 4096;
 
   init(): void {
@@ -21,11 +22,25 @@ export class SoundCameraAudio {
       this.analyserNode = this.ctx.createAnalyser();
       this.analyserNode.fftSize = 256;
 
-      this.playbackBuffer = this.ctx.createBuffer(1, SoundCameraAudio.PLAYBACK_SIZE, 44100);
+      this.playbackBuffer = this.ctx.createBuffer(1, SoundCameraAudio.PLAYBACK_SIZE, this.sampleRate);
 
       this.gainNode.gain.value = this.isMuted ? 0 : this.volume;
       this.gainNode.connect(this.analyserNode);
       this.analyserNode.connect(this.ctx.destination);
+
+      try {
+        this.streamDest = this.ctx.createMediaStreamDestination();
+        this.gainNode.connect(this.streamDest);
+      } catch (_) {}
+    }
+  }
+
+  private sampleRate = 44100;
+
+  setSampleRate(rate: number): void {
+    this.sampleRate = rate;
+    if (this.ctx) {
+      this.playbackBuffer = this.ctx.createBuffer(1, SoundCameraAudio.PLAYBACK_SIZE, rate);
     }
   }
 
@@ -85,5 +100,9 @@ export class SoundCameraAudio {
 
   getAnalyser(): AnalyserNode | null {
     return this.analyserNode;
+  }
+
+  getAudioMediaStream(): MediaStream | null {
+    return this.streamDest?.stream || null;
   }
 }
