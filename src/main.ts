@@ -27,6 +27,7 @@ class SonificationApp {
   private selectBitDepth = document.getElementById('select-bitdepth') as HTMLSelectElement;
   private selectLaw = document.getElementById('select-law') as HTMLSelectElement;
   private checkEqualize = document.getElementById('check-equalize') as HTMLInputElement;
+  private selectResolution = document.getElementById('select-resolution') as HTMLSelectElement;
 
   private filterRackContainer = document.getElementById('filter-rack-container') as HTMLDivElement;
 
@@ -266,6 +267,13 @@ class SonificationApp {
       this.requestRender();
     };
 
+    if (this.selectResolution) {
+      this.selectResolution.onchange = () => {
+        this.liveResolution = this.selectResolution.value as '360p' | '480p' | '720p' | 'native';
+        this.requestRender();
+      };
+    }
+
     // Add filter modal
     document.getElementById('btn-add-filter')!.onclick = () => {
       this.addFilterModal.classList.remove('hidden');
@@ -484,16 +492,32 @@ class SonificationApp {
     };
   }
 
+  private liveResolution: '360p' | '480p' | '720p' | 'native' = '480p';
+
+  private getTargetDimensions(srcW: number, srcH: number): { w: number; h: number } {
+    if (this.liveResolution === 'native') return { w: srcW, h: srcH };
+
+    const targetH = this.liveResolution === '360p' ? 360 : this.liveResolution === '480p' ? 480 : 720;
+    if (srcH <= targetH) return { w: srcW, h: srcH };
+
+    const aspect = srcW / srcH;
+    const targetW = Math.round(targetH * aspect);
+    return { w: targetW, h: targetH };
+  }
+
   private startVideoFileLoop(): void {
     const loop = () => {
       if (this.loadedVideoElement && !this.loadedVideoElement.paused) {
         const v = this.loadedVideoElement;
-        if (this.canvas.width !== v.videoWidth || this.canvas.height !== v.videoHeight) {
-          this.canvas.width = v.videoWidth || 640;
-          this.canvas.height = v.videoHeight || 480;
+        const dims = this.getTargetDimensions(v.videoWidth || 640, v.videoHeight || 480);
+
+        if (this.canvas.width !== dims.w || this.canvas.height !== dims.h) {
+          this.canvas.width = dims.w;
+          this.canvas.height = dims.h;
         }
-        this.ctx.drawImage(v, 0, 0, this.canvas.width, this.canvas.height);
-        this.inputImageBuffer = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.drawImage(v, 0, 0, dims.w, dims.h);
+        this.inputImageBuffer = this.ctx.getImageData(0, 0, dims.w, dims.h);
         this.processAndBlit();
         this.animFrameId = requestAnimationFrame(loop);
       }
@@ -524,12 +548,15 @@ class SonificationApp {
     const loop = () => {
       if (this.cameraManager.isActive()) {
         const video = this.cameraManager.getVideoElement();
-        if (this.canvas.width !== video.videoWidth || this.canvas.height !== video.videoHeight) {
-          this.canvas.width = video.videoWidth || 640;
-          this.canvas.height = video.videoHeight || 480;
+        const dims = this.getTargetDimensions(video.videoWidth || 640, video.videoHeight || 480);
+
+        if (this.canvas.width !== dims.w || this.canvas.height !== dims.h) {
+          this.canvas.width = dims.w;
+          this.canvas.height = dims.h;
         }
-        this.ctx.drawImage(video, 0, 0, this.canvas.width, this.canvas.height);
-        this.inputImageBuffer = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.drawImage(video, 0, 0, dims.w, dims.h);
+        this.inputImageBuffer = this.ctx.getImageData(0, 0, dims.w, dims.h);
         this.processAndBlit();
         this.animFrameId = requestAnimationFrame(loop);
       }
@@ -539,7 +566,7 @@ class SonificationApp {
   }
 
   private requestRender(): void {
-    if (!this.cameraManager.isActive()) {
+    if (!this.cameraManager.isActive() && !this.loadedVideoElement) {
       requestAnimationFrame(() => this.processAndBlit());
     }
   }
