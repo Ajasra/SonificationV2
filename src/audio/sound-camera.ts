@@ -2,9 +2,11 @@
 // Reusable pre-allocated AudioBuffer to prevent GC stutter
 export class SoundCameraAudio {
   private ctx: AudioContext | null = null;
-  private gainNode: GainNode | null = null;
+  private monitorGainNode: GainNode | null = null;
+  private recordGainNode: GainNode | null = null;
   private analyserNode: AnalyserNode | null = null;
   private isMuted = true;
+  private isRecording = false;
   private volume = 0.5;
 
   private currentSource: AudioBufferSourceNode | null = null;
@@ -18,19 +20,23 @@ export class SoundCameraAudio {
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtxClass();
-      this.gainNode = this.ctx.createGain();
+      this.monitorGainNode = this.ctx.createGain();
+      this.recordGainNode = this.ctx.createGain();
       this.analyserNode = this.ctx.createAnalyser();
       this.analyserNode.fftSize = 256;
 
       this.playbackBuffer = this.ctx.createBuffer(1, SoundCameraAudio.PLAYBACK_SIZE, this.sampleRate);
 
-      this.gainNode.gain.value = this.isMuted ? 0 : this.volume;
-      this.gainNode.connect(this.analyserNode);
+      // Monitor gain goes to user's physical speakers
+      this.monitorGainNode.gain.value = this.isMuted ? 0 : this.volume;
+      this.monitorGainNode.connect(this.analyserNode);
       this.analyserNode.connect(this.ctx.destination);
 
+      // Record gain goes to stream destination for MediaRecorder (independent of speaker mute)
+      this.recordGainNode.gain.value = 1.0;
       try {
         this.streamDest = this.ctx.createMediaStreamDestination();
-        this.gainNode.connect(this.streamDest);
+        this.recordGainNode.connect(this.streamDest);
       } catch (_) {}
     }
   }
@@ -46,11 +52,11 @@ export class SoundCameraAudio {
 
   setMuted(muted: boolean): void {
     this.isMuted = muted;
-    if (this.gainNode && this.ctx) {
+    if (this.monitorGainNode && this.ctx) {
       if (this.ctx.state === 'suspended' && !muted) {
         this.ctx.resume();
       }
-      this.gainNode.gain.setValueAtTime(muted ? 0 : this.volume, this.ctx.currentTime);
+      this.monitorGainNode.gain.setValueAtTime(muted ? 0 : this.volume, this.ctx.currentTime);
     }
   }
 
@@ -58,15 +64,26 @@ export class SoundCameraAudio {
     return this.isMuted;
   }
 
+  setIsRecording(recording: boolean): void {
+    this.isRecording = recording;
+    if (recording) {
+      this.init();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+  }
+
   setVolume(vol: number): void {
     this.volume = Math.max(0, Math.min(1, vol));
-    if (this.gainNode && this.ctx && !this.isMuted) {
-      this.gainNode.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+    if (this.monitorGainNode && this.ctx && !this.isMuted) {
+      this.monitorGainNode.gain.setValueAtTime(this.volume, this.ctx.currentTime);
     }
   }
 
   playFrameSamples(samples: Float32Array): void {
-    if (!this.ctx || this.isMuted || samples.length === 0 || !this.playbackBuffer) return;
+    // Only synthesize audio if speaker monitor is unmuted OR active video recording is occurring
+    if (!this.ctx || (!this.isRecording && this.isMuted) || samples.length === 0 || !this.playbackBuffer) return;
 
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
@@ -83,7 +100,8 @@ export class SoundCameraAudio {
 
       const source = this.ctx.createBufferSource();
       source.buffer = this.playbackBuffer;
-      source.connect(this.gainNode!);
+      if (this.monitorGainNode) source.connect(this.monitorGainNode);
+      if (this.recordGainNode) source.connect(this.recordGainNode);
 
       if (this.currentSource) {
         try {
@@ -103,6 +121,7 @@ export class SoundCameraAudio {
   }
 
   getAudioMediaStream(): MediaStream | null {
+    this.init();
     return this.streamDest?.stream || null;
   }
 }

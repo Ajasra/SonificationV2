@@ -99,6 +99,7 @@ class SonificationApp {
     } else {
       this.activePreset = JSON.parse(JSON.stringify(this.presetManager.getAllPresets()[0]));
     }
+    this.currentSeed = Math.abs(this.hashCode(this.activePreset.id)) % 9000 + 1000;
     this.syncFormWithPreset();
     this.updateEditorialHeaders();
   }
@@ -125,9 +126,72 @@ class SonificationApp {
       this.studyNumber.textContent = String(Math.max(1, presetIdx + 1)).padStart(2, '0');
     }
 
-    const seed = Math.abs(this.hashCode(this.activePreset.id)) % 9000 + 1000;
-    if (this.patchSeed) this.patchSeed.textContent = String(seed);
-    if (this.statusSeedCode) this.statusSeedCode.textContent = String(seed);
+    if (this.patchSeed) this.patchSeed.textContent = String(this.currentSeed);
+    if (this.statusSeedCode) this.statusSeedCode.textContent = String(this.currentSeed);
+
+    if (this.busRate) {
+      this.busRate.textContent = SonificationApp.BUS_RATES[this.currentBusIndex].label;
+    }
+  }
+
+  // Deterministic PRNG seeded by currentSeed to mutate active preset parameters
+  private applySeed(newSeed: number): void {
+    this.currentSeed = newSeed;
+    let s = newSeed;
+    const nextRandom = () => {
+      // Linear congruential generator (LCG)
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+
+    // Mutate all active DSP filter parameters according to seed
+    for (const f of this.activePreset.filters) {
+      const desc = FILTER_DESCRIPTORS[f.type];
+      if (desc) {
+        for (const p of desc.params) {
+          f.params[p.name] = p.min + nextRandom() * (p.max - p.min);
+        }
+      }
+    }
+
+    // Refresh UI & DSP rack
+    this.updateEditorialHeaders();
+    this.renderFilterRack();
+    this.requestRender();
+
+    // Subtle tactile flash on the seed badge
+    if (this.patchSeed) {
+      this.patchSeed.style.color = '#fff';
+      setTimeout(() => {
+        if (this.patchSeed) this.patchSeed.style.color = '';
+      }, 300);
+    }
+  }
+
+  // Change DAC / BUS sample rate across audio playback engine and filter chain
+  private setBusRateIndex(idx: number): void {
+    this.currentBusIndex = (idx + SonificationApp.BUS_RATES.length) % SonificationApp.BUS_RATES.length;
+    const busConfig = SonificationApp.BUS_RATES[this.currentBusIndex];
+    
+    // 1. Update audio engine playback clock
+    this.audioEngine.setSampleRate(busConfig.rate);
+
+    // 2. Update all active filters' sample rates in preset
+    for (const f of this.activePreset.filters) {
+      f.sampleRate = busConfig.rate;
+    }
+
+    // 3. Update header display
+    if (this.busRate) {
+      this.busRate.textContent = busConfig.label;
+      this.busRate.style.color = '#fff';
+      setTimeout(() => {
+        if (this.busRate) this.busRate.style.color = '';
+      }, 300);
+    }
+
+    // 4. Force re-sync of DSP pipeline and render
+    this.requestRender();
   }
 
   private hashCode(str: string): number {
@@ -354,6 +418,22 @@ class SonificationApp {
         document.exitFullscreen?.().catch(() => {});
       }
     });
+
+    // Interactive Telemetry Header: Click SEED to randomize, click BUS to cycle clock rates
+    const btnHeroSeed = document.getElementById('btn-hero-seed');
+    if (btnHeroSeed) {
+      btnHeroSeed.onclick = () => {
+        const randomSeed = Math.floor(1000 + Math.random() * 9000);
+        this.applySeed(randomSeed);
+      };
+    }
+
+    const btnHeroBus = document.getElementById('btn-hero-bus');
+    if (btnHeroBus) {
+      btnHeroBus.onclick = () => {
+        this.setBusRateIndex(this.currentBusIndex + 1);
+      };
+    }
 
     // Preset dropdown selection
     this.selectPreset.onchange = () => {
@@ -705,6 +785,7 @@ class SonificationApp {
 
     btnRec.onclick = async () => {
       if (!this.videoRecorder.getIsRecording()) {
+        this.audioEngine.setIsRecording(true);
         this.videoRecorder.startRecording(this.canvas, this.audioEngine.getAudioMediaStream());
         btnRec.classList.add('recording');
         if (recText) recText.textContent = 'STOP';
@@ -729,6 +810,7 @@ class SonificationApp {
         if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
 
         const { blob, ext } = await this.videoRecorder.stopRecording();
+        this.audioEngine.setIsRecording(false);
         btnRec.classList.remove('recording');
         if (recText) recText.textContent = 'REC';
 

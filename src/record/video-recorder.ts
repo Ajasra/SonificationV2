@@ -11,12 +11,12 @@ export class VideoRecorder {
 
     // Prioritize hardware-accelerated H.264/AVC1 codecs to eliminate CPU spikes
     const mimeTypes = [
-      'video/mp4;codecs=avc1',
+      'video/mp4;codecs=avc1,mp4a.40.2',
       'video/mp4',
-      'video/webm;codecs=h264',
-      'video/webm;codecs=vp8',
+      'video/webm;codecs=h264,opus',
+      'video/webm;codecs=vp8,opus',
       'video/webm',
-      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp9,opus',
     ];
     this.chosenMime = mimeTypes.find((m) => MediaRecorder.isTypeSupported(m)) || '';
 
