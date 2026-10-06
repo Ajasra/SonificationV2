@@ -81,7 +81,7 @@
           </div>
 
           <!-- 00 / INPUT Module -->
-          <div class="rack-card collapsible-card" id="card-input">
+          <div class="rack-card collapsible-card is-collapsed" id="card-input">
             <div class="rack-card-header" data-toggle="collapse">
               <div class="card-title">00 / INPUT <span class="card-subtitle">Media & Sensor Source</span></div>
               <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
@@ -118,7 +118,7 @@
           </div>
 
           <!-- 01 / SOUND Module -->
-          <div class="rack-card collapsible-card" id="card-sound">
+          <div class="rack-card collapsible-card is-collapsed" id="card-sound">
             <div class="rack-card-header" data-toggle="collapse">
               <div class="card-title">01 / SOUND <span class="card-subtitle">Transducer & Master Gain</span></div>
               <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
@@ -136,7 +136,7 @@
           </div>
 
           <!-- 02 / PRESET MATRIX Module -->
-          <div class="rack-card collapsible-card" id="card-preset">
+          <div class="rack-card collapsible-card is-collapsed" id="card-preset">
             <div class="rack-card-header" data-toggle="collapse">
               <div class="card-title">02 / PRESET MATRIX <span class="card-subtitle">Active Study</span></div>
               <div class="header-action-group">
@@ -170,7 +170,7 @@
           </div>
 
           <!-- 03 / TOPOLOGY Module -->
-          <div class="rack-card collapsible-card" id="card-topology">
+          <div class="rack-card collapsible-card is-collapsed" id="card-topology">
             <div class="rack-card-header" data-toggle="collapse">
               <div class="card-title">03 / TOPOLOGY <span class="card-subtitle">Stream & Color Architecture</span></div>
               <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
@@ -234,11 +234,11 @@
           </div>
 
           <!-- 04 / DSP RACK Module -->
-          <div class="rack-card collapsible-card modular-chain-card" id="card-dsp">
+          <div class="rack-card collapsible-card is-collapsed modular-chain-card" id="card-dsp">
             <div class="rack-card-header" data-toggle="collapse">
               <div class="card-title">04 / DSP RACK <span class="card-subtitle">Modular Processing Chain</span></div>
               <div class="header-action-group">
-                <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-sm">+ Add Module</button>
+                <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-icon-sq" title="Add DSP Module">+</button>
                 <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
               </div>
             </div>
@@ -265,8 +265,14 @@
                 <span id="rec-time-display">00:00</span>
               </div>
 
+              <!-- Hardware SYNC Toggle Button -->
+              <button id="btn-sync-mode" class="btn-sync-compact active" title="Recording Sync: ON (Real-Time Live) / OFF (Frame-by-Frame Offline Render for Video Files)">
+                <span class="sync-led"></span>
+                <span id="sync-btn-text">SYNC</span>
+              </button>
+
               <!-- Compact Hardware REC Button -->
-              <button id="btn-record-video" class="btn-rec-compact" title="Record Full-Resolution Video">
+              <button id="btn-record-video" class="btn-rec-compact" title="Record Video">
                 <span class="rec-led"></span>
                 <span id="rec-btn-text">REC</span>
               </button>
@@ -295,6 +301,23 @@
 
             <div id="drop-overlay" class="drop-overlay hidden">
               <span>Drop Image or Video Here</span>
+            </div>
+
+            <!-- Offline Frame Render Progress HUD -->
+            <div id="render-progress-overlay" class="render-progress-overlay hidden">
+              <div class="render-progress-card">
+                <div class="render-progress-header">
+                  <span class="render-progress-title">OFFLINE FRAME RENDERING</span>
+                  <span id="render-progress-counter" class="render-progress-meta">0 / 0 (0%)</span>
+                </div>
+                <div class="render-progress-bar-bg">
+                  <div id="render-progress-bar-fill" class="render-progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="render-progress-footer">
+                  <span id="render-progress-fps" class="render-progress-status">COMPACTING TO 30 FPS • ZERO DROPPED FRAMES</span>
+                  <button id="btn-cancel-render" class="btn-hw btn-sm">CANCEL</button>
+                </div>
+              </div>
             </div>
           </div>
         </section>

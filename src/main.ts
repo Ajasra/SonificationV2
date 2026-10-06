@@ -7,6 +7,7 @@ import { FILTER_DESCRIPTORS } from './engine/filters/factory.ts';
 import { SoundCameraAudio } from './audio/sound-camera.ts';
 import { CameraManager } from './camera/camera-manager.ts';
 import { VideoRecorder } from './record/video-recorder.ts';
+import { OfflineVideoRecorder } from './record/offline-video-recorder.ts';
 import { RotaryKnob } from './components/rotary-knob.ts';
 
 class SonificationApp {
@@ -15,6 +16,8 @@ class SonificationApp {
   private audioEngine = new SoundCameraAudio();
   private cameraManager = new CameraManager();
   private videoRecorder = new VideoRecorder();
+  private offlineVideoRecorder = new OfflineVideoRecorder();
+  private isSyncMode = true;
 
   private activePreset!: SonificationPreset;
 
@@ -228,7 +231,7 @@ class SonificationApp {
         value: 0.5,
         defaultValue: 0.5,
         label: 'GAIN',
-        size: 40,
+        size: 32,
         onChange: (val) => {
           this.audioEngine.setVolume(val);
           const slider = document.getElementById('slider-volume') as HTMLInputElement;
@@ -334,7 +337,7 @@ class SonificationApp {
             value: val,
             defaultValue: p.value,
             label: p.label.split(' ')[0], // Compact label
-            size: 46,
+            size: 34,
             onChange: (newVal) => {
               filterConfig.params[p.name] = newVal;
               this.requestRender();
@@ -775,7 +778,33 @@ class SonificationApp {
       this.saveFullResolutionSnapshot();
     };
 
-    // Video Recording — Switches to Full Resolution during recording with live timer
+    // Hardware SYNC Toggle (Real-time live recording vs Offline frame-by-frame compaction)
+    const btnSync = document.getElementById('btn-sync-mode') as HTMLButtonElement;
+    const syncText = document.getElementById('sync-btn-text');
+    if (btnSync) {
+      btnSync.onclick = () => {
+        this.isSyncMode = !this.isSyncMode;
+        btnSync.classList.toggle('active', this.isSyncMode);
+        if (syncText) {
+          syncText.textContent = this.isSyncMode ? 'SYNC' : 'SYNC OFF';
+        }
+        btnSync.title = this.isSyncMode
+          ? 'Recording Sync: ON (Real-Time Live) — Click to switch to Offline Frame Render'
+          : 'Recording Sync: OFF (Offline Frame-by-Frame Render for Video Files) — Click to switch to Real-Time';
+      };
+    }
+
+    // Cancel button in Offline Frame Render HUD
+    const btnCancelRender = document.getElementById('btn-cancel-render') as HTMLButtonElement;
+    if (btnCancelRender) {
+      btnCancelRender.onclick = () => {
+        if (this.offlineVideoRecorder.getIsRunning()) {
+          this.offlineVideoRecorder.cancel();
+        }
+      };
+    }
+
+    // Video Recording — Supports both Real-Time (SYNC ON) and Offline Frame Compaction (SYNC OFF)
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement;
     const recText = document.getElementById('rec-btn-text');
     const recTimerBadge = document.getElementById('rec-timer-badge');
@@ -784,6 +813,19 @@ class SonificationApp {
     let recStartTime = 0;
 
     btnRec.onclick = async () => {
+      // If currently running an offline render, pressing STOP finishes and exports what has been processed so far
+      if (this.offlineVideoRecorder.getIsRunning()) {
+        this.offlineVideoRecorder.stopEarly();
+        return;
+      }
+
+      // If SYNC is OFF and a video file is currently loaded: Run deterministic frame-by-frame offline render!
+      if (!this.isSyncMode && this.loadedVideoElement) {
+        await this.startOfflineVideoRecording();
+        return;
+      }
+
+      // Otherwise, standard real-time recording (live camera or video file with SYNC ON)
       if (!this.videoRecorder.getIsRecording()) {
         this.audioEngine.setIsRecording(true);
         this.videoRecorder.startRecording(this.canvas, this.audioEngine.getAudioMediaStream());
@@ -837,6 +879,71 @@ class SonificationApp {
         });
       }
     });
+  }
+
+  private async startOfflineVideoRecording(): Promise<void> {
+    if (!this.loadedVideoElement) return;
+
+    const v = this.loadedVideoElement;
+    const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement;
+    const recText = document.getElementById('rec-btn-text');
+    const progressOverlay = document.getElementById('render-progress-overlay');
+    const progressFill = document.getElementById('render-progress-bar-fill');
+    const progressCounter = document.getElementById('render-progress-counter');
+    const progressFps = document.getElementById('render-progress-fps');
+
+    // Make sure dimensions match current preview resolution (or native) and are even
+    const dims = this.getTargetDimensions(v.videoWidth || 640, v.videoHeight || 480);
+    const w = dims.w & ~1;
+    const h = dims.h & ~1;
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.offscreenCanvas.width = w;
+    this.offscreenCanvas.height = h;
+
+    btnRec.classList.add('recording');
+    if (recText) recText.textContent = 'STOP';
+    progressOverlay?.classList.remove('hidden');
+    if (progressFill) progressFill.style.width = '0%';
+    if (progressCounter) progressCounter.textContent = '0 / 0 (0%)';
+    if (progressFps) progressFps.textContent = 'STARTING OFFLINE RENDER • TARGET: 30 FPS';
+
+    try {
+      const res = await this.offlineVideoRecorder.render({
+        video: v,
+        canvas: this.canvas,
+        pipeline: this.pipeline,
+        activePreset: this.activePreset,
+        targetFps: 30,
+        audioSampleRate: SonificationApp.BUS_RATES[this.currentBusIndex].rate,
+        onProgress: (prog) => {
+          if (progressFill) progressFill.style.width = `${prog.percent}%`;
+          if (progressCounter) {
+            progressCounter.textContent = `${prog.currentFrame} / ${prog.totalFrames} (${prog.percent}%)`;
+          }
+          if (progressFps) {
+            progressFps.textContent = `PROCESSING @ ${prog.fps} FPS • COMPACTING TO 30 FPS`;
+          }
+        },
+      });
+
+      if (res && res.blob) {
+        const url = URL.createObjectURL(res.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sonification_offline_${Date.now()}.${res.ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Offline video recording failed:', err);
+      alert('Offline video recording failed: ' + (err as Error).message);
+    } finally {
+      progressOverlay?.classList.add('hidden');
+      btnRec.classList.remove('recording');
+      if (recText) recText.textContent = 'REC';
+      this.startVideoFileLoop();
+    }
   }
 
   private stopVideoFile(): void {
