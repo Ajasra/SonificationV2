@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Sonification V2 — Live Sound Camera & Databending Studio</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="theme-dark">
+    <div id="app">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <span class="logo-glitch">SONIFICATION V2</span>
+          <span class="tagline">Audio-Visual Databending & Sound Camera</span>
+        </div>
+        <div class="header-right">
+          <button id="btn-qr-modal" class="btn btn-outline" title="Share Preset via QR Code to Phone">
+            📱 Send to Phone
+          </button>
+          <button id="btn-random-params" class="btn btn-outline" title="Randomize Parameters (c)">
+            🎲 Params
+          </button>
+          <button id="btn-random-stream" class="btn btn-outline" title="Randomize Format & Stream (r)">
+            🔀 Stream
+          </button>
+          <button id="btn-random-filters" class="btn btn-outline" title="Randomize Filter Chain (f)">
+            ⚡ Filters
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Workspace -->
+      <main class="main-layout">
+        <!-- Viewport Area -->
+        <section class="viewport-section">
+          <div class="canvas-container">
+            <canvas id="main-canvas"></canvas>
+            <div id="drop-overlay" class="drop-overlay hidden">
+              <span>Drop Image Here</span>
+            </div>
+            <div id="perf-badge" class="perf-badge">-- FPS | -- ms</div>
+          </div>
+
+          <!-- Bottom Control Bar -->
+          <div class="viewport-toolbar">
+            <div class="toolbar-left">
+              <label class="btn btn-primary file-label">
+                📁 Open Image
+                <input type="file" id="input-file" accept="image/*" hidden />
+              </label>
+              <button id="btn-toggle-camera" class="btn btn-secondary">
+                📹 Live Camera
+              </button>
+              <button id="btn-flip-camera" class="btn btn-icon hidden" title="Flip Camera Front/Back">
+                🔄
+              </button>
+            </div>
+
+            <div class="toolbar-center">
+              <button id="btn-shutter" class="btn-shutter" title="Take Snapshot Photo">
+                <div class="shutter-inner"></div>
+              </button>
+              <button id="btn-record-video" class="btn btn-record" title="Record Video">
+                ⏺ REC
+              </button>
+            </div>
+
+            <div class="toolbar-right">
+              <button id="btn-toggle-audio" class="btn btn-audio-mute" title="Toggle Sound Output">
+                🔇 Sound: Muted
+              </button>
+              <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.5" class="volume-slider" title="Volume" />
+              <button id="btn-save-image" class="btn btn-outline" title="Save PNG">
+                💾 Save
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sidebar / Rack Panel -->
+        <aside class="sidebar-rack">
+          <!-- Preset Selector -->
+          <div class="panel-card">
+            <div class="card-title">Presets</div>
+            <div class="preset-selector-row">
+              <select id="select-preset" class="select-dropdown"></select>
+              <button id="btn-save-custom-preset" class="btn btn-sm btn-outline">+ Save</button>
+            </div>
+          </div>
+
+          <!-- Stream Configuration -->
+          <div class="panel-card">
+            <div class="card-title">Stream & Color Architecture</div>
+            <div class="config-grid">
+              <label>
+                Color Space
+                <select id="select-colorspace" class="select-dropdown">
+                  <option value="RGB">RGB</option>
+                  <option value="LAB">LAB (Perceptual)</option>
+                  <option value="LUV">LUV</option>
+                  <option value="HCL">HCL (Chroma/Hue)</option>
+                  <option value="XYZ">XYZ</option>
+                  <option value="YXY">Yxy</option>
+                  <option value="CMY">CMY</option>
+                  <option value="OHTA">OHTA</option>
+                </select>
+              </label>
+              <label>
+                Topology
+                <select id="select-rawtype" class="select-dropdown">
+                  <option value="PLANAR">Planar (Color Sweeps)</option>
+                  <option value="INTERLEAVED">Interleaved (Micro-noise)</option>
+                </select>
+              </label>
+              <label>
+                Bit Depth
+                <select id="select-bitdepth" class="select-dropdown">
+                  <option value="8">8-bit</option>
+                  <option value="16">16-bit</option>
+                  <option value="24">24-bit</option>
+                </select>
+              </label>
+              <label>
+                Companding Law
+                <select id="select-law" class="select-dropdown">
+                  <option value="A_LAW">A-Law (Europe G.711)</option>
+                  <option value="U_LAW">μ-Law (USA G.711)</option>
+                  <option value="NONE">Linear (None)</option>
+                </select>
+              </label>
+            </div>
+            <div class="checkbox-row">
+              <label>
+                <input type="checkbox" id="check-equalize" checked /> Equalize Histogram
+              </label>
+            </div>
+          </div>
+
+          <!-- Modular DSP Rack -->
+          <div class="panel-card rack-card">
+            <div class="card-header-row">
+              <div class="card-title">Active DSP Chain</div>
+              <button id="btn-add-filter" class="btn btn-sm btn-primary">+ Add Filter</button>
+            </div>
+            <div id="filter-rack-container" class="filter-rack"></div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- QR Code Modal -->
+      <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>📱 Scan with Phone</h3>
+            <button id="btn-close-qr" class="btn-close">&times;</button>
+          </div>
+          <p class="modal-desc">
+            Scan this QR code with your smartphone camera to open this exact preset live on your mobile Sound Camera:
+          </p>
+          <div class="qr-container">
+            <img id="qr-image" alt="Preset QR Code" />
+          </div>
+          <div class="modal-actions">
+            <button id="btn-copy-link" class="btn btn-outline">📋 Copy Preset URL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Filter Modal -->
+      <div id="add-filter-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>Select DSP Filter to Add</h3>
+            <button id="btn-close-filter-modal" class="btn-close">&times;</button>
+          </div>
+          <div id="filter-library-list" class="filter-library-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
