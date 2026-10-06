@@ -268,7 +268,7 @@ export class ResonFilter extends BaseDspFilter {
       const res = gf * samples[i] + pr2cos * this.hist0 - prSq * this.hist1;
       this.hist1 = this.hist0;
       this.hist0 = res;
-      samples[i] = isNaN(res) ? 0 : res;
+      samples[i] = res !== res ? 0 : res;
     }
   }
 }

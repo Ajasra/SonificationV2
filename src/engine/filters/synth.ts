@@ -207,7 +207,7 @@ export class PluckedStringFilter extends BaseDspFilter {
       prevW = w;
       hPos = (hPos + 1) % hLen;
 
-      samples[i] = isNaN(res) ? 0 : res;
+      samples[i] = res !== res ? 0 : res;
     }
 
     this.historyPos = hPos;

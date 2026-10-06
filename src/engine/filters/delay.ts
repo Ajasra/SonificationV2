@@ -5,17 +5,6 @@ function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v;
 }
 
-function cubeInterp(fr: number, inm1: number, inVal: number, inp1: number, inp2: number): number {
-  return (
-    inVal +
-    0.5 *
-      fr *
-      (inp1 -
-        inm1 +
-        fr * (4.0 * inp1 + 2.0 * inm1 - 5.0 * inVal - inp2 + fr * (3.0 * (inVal - inp1) - inm1 + inp2)))
-  );
-}
-
 // 4. Comb: Feedback comb filter with cubic interpolation (LADSPA comb_1190)
 export class CombFilter extends BaseDspFilter {
   freq = 100;
@@ -66,24 +55,27 @@ export class CombFilter extends BaseDspFilter {
     const ofs = this.offset;
     let pos = this.pos;
 
-    for (let i = 0; i < len; i++) {
-      const dPos = pos - ofs;
-      const dataPos = dPos < 0 ? Math.ceil(dPos) : Math.floor(dPos);
-      const fr = dPos - dataPos;
+    // Precompute constant offset and cubic polynomial weights for the block
+    const ofsInt = Math.floor(ofs);
+    const fr = ofs - ofsInt;
+    const w0 = 0.5 * fr * (-1.0 + fr * (2.0 - fr));
+    const w1 = 1.0 + 0.5 * fr * fr * (3.0 * fr - 5.0);
+    const w2 = 0.5 * fr * (1.0 + fr * (4.0 - 3.0 * fr));
+    const w3 = 0.5 * fr * fr * (fr - 1.0);
 
-      const interp = cubeInterp(
-        fr,
-        buf[(dataPos - 1) & mask],
-        buf[dataPos & mask],
-        buf[(dataPos + 1) & mask],
-        buf[(dataPos + 2) & mask]
-      );
+    for (let i = 0; i < len; i++) {
+      const dataPos = pos - ofsInt;
+      const interp =
+        w0 * buf[(dataPos - 1) & mask] +
+        w1 * buf[dataPos & mask] +
+        w2 * buf[(dataPos + 1) & mask] +
+        w3 * buf[(dataPos + 2) & mask];
 
       const inSample = samples[i];
       buf[pos] = inSample + fb * interp;
       const result = (inSample + interp) * 0.5;
       pos = (pos + 1) & mask;
-      samples[i] = isNaN(result) ? 0 : result;
+      samples[i] = result !== result ? 0 : result;
     }
     this.pos = pos;
   }
@@ -141,7 +133,7 @@ export class AuEchoFilter extends BaseDspFilter {
       const result = samples[i] + delayed * dec;
       hist[hPos] = result;
       hPos++;
-      samples[i] = isNaN(result) ? 0 : result;
+      samples[i] = result !== result ? 0 : result;
     }
     this.histPos = hPos;
   }
@@ -242,8 +234,8 @@ export class CanyonDelayFilter extends BaseDspFilter {
       this.dataL[pos] = l;
       this.dataR[pos] = r;
 
-      samples[i] = isNaN(l) ? 0 : l;
-      if (i + 1 < len) samples[i + 1] = isNaN(r) ? 0 : r;
+      samples[i] = l !== l ? 0 : l;
+      if (i + 1 < len) samples[i + 1] = r !== r ? 0 : r;
 
       pos = (pos + 1) % dSize;
     }
@@ -309,7 +301,7 @@ export class TReverbFilter extends BaseDspFilter {
       const out = inVal + prev * dec;
       buf[head] = inVal;
       head = (head + 1) & mask;
-      samples[i] = isNaN(out) ? 0 : out;
+      samples[i] = out !== out ? 0 : out;
     }
     this.head = head;
   }

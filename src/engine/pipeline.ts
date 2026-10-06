@@ -71,27 +71,31 @@ export class SonificationPipeline {
 
     const outRgba = outputTargetRgba || new Uint8ClampedArray(numPixels * 4);
 
-    // 1. Copy input into working buffer
-    this.workRgbaBuffer.set(inputRgba.subarray(0, numPixels * 4));
-
-    // 2. Pre-process color space transform
-    convertToColorSpace(this.workRgbaBuffer.subarray(0, numPixels * 4), preset.reader.colorSpace);
+    // 1 & 2. Color space transform: if RGB, bypass 8MB memcpy completely!
+    let srcRgba: Uint8ClampedArray;
+    if (preset.reader.colorSpace === 'RGB') {
+      srcRgba = inputRgba;
+    } else {
+      this.workRgbaBuffer.set(inputRgba.subarray(0, numPixels * 4));
+      convertToColorSpace(this.workRgbaBuffer.subarray(0, numPixels * 4), preset.reader.colorSpace);
+      srcRgba = this.workRgbaBuffer;
+    }
 
     // 3. Encode image pixels into 1D audio sample stream [-1.0, 1.0]
     const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
     const audioStream = imageToAudioStream(
-      this.workRgbaBuffer.subarray(0, numPixels * 4),
+      srcRgba.subarray(0, numPixels * 4),
       preset.reader,
       this.workAudioBuffer.subarray(0, numSamples)
     );
 
-    // 4. Run audio DSP chain in-place with L1/L2 cache chunk fusion
+    // 4. Run audio DSP chain in-place with L1 cache chunk fusion (32 KB tile)
     this.syncFilterInstances(preset);
     const numFilters = this.activeFilters.length;
     if (numFilters === 1) {
       this.activeFilters[0].processBlock(audioStream);
     } else if (numFilters > 1) {
-      const CHUNK_SIZE = 16384; // 64 KB cache tile
+      const CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
       const totalLen = audioStream.length;
       for (let offset = 0; offset < totalLen; offset += CHUNK_SIZE) {
         const end = Math.min(offset + CHUNK_SIZE, totalLen);

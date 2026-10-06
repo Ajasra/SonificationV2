@@ -35,25 +35,26 @@ export function imageToAudioStream(
   // DIRECT 1-PASS PATH for 8-bit unsigned (bypasses byteStream completely!)
   if (bits === 8 && cfg.sign === 'UNSIGNED') {
     const lut = cfg.law === 'A_LAW' ? LUT_ALAW_8 : cfg.law === 'U_LAW' ? LUT_ULAW_8 : LUT_LINEAR_8;
+    const in32 = new Uint32Array(rgba.buffer, rgba.byteOffset, numPixels);
 
     if (cfg.rawType === 'PLANAR') {
       let rIdx = 0;
       let gIdx = numPixels;
       let bIdx = numPixels << 1;
-      const len = rgba.length;
-      for (let i = 0; i < len; i += 4) {
-        samples[rIdx++] = lut[rgba[i]];
-        samples[gIdx++] = lut[rgba[i + 1]];
-        samples[bIdx++] = lut[rgba[i + 2]];
+      for (let i = 0; i < numPixels; i++) {
+        const pix = in32[i];
+        samples[rIdx++] = lut[pix & 0xff];
+        samples[gIdx++] = lut[(pix >> 8) & 0xff];
+        samples[bIdx++] = lut[(pix >> 16) & 0xff];
       }
       return samples;
     } else {
       let s = 0;
-      const len = rgba.length;
-      for (let i = 0; i < len; i += 4) {
-        samples[s++] = lut[rgba[i]];
-        samples[s++] = lut[rgba[i + 1]];
-        samples[s++] = lut[rgba[i + 2]];
+      for (let i = 0; i < numPixels; i++) {
+        const pix = in32[i];
+        samples[s++] = lut[pix & 0xff];
+        samples[s++] = lut[(pix >> 8) & 0xff];
+        samples[s++] = lut[(pix >> 16) & 0xff];
       }
       return samples;
     }
@@ -122,73 +123,79 @@ export function audioStreamToImage(
   const bytesPerSample = bits === 8 ? 1 : bits === 16 ? 2 : 3;
   const numSamples = Math.min(samples.length, Math.floor(totalColorBytes / bytesPerSample));
 
-  // DIRECT 1-PASS PATH for 8-bit unsigned
+  // DIRECT 1-PASS PATH for 8-bit unsigned (Single 32-bit store per pixel)
   if (bits === 8 && cfg.sign === 'UNSIGNED') {
+    const out32 = new Uint32Array(outRgba.buffer, outRgba.byteOffset, numPixels);
+
     if (cfg.rawType === 'PLANAR') {
       let rIdx = 0;
       let gIdx = numPixels;
       let bIdx = numPixels << 1;
-      const len = outRgba.length;
 
       if (cfg.law === 'A_LAW') {
-        for (let i = 0; i < len; i += 4) {
-          const rS = samples[rIdx++];
-          const gS = samples[gIdx++];
-          const bS = samples[bIdx++];
-          outRgba[i] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((rS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 1] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((gS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 2] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((bS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rI = ((samples[rIdx++] + 1.0) * 2047.5) | 0;
+          let gI = ((samples[gIdx++] + 1.0) * 2047.5) | 0;
+          let bI = ((samples[bIdx++] + 1.0) * 2047.5) | 0;
+          if (rI < 0) rI = 0; else if (rI > 4095) rI = 4095;
+          if (gI < 0) gI = 0; else if (gI > 4095) gI = 4095;
+          if (bI < 0) bI = 0; else if (bI > 4095) bI = 4095;
+          out32[i] = 0xff000000 | (LUT_REV_ALAW_4096[bI] << 16) | (LUT_REV_ALAW_4096[gI] << 8) | LUT_REV_ALAW_4096[rI];
         }
       } else if (cfg.law === 'U_LAW') {
-        for (let i = 0; i < len; i += 4) {
-          const rS = samples[rIdx++];
-          const gS = samples[gIdx++];
-          const bS = samples[bIdx++];
-          outRgba[i] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((rS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 1] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((gS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 2] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((bS + 1.0) * 2047.5) | 0))];
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rI = ((samples[rIdx++] + 1.0) * 2047.5) | 0;
+          let gI = ((samples[gIdx++] + 1.0) * 2047.5) | 0;
+          let bI = ((samples[bIdx++] + 1.0) * 2047.5) | 0;
+          if (rI < 0) rI = 0; else if (rI > 4095) rI = 4095;
+          if (gI < 0) gI = 0; else if (gI > 4095) gI = 4095;
+          if (bI < 0) bI = 0; else if (bI > 4095) bI = 4095;
+          out32[i] = 0xff000000 | (LUT_REV_ULAW_4096[bI] << 16) | (LUT_REV_ULAW_4096[gI] << 8) | LUT_REV_ULAW_4096[rI];
         }
       } else {
-        for (let i = 0; i < len; i += 4) {
-          const rV = (255 * (0.5 * samples[rIdx++] + 0.5)) | 0;
-          const gV = (255 * (0.5 * samples[gIdx++] + 0.5)) | 0;
-          const bV = (255 * (0.5 * samples[bIdx++] + 0.5)) | 0;
-          outRgba[i] = rV < 0 ? 0 : rV > 255 ? 255 : rV;
-          outRgba[i + 1] = gV < 0 ? 0 : gV > 255 ? 255 : gV;
-          outRgba[i + 2] = bV < 0 ? 0 : bV > 255 ? 255 : bV;
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rV = ((samples[rIdx++] + 1.0) * 127.5) | 0;
+          let gV = ((samples[gIdx++] + 1.0) * 127.5) | 0;
+          let bV = ((samples[bIdx++] + 1.0) * 127.5) | 0;
+          if (rV < 0) rV = 0; else if (rV > 255) rV = 255;
+          if (gV < 0) gV = 0; else if (gV > 255) gV = 255;
+          if (bV < 0) bV = 0; else if (bV > 255) bV = 255;
+          out32[i] = 0xff000000 | (bV << 16) | (gV << 8) | rV;
         }
       }
       return;
     } else {
       // INTERLEAVED direct 1-pass
       let s = 0;
-      const len = outRgba.length;
       if (cfg.law === 'A_LAW') {
-        for (let i = 0; i < len; i += 4) {
-          outRgba[i] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 1] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 2] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          let gI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          let bI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          if (rI < 0) rI = 0; else if (rI > 4095) rI = 4095;
+          if (gI < 0) gI = 0; else if (gI > 4095) gI = 4095;
+          if (bI < 0) bI = 0; else if (bI > 4095) bI = 4095;
+          out32[i] = 0xff000000 | (LUT_REV_ALAW_4096[bI] << 16) | (LUT_REV_ALAW_4096[gI] << 8) | LUT_REV_ALAW_4096[rI];
         }
       } else if (cfg.law === 'U_LAW') {
-        for (let i = 0; i < len; i += 4) {
-          outRgba[i] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 1] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 2] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          let gI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          let bI = ((samples[s++] + 1.0) * 2047.5) | 0;
+          if (rI < 0) rI = 0; else if (rI > 4095) rI = 4095;
+          if (gI < 0) gI = 0; else if (gI > 4095) gI = 4095;
+          if (bI < 0) bI = 0; else if (bI > 4095) bI = 4095;
+          out32[i] = 0xff000000 | (LUT_REV_ULAW_4096[bI] << 16) | (LUT_REV_ULAW_4096[gI] << 8) | LUT_REV_ULAW_4096[rI];
         }
       } else {
-        for (let i = 0; i < len; i += 4) {
-          const rV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
-          const gV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
-          const bV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
-          outRgba[i] = rV < 0 ? 0 : rV > 255 ? 255 : rV;
-          outRgba[i + 1] = gV < 0 ? 0 : gV > 255 ? 255 : gV;
-          outRgba[i + 2] = bV < 0 ? 0 : bV > 255 ? 255 : bV;
-          outRgba[i + 3] = 255;
+        for (let i = 0; i < numPixels; i++) {
+          let rV = ((samples[s++] + 1.0) * 127.5) | 0;
+          let gV = ((samples[s++] + 1.0) * 127.5) | 0;
+          let bV = ((samples[s++] + 1.0) * 127.5) | 0;
+          if (rV < 0) rV = 0; else if (rV > 255) rV = 255;
+          if (gV < 0) gV = 0; else if (gV > 255) gV = 255;
+          if (bV < 0) bV = 0; else if (bV > 255) bV = 255;
+          out32[i] = 0xff000000 | (bV << 16) | (gV << 8) | rV;
         }
       }
       return;

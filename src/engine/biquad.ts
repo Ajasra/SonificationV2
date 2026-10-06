@@ -129,6 +129,6 @@ export class Biquad {
     this.x1 = x;
     this.y2 = this.y1;
     this.y1 = y;
-    return isNaN(y) ? 0 : y;
+    return y !== y ? 0 : y;
   }
 }

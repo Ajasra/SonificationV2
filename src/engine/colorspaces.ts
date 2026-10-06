@@ -27,40 +27,43 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
   if (cs === 'RGB') return;
   const len = data.length;
 
-  for (let i = 0; i < len; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-
-    switch (cs) {
-      case 'CMY': {
-        data[i] = 255 - r;
-        data[i + 1] = 255 - g;
-        data[i + 2] = 255 - b;
-        break;
+  switch (cs) {
+    case 'CMY': {
+      for (let i = 0; i < len; i += 4) {
+        data[i] = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
       }
-      case 'OHTA': {
+      break;
+    }
+    case 'OHTA': {
+      for (let i = 0; i < len; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
         data[i] = clamp8(0.33333 * r + 0.33334 * g + 0.33333 * b);
         data[i + 1] = clamp8(0.5 * r - 0.5 * b + 127.5);
         data[i + 2] = clamp8(-0.25 * r + 0.5 * g - 0.25 * b + 127.5);
-        break;
       }
-      case 'XYZ': {
-        const cr = LUT_CORRECTION_XYZ[r];
-        const cg = LUT_CORRECTION_XYZ[g];
-        const cb = LUT_CORRECTION_XYZ[b];
+      break;
+    }
+    case 'XYZ': {
+      for (let i = 0; i < len; i += 4) {
+        const cr = LUT_CORRECTION_XYZ[data[i]];
+        const cg = LUT_CORRECTION_XYZ[data[i + 1]];
+        const cb = LUT_CORRECTION_XYZ[data[i + 2]];
         const x = cr * 0.4124 + cg * 0.3576 + cb * 0.1805;
         const y = cr * 0.2126 + cg * 0.7152 + cb * 0.0722;
         const z = cr * 0.0193 + cg * 0.1192 + cb * 0.9505;
         data[i] = clamp8((x / RANGE_X) * 255);
         data[i + 1] = clamp8((y / RANGE_Y) * 255);
         data[i + 2] = clamp8((z / RANGE_Z) * 255);
-        break;
       }
-      case 'YXY': {
-        const cr = LUT_CORRECTION_XYZ[r];
-        const cg = LUT_CORRECTION_XYZ[g];
-        const cb = LUT_CORRECTION_XYZ[b];
+      break;
+    }
+    case 'YXY': {
+      for (let i = 0; i < len; i += 4) {
+        const cr = LUT_CORRECTION_XYZ[data[i]];
+        const cg = LUT_CORRECTION_XYZ[data[i + 1]];
+        const cb = LUT_CORRECTION_XYZ[data[i + 2]];
         const xVal = cr * 0.4124 + cg * 0.3576 + cb * 0.1805;
         const yVal = cr * 0.2126 + cg * 0.7152 + cb * 0.0722;
         const zVal = cr * 0.0193 + cg * 0.1192 + cb * 0.9505;
@@ -70,12 +73,14 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         data[i] = clamp8((yVal / RANGE_Y) * 255);
         data[i + 1] = clamp8(x * 255);
         data[i + 2] = clamp8(y * 255);
-        break;
       }
-      case 'HCL': {
-        const nr = r * 0.003921568;
-        const ng = g * 0.003921568;
-        const nb = b * 0.003921568;
+      break;
+    }
+    case 'HCL': {
+      for (let i = 0; i < len; i += 4) {
+        const nr = data[i] * 0.003921568;
+        const ng = data[i + 1] * 0.003921568;
+        const nb = data[i + 2] * 0.003921568;
         const mx = Math.max(nr, Math.max(ng, nb));
         const mn = Math.min(nr, Math.min(ng, nb));
         const chr = mx - mn;
@@ -92,12 +97,14 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         data[i] = clamp8((h / 6.0) * 255);
         data[i + 1] = clamp8(chr * 255);
         data[i + 2] = clamp8(255 * (0.298839 * nr + 0.586811 * ng + 0.11435 * nb));
-        break;
       }
-      case 'LAB': {
-        const cr = LUT_CORRECTION_XYZ[r];
-        const cg = LUT_CORRECTION_XYZ[g];
-        const cb = LUT_CORRECTION_XYZ[b];
+      break;
+    }
+    case 'LAB': {
+      for (let i = 0; i < len; i += 4) {
+        const cr = LUT_CORRECTION_XYZ[data[i]];
+        const cg = LUT_CORRECTION_XYZ[data[i + 1]];
+        const cb = LUT_CORRECTION_XYZ[data[i + 2]];
         const xVal = (cr * 0.4124 + cg * 0.3576 + cb * 0.1805) * 0.010521268;
         const yVal = (cr * 0.2126 + cg * 0.7152 + cb * 0.0722) * 0.01;
         const zVal = (cr * 0.0193 + cg * 0.1192 + cb * 0.9505) * 0.009184811;
@@ -109,12 +116,14 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         data[i] = clamp8(255.0 * ((116.0 * fy - 16.0) * 0.01));
         data[i + 1] = clamp8(255.0 * (0.5 * (fx - fy) + 0.5));
         data[i + 2] = clamp8(255.0 * (0.5 * (fy - fz) + 0.5));
-        break;
       }
-      case 'LUV': {
-        const cr = LUT_CORRECTION_XYZ[r];
-        const cg = LUT_CORRECTION_XYZ[g];
-        const cb = LUT_CORRECTION_XYZ[b];
+      break;
+    }
+    case 'LUV': {
+      for (let i = 0; i < len; i += 4) {
+        const cr = LUT_CORRECTION_XYZ[data[i]];
+        const cg = LUT_CORRECTION_XYZ[data[i + 1]];
+        const cb = LUT_CORRECTION_XYZ[data[i + 2]];
         const xVal = (cr * 0.4124 + cg * 0.3576 + cb * 0.1805) * 0.01;
         const yVal = (cr * 0.2126 + cg * 0.7152 + cb * 0.0722) * 0.01;
         const zVal = (cr * 0.0193 + cg * 0.1192 + cb * 0.9505) * 0.01;
@@ -131,8 +140,8 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         data[i] = clamp8(L * 255);
         data[i + 1] = clamp8(u * 255);
         data[i + 2] = clamp8(v * 255);
-        break;
       }
+      break;
     }
   }
 }
@@ -141,40 +150,42 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
   if (cs === 'RGB') return;
   const len = data.length;
 
-  for (let i = 0; i < len; i += 4) {
-    const c0 = data[i];
-    const c1 = data[i + 1];
-    const c2 = data[i + 2];
-
-    switch (cs) {
-      case 'CMY': {
-        data[i] = 255 - c0;
-        data[i + 1] = 255 - c1;
-        data[i + 2] = 255 - c2;
-        break;
+  switch (cs) {
+    case 'CMY': {
+      for (let i = 0; i < len; i += 4) {
+        data[i] = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
       }
-      case 'OHTA': {
-        const I1 = c0;
-        const I2 = c1 - 127.5;
-        const I3 = c2 - 127.5;
+      break;
+    }
+    case 'OHTA': {
+      for (let i = 0; i < len; i += 4) {
+        const I1 = data[i];
+        const I2 = data[i + 1] - 127.5;
+        const I3 = data[i + 2] - 127.5;
         data[i] = clamp8(I1 + 1.0 * I2 - 0.66668 * I3);
         data[i + 1] = clamp8(I1 + 1.33333 * I3);
         data[i + 2] = clamp8(I1 - 1.0 * I2 - 0.66668 * I3);
-        break;
       }
-      case 'XYZ': {
-        const x = (c0 / 255.0) * (RANGE_X / 100.0);
-        const y = (c1 / 255.0) * (RANGE_Y / 100.0);
-        const z = (c2 / 255.0) * (RANGE_Z / 100.0);
+      break;
+    }
+    case 'XYZ': {
+      for (let i = 0; i < len; i += 4) {
+        const x = (data[i] / 255.0) * (RANGE_X / 100.0);
+        const y = (data[i + 1] / 255.0) * (RANGE_Y / 100.0);
+        const z = (data[i + 2] / 255.0) * (RANGE_Z / 100.0);
         data[i] = fastRecorrectionByte(x * 3.2406 + y * -1.5372 + z * -0.4986);
         data[i + 1] = fastRecorrectionByte(x * -0.9689 + y * 1.8758 + z * 0.0415);
         data[i + 2] = fastRecorrectionByte(x * 0.0557 + y * -0.204 + z * 1.057);
-        break;
       }
-      case 'YXY': {
-        const Y = (c0 / 255.0) * RANGE_Y;
-        const x = c1 / 255.0;
-        const y = c2 / 255.0;
+      break;
+    }
+    case 'YXY': {
+      for (let i = 0; i < len; i += 4) {
+        const Y = (data[i] / 255.0) * RANGE_Y;
+        const x = data[i + 1] / 255.0;
+        const y = data[i + 2] / 255.0;
         const divy = Y / (y > 0 ? y : 1.0e-6);
         const xN = (x * divy) * 0.01;
         const yN = Y * 0.01;
@@ -182,12 +193,14 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         data[i] = fastRecorrectionByte(xN * 3.2406 + yN * -1.5372 + zN * -0.4986);
         data[i + 1] = fastRecorrectionByte(xN * -0.9689 + yN * 1.8758 + zN * 0.0415);
         data[i + 2] = fastRecorrectionByte(xN * 0.0557 + yN * -0.204 + zN * 1.057);
-        break;
       }
-      case 'HCL': {
-        const h = 6.0 * (c0 / 255.0);
-        const chr = c1 / 255.0;
-        const l = c2 / 255.0;
+      break;
+    }
+    case 'HCL': {
+      for (let i = 0; i < len; i += 4) {
+        const h = 6.0 * (data[i] / 255.0);
+        const chr = data[i + 1] / 255.0;
+        const l = data[i + 2] / 255.0;
         const x = chr * (1.0 - Math.abs((h % 2.0) - 1.0));
         let r = 0, g = 0, b = 0;
         if (h < 1.0) { r = chr; g = x; }
@@ -201,12 +214,14 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         data[i] = clamp8(255 * (r + m));
         data[i + 1] = clamp8(255 * (g + m));
         data[i + 2] = clamp8(255 * (b + m));
-        break;
       }
-      case 'LAB': {
-        const nc0 = c0 / 255.0;
-        const nc1 = c1 / 255.0;
-        const nc2 = c2 / 255.0;
+      break;
+    }
+    case 'LAB': {
+      for (let i = 0; i < len; i += 4) {
+        const nc0 = data[i] / 255.0;
+        const nc1 = data[i + 1] / 255.0;
+        const nc2 = data[i + 2] / 255.0;
 
         const L = 100.0 * nc0;
         const a = nc1 - 0.5;
@@ -230,12 +245,14 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         data[i] = fastRecorrectionByte(xN * 3.2406 + yN * -1.5372 + zN * -0.4986);
         data[i + 1] = fastRecorrectionByte(xN * -0.9689 + yN * 1.8758 + zN * 0.0415);
         data[i + 2] = fastRecorrectionByte(xN * 0.0557 + yN * -0.204 + zN * 1.057);
-        break;
       }
-      case 'LUV': {
-        const L = 100.0 * (c0 / 255.0);
-        const u = 354.0 * (c1 / 255.0) - 134.0;
-        const v = 262.0 * (c2 / 255.0) - 140.0;
+      break;
+    }
+    case 'LUV': {
+      for (let i = 0; i < len; i += 4) {
+        const L = 100.0 * (data[i] / 255.0);
+        const u = 354.0 * (data[i + 1] / 255.0) - 134.0;
+        const v = 262.0 * (data[i + 2] / 255.0) - 140.0;
 
         const Y = L > CIEK2epsilon ? Math.pow((L + 16.0) / 116.0, 3.0) : L / CIEK;
         const L13 = 13.0 * L;
@@ -248,8 +265,8 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         data[i] = fastRecorrectionByte(X * 3.2406 + Y * -1.5372 + Z * -0.4986);
         data[i + 1] = fastRecorrectionByte(X * -0.9689 + Y * 1.8758 + Z * 0.0415);
         data[i + 2] = fastRecorrectionByte(X * 0.0557 + Y * -0.204 + Z * 1.057);
-        break;
       }
+      break;
     }
   }
 }

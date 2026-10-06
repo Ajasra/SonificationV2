@@ -1,6 +1,7 @@
 // Distortion, Saturation, and Nonlinear Filters: Vynil, VacuumTubeAmp, TapSigmoid, Divider, TShiftR, Randmix, AuAmplify
 import { BaseDspFilter } from './base.ts';
 import { Biquad } from '../biquad.ts';
+import { fastSigmoid } from '../fast-lut.ts';
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v;
@@ -257,7 +258,7 @@ export class VacuumTubeAmpFilter extends BaseDspFilter {
       } else if (x > rB) {
         out = (x - k3) / Math.max(1e-6, x + k4);
       }
-      samples[i] = isNaN(out) ? 0 : out;
+      samples[i] = out !== out ? 0 : out;
     }
   }
 }
@@ -287,9 +288,7 @@ export class TapSigmoidFilter extends BaseDspFilter {
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     for (let i = 0; i < len; i++) {
-      const x = samples[i];
-      const res = 2.0 / (1.0 + Math.exp(-x)) - 1.0;
-      samples[i] = isNaN(res) ? 0 : res;
+      samples[i] = fastSigmoid(samples[i]);
     }
   }
 }
@@ -360,7 +359,7 @@ export class DividerFilter extends BaseDspFilter {
       }
       this.last = s;
       const res = this.out * this.lamp;
-      samples[i] = isNaN(res) ? 0 : res;
+      samples[i] = res !== res ? 0 : res;
     }
   }
 }
@@ -412,7 +411,7 @@ export class TShiftRFilter extends BaseDspFilter {
         out = arg < 1e-10 ? 0.0 : Math.sqrt(Math.abs(arg));
       }
       this.prev = inVal;
-      samples[i] = isNaN(out) ? 0 : out;
+      samples[i] = out !== out ? 0 : out;
     }
   }
 }
@@ -469,7 +468,7 @@ export class RandmixFilter extends BaseDspFilter {
       }
       this.prev[this.idx] = s;
       this.idx = (this.idx + 1) % tail;
-      samples[i] = isNaN(s) ? 0 : s;
+      samples[i] = s !== s ? 0 : s;
     }
   }
 }

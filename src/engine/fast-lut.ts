@@ -82,3 +82,17 @@ for (let idx = 0; idx < 4096; idx++) {
   const revU = sgnU * rU * (Math.pow(U1, Math.abs(sample)) - 1.0);
   LUT_REV_ULAW_4096[idx] = Math.max(0, Math.min(255, (255 * (0.5 * revU + 0.5)) | 0));
 }
+
+// 5. Precalculated Sigmoid table for TapSigmoid (-8.0 .. 8.0)
+export const LUT_SIGMOID_4096 = new Float32Array(4096);
+for (let i = 0; i < 4096; i++) {
+  const x = (i / 4095.0) * 16.0 - 8.0;
+  LUT_SIGMOID_4096[i] = 2.0 / (1.0 + Math.exp(-x)) - 1.0;
+}
+
+export function fastSigmoid(x: number): number {
+  if (x <= -8.0) return -1.0;
+  if (x >= 8.0) return 1.0;
+  const idx = ((x + 8.0) * 255.9375) | 0; // 4095 / 16.0 = 255.9375
+  return LUT_SIGMOID_4096[idx];
+}

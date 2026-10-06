@@ -1,16 +1,37 @@
-/* Modern Cyberpunk / Professional Audio Gear Styling */
+/* ==========================================================================
+   SONIFICATION V2 — HARDWARE AUDIO RACK & PCB AESTHETIC STYLING
+   Inspired by Sound Devices, Eurorack modular synthesizers, and laboratory minimalism
+   ========================================================================== */
+
 :root {
-  --bg-dark: #090c10;
-  --bg-surface: #121820;
-  --bg-surface-elevated: #1a232e;
-  --border-color: #263342;
-  --text-main: #e6edf3;
-  --text-muted: #8b949e;
-  --accent-cyan: #00f0ff;
-  --accent-cyan-dim: rgba(0, 240, 255, 0.15);
-  --accent-magenta: #ff007f;
-  --accent-amber: #ffaa00;
-  --accent-red: #ff3344;
+  /* Color Palette */
+  --bg-darkest: #0c0f0c;
+  --bg-dark: #121612;
+  --bg-surface: #161b16;
+  --bg-elevated: #1d231d;
+  --bg-module: #151a15;
+
+  /* Borders & PCB Lines */
+  --border-subtle: #222921;
+  --border-mid: #2e382d;
+  --border-bright: #435241;
+  --border-copper: #8f7547;
+
+  /* Typography */
+  --text-primary: #ece8dc;       /* Bone White */
+  --text-secondary: #9ea796;     /* Muted Sage */
+  --text-muted: #606a5b;         /* Technical Slate */
+
+  /* Accents */
+  --accent-phosphor: #c8d665;    /* Warm Phosphor Chartreuse */
+  --accent-phosphor-glow: rgba(200, 214, 101, 0.25);
+  --accent-amber: #d4a373;
+  --accent-copper: #c59b58;
+  --accent-red: #d94b4b;
+
+  /* Fonts */
+  --font-serif: "Cormorant Garamond", "Newsreader", Garamond, Georgia, serif;
+  --font-mono: "JetBrains Mono", "Space Mono", "SF Mono", Consolas, monospace;
 }
 
 * {
@@ -19,375 +40,893 @@
   padding: 0;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-  user-select: none;
+body.studio-theme {
+  background-color: var(--bg-darkest);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-#app {
+.studio-app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
 }
 
-/* Header */
-.app-header {
+/* ==========================================================================
+   00. Top Studio Ribbon
+   ========================================================================== */
+.studio-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-monogram {
+  font-weight: 700;
+  color: var(--accent-phosphor);
+  letter-spacing: 0.15em;
+}
+
+.brand-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.brand-sub {
+  color: var(--text-muted);
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.status-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor);
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-phosphor);
+  color: var(--accent-phosphor);
+}
+
+/* ==========================================================================
+   01. Hero Editorial & Telemetry Bar
+   ========================================================================== */
+.studio-hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 28px 16px 28px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
+}
+
+.hero-left {
+  max-width: 680px;
+}
+
+.hero-tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.hero-title em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent-phosphor);
+}
+
+.hero-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.hero-right {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+
+.hero-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.meta-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.meta-val {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.meta-val-accent {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--accent-phosphor);
+}
+
+/* ==========================================================================
+   02. Main Workspace (Viewport + Eurorack Sidebar)
+   ========================================================================== */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  flex: 1;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
+}
+
+/* Viewport Card */
+.viewport-card {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+}
+
+.viewport-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 10;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
 }
 
-.logo-glitch {
-  font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: 2px;
-  color: var(--accent-cyan);
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+.viewport-label-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.tagline {
-  font-size: 0.75rem;
+.view-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin-left: 12px;
 }
 
-.header-right {
-  display: flex;
-  gap: 8px;
+.view-meta {
+  font-size: 0.72rem;
+  color: var(--accent-phosphor);
 }
 
-/* Main Layout */
-.main-layout {
+.viewport-tools {
   display: flex;
-  flex: 1;
-  height: calc(100vh - 50px);
+  gap: 6px;
 }
 
-/* Viewport Section */
-.viewport-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  background: #000;
-}
-
-.canvas-container {
-  flex: 1;
-  position: relative;
-  display: flex;
-  justify-content: center;
+.tool-btn {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.tool-btn:hover {
+  color: var(--accent-phosphor);
+  border-color: var(--accent-phosphor);
+}
+
+/* Canvas Viewport Frame */
+.canvas-frame {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
   overflow: hidden;
+  min-height: 480px;
 }
 
 #main-canvas {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  display: block;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.95);
 }
+
+/* Corner Reticles */
+.reticle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: var(--text-muted);
+  border-style: solid;
+  opacity: 0.6;
+}
+
+.reticle-tl { top: 12px; left: 12px; border-width: 1.5px 0 0 1.5px; }
+.reticle-tr { top: 12px; right: 12px; border-width: 1.5px 1.5px 0 0; }
+.reticle-bl { bottom: 12px; left: 12px; border-width: 0 0 1.5px 1.5px; }
+.reticle-br { bottom: 12px; right: 12px; border-width: 0 1.5px 1.5px 0; }
 
 .drop-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 240, 255, 0.2);
-  border: 3px dashed var(--accent-cyan);
+  background: rgba(200, 214, 101, 0.1);
+  border: 2px dashed var(--accent-phosphor);
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--accent-cyan);
+  justify-content: center;
+  color: var(--accent-phosphor);
+  font-size: 1.1rem;
+}
+
+/* Telemetry Status Bar */
+.viewport-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.led-green {
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 5px var(--accent-phosphor);
 }
 
 .perf-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid var(--border-color);
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  font-family: monospace;
-  color: var(--accent-cyan);
+  color: var(--accent-phosphor);
 }
 
-/* Bottom Toolbar */
+.pcb-sig {
+  color: var(--accent-copper);
+}
+
+/* Viewport Transport / Hardware Toolbar (Sound Devices Field Recorder Style) */
 .viewport-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
   background: var(--bg-surface);
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-subtle);
   gap: 12px;
 }
 
-.toolbar-left,
-.toolbar-right {
+.toolbar-cluster {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.toolbar-center {
-  display: flex;
+/* Hardware Buttons */
+.btn-hw {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  padding: 6px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
 }
 
-.btn-shutter {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 3px solid var(--accent-cyan);
+.btn-hw:hover {
+  border-color: var(--accent-phosphor);
+}
+
+.btn-hw-primary {
+  background: var(--accent-phosphor);
+  color: var(--bg-darkest);
+  border-color: var(--accent-phosphor);
+  font-weight: 600;
+}
+
+.btn-hw-primary:hover {
+  background: #dbe878;
+}
+
+.btn-hw-secondary {
+  background: var(--bg-elevated);
+}
+
+.btn-hw-icon {
+  padding: 6px 8px;
+}
+
+.file-label {
+  cursor: pointer;
+}
+
+.select-hw {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-mid);
+  padding: 5px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: 2px;
+  outline: none;
+}
+
+.select-hw:focus {
+  border-color: var(--accent-phosphor);
+}
+
+/* Shutter Trigger Button */
+.btn-shutter-hw {
   background: transparent;
+  border: none;
   cursor: pointer;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.1s;
-}
-
-.btn-shutter:active {
-  transform: scale(0.92);
-}
-
-.shutter-inner {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-}
-
-.btn-record {
-  background: var(--accent-red);
-  color: #fff;
-  border: none;
-  font-weight: bold;
-}
-
-.btn-record.recording {
-  animation: pulse-red 1s infinite;
-}
-
-@keyframes pulse-red {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-
-/* Sidebar Rack */
-.sidebar-rack {
-  width: 380px;
-  background: var(--bg-surface);
-  border-left: 1px solid var(--border-color);
-  display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  overflow-y: auto;
-}
-
-.panel-card {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.card-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--accent-cyan);
-  letter-spacing: 1px;
-  margin-bottom: 8px;
-}
-
-.card-header-row {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.preset-selector-row {
-  display: flex;
-  gap: 8px;
-}
-
-.select-dropdown {
-  flex: 1;
-  background: var(--bg-dark);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.config-grid label {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.75rem;
-  color: var(--text-muted);
   gap: 4px;
 }
 
-.checkbox-row {
-  margin-top: 8px;
-  font-size: 0.8rem;
+.shutter-bezel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--border-bright);
+  background: radial-gradient(circle, #252e22 0%, #121611 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.08s ease;
 }
 
-/* Filter Rack */
-.filter-rack {
+.shutter-bezel:active {
+  transform: scale(0.94);
+}
+
+.shutter-core {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4);
+}
+
+.shutter-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+/* REC Button */
+.btn-record-hw {
+  background: #2a1114;
+  border: 1px solid #5a1e24;
+  color: #ff8b94;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-red);
+}
+
+.btn-record-hw.recording {
+  animation: pulse-rec 0.9s infinite alternate;
+}
+
+@keyframes pulse-rec {
+  from { background: #4a131a; border-color: #ff3344; box-shadow: 0 0 8px #ff3344; }
+  to { background: #200a0d; border-color: #5a1e24; }
+}
+
+/* Audio Master Controls */
+.btn-audio-hw {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 6px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.btn-audio-hw.active {
+  border-color: var(--accent-phosphor);
+  color: var(--text-primary);
+}
+
+.btn-audio-hw.active .audio-led {
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor);
+}
+
+.master-knob-slot {
+  display: flex;
+  align-items: center;
+}
+
+/* ==========================================================================
+   Tactile Rotary Knob Component Styling
+   ========================================================================== */
+.knob-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-  max-height: 480px;
+  align-items: center;
+  user-select: none;
+  cursor: ns-resize;
+  position: relative;
+  padding: 4px;
+}
+
+.knob-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  text-align: center;
+  max-width: 68px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.knob-assembly {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knob-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.knob-track-bg {
+  fill: none;
+  stroke: var(--border-mid);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.knob-track-active {
+  fill: none;
+  stroke: var(--accent-phosphor);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px var(--accent-phosphor-glow));
+}
+
+.knob-tick-dot {
+  fill: var(--text-muted);
+}
+
+.knob-cap {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2c362a 0%, #151b14 70%, #0e120d 100%);
+  border: 1.5px solid var(--border-bright);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  transition: border-color 0.15s ease;
+}
+
+.knob-active .knob-cap,
+.knob-cap:hover {
+  border-color: var(--accent-phosphor);
+}
+
+.knob-pointer {
+  position: absolute;
+  top: 3px;
+  width: 2px;
+  height: 8px;
+  background: var(--accent-phosphor);
+  border-radius: 1px;
+  box-shadow: 0 0 3px var(--accent-phosphor);
+}
+
+.knob-readout {
+  margin-top: 4px;
+  font-size: 0.64rem;
+  color: var(--text-primary);
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 4px;
+  border-radius: 2px;
+  min-width: 42px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.knob-readout:hover {
+  border-color: var(--accent-phosphor);
+  color: var(--accent-phosphor);
+}
+
+/* ==========================================================================
+   02b. Eurorack Modular DSP Sidebar
+   ========================================================================== */
+.sidebar-rack-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-dark);
   overflow-y: auto;
+  gap: 12px;
+  padding: 12px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.rack-silkscreen-bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--border-mid);
+  padding-bottom: 6px;
+}
+
+.rack-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 2px;
+  padding: 12px;
+  position: relative;
+}
+
+/* Silkscreen screws at module corners */
+.rack-card::before,
+.rack-card::after {
+  content: "⊕";
+  position: absolute;
+  font-size: 0.65rem;
+  color: var(--border-mid);
+}
+.rack-card::before { top: 3px; left: 4px; }
+.rack-card::after { top: 3px; right: 4px; }
+
+.rack-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card-subtitle {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.preset-selector-row {
+  margin-top: 4px;
+}
+
+.generator-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.hw-field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.hw-label {
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.select-block {
+  width: 100%;
+}
+
+.toggle-field {
+  justify-content: flex-end;
+}
+
+.hw-toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.hw-toggle-switch input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 28px;
+  height: 14px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.hw-toggle-switch input:checked + .toggle-slider {
+  border-color: var(--accent-phosphor);
+  background: var(--bg-elevated);
+}
+
+.hw-toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(14px);
+  background: var(--accent-phosphor);
+}
+
+/* Modular Rack Stack */
+.filter-rack-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .rack-module {
-  background: var(--bg-dark);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  background: var(--bg-module);
+  border: 1px solid var(--border-mid);
+  border-radius: 2px;
+  padding: 10px;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .module-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border-subtle);
 }
 
 .module-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-main);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
 }
 
-.module-params {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.module-actions {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.param-control {
+.module-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+  justify-items: center;
+  padding-top: 4px;
+}
+
+/* ==========================================================================
+   03. Studio Footer
+   ========================================================================== */
+.studio-footer {
   display: flex;
-  flex-direction: column;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.param-slider {
-  accent-color: var(--accent-cyan);
-}
-
-/* Buttons */
-.btn {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  border: none;
-  font-weight: 600;
-  display: inline-flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: var(--accent-cyan);
-  color: #000;
-}
-
-.btn-secondary {
-  background: var(--bg-surface-elevated);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 0.75rem;
-}
-
-.btn-icon {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-}
-
-.btn-audio-mute {
-  background: var(--border-color);
+  padding: 10px 24px;
+  background: var(--bg-darkest);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-}
-
-.btn-audio-mute.active {
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
-  border: 1px solid var(--accent-cyan);
+  text-transform: uppercase;
 }
 
 /* Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(10, 12, 10, 0.85);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
 
 .modal-card {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
+  padding: 24px;
+  max-width: 440px;
   width: 90%;
-  max-width: 480px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+}
+
+.modal-wide {
+  max-width: 640px;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--text-primary);
+}
+
+.modal-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
 }
 
 .modal-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
   margin-bottom: 16px;
 }
 
@@ -398,60 +937,53 @@ body {
 }
 
 .qr-container img {
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
 }
 
-.btn-close {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.filter-library-list {
-  display: flex;
-  flex-direction: column;
+.filter-library-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  max-height: 400px;
+  max-height: 380px;
   overflow-y: auto;
 }
 
 .library-item {
   background: var(--bg-dark);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: 4px;
+  border: 1px solid var(--border-mid);
+  padding: 10px;
+  border-radius: 2px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
+  transition: all 0.15s ease;
 }
 
 .library-item:hover {
-  border-color: var(--accent-cyan);
+  border-color: var(--accent-phosphor);
+  background: var(--bg-elevated);
+}
+
+.library-item b {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.library-item-desc {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* Mobile responsive styles */
-@media (max-width: 768px) {
-  body {
-    overflow: auto;
-  }
-  .main-layout {
-    flex-direction: column;
-    height: auto;
-  }
-  .sidebar-rack {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
-  }
-  .viewport-section {
-    min-height: 60vh;
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
   }
 }

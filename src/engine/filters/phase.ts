@@ -131,7 +131,7 @@ export class AuPhaserFilter extends BaseDspFilter {
       }
       this.fbout = m;
       const res = m * wet + inVal * dry;
-      samples[i] = isNaN(res) ? 0 : res;
+      samples[i] = res !== res ? 0 : res;
     }
   }
 }
@@ -152,7 +152,6 @@ export class AuWahwahFilter extends BaseDspFilter {
   private b0 = 0;
   private b1 = 0;
   private b2 = 0;
-  private a0 = 1;
   private a1 = 0;
   private a2 = 0;
   private skipcount = 0;
@@ -167,7 +166,6 @@ export class AuWahwahFilter extends BaseDspFilter {
     this.skipcount = 0;
     this.xn1 = this.xn2 = this.yn1 = this.yn2 = 0;
     this.b0 = this.b1 = this.b2 = this.a1 = this.a2 = 0;
-    this.a0 = 1;
   }
 
   randomize(): void {
@@ -204,34 +202,43 @@ export class AuWahwahFilter extends BaseDspFilter {
     const fOfsNorm = this.freqOfs / 100.0;
     const pRad = (this.phaseDeg * Math.PI) / 180.0;
     const res = this.resonance;
+    let sc = this.skipcount;
+    let periodCount = sc % 30;
+
+    let b0 = this.b0, b1 = this.b1, b2 = this.b2, a1 = this.a1, a2 = this.a2;
+    let xn1 = this.xn1, xn2 = this.xn2, yn1 = this.yn1, yn2 = this.yn2;
 
     for (let i = 0; i < len; i++) {
       const inVal = samples[i];
-      if (this.skipcount++ % 30 === 0) {
-        let f = (1 + Math.cos(this.skipcount * this.lfoskip + pRad)) / 2;
+      if (periodCount === 0) {
+        let f = (1 + Math.cos(sc * this.lfoskip + pRad)) * 0.5;
         f = f * dNorm * (1 - fOfsNorm) + fOfsNorm;
         f = Math.exp((f - 1) * 6);
         const omega = Math.PI * f;
         const sn = Math.sin(omega);
         const cs = Math.cos(omega);
         const alpha = sn / (2 * res);
-        this.b0 = (1 - cs) / 2;
-        this.b1 = 1 - cs;
-        this.b2 = (1 - cs) / 2;
-        this.a0 = 1 + alpha;
-        this.a1 = -2 * cs;
-        this.a2 = 1 - alpha;
+        const invA0 = 1.0 / (1 + alpha);
+        b0 = ((1 - cs) * 0.5) * invA0;
+        b1 = (1 - cs) * invA0;
+        b2 = ((1 - cs) * 0.5) * invA0;
+        a1 = (-2 * cs) * invA0;
+        a2 = (1 - alpha) * invA0;
       }
+      sc++;
+      if (++periodCount === 30) periodCount = 0;
 
-      const out =
-        (this.b0 * inVal + this.b1 * this.xn1 + this.b2 * this.xn2 - this.a1 * this.yn1 - this.a2 * this.yn2) /
-        this.a0;
-      this.xn2 = this.xn1;
-      this.xn1 = inVal;
-      this.yn2 = this.yn1;
-      this.yn1 = out;
-      samples[i] = isNaN(out) ? 0 : out;
+      const out = b0 * inVal + b1 * xn1 + b2 * xn2 - a1 * yn1 - a2 * yn2;
+      xn2 = xn1;
+      xn1 = inVal;
+      yn2 = yn1;
+      yn1 = out;
+      samples[i] = out !== out ? 0 : out;
     }
+
+    this.b0 = b0; this.b1 = b1; this.b2 = b2; this.a1 = a1; this.a2 = a2;
+    this.xn1 = xn1; this.xn2 = xn2; this.yn1 = yn1; this.yn2 = yn2;
+    this.skipcount = sc;
   }
 }
 
@@ -312,7 +319,7 @@ export class LFOPhaserFilter extends BaseDspFilter {
       let y = this.ap[0].run(samples[i] + this.ym1 * this.fb);
       for (let j = 1; j < 6; j++) y = this.ap[j].run(y);
       this.ym1 = y;
-      samples[i] = isNaN(y) ? 0 : y;
+      samples[i] = y !== y ? 0 : y;
     }
   }
 }
@@ -411,7 +418,7 @@ export class FourByFourPoleFilter extends BaseDspFilter {
       this.y3 = this.ap[idx++].run(this.y3);
       this.y3 = this.ap[idx++].run(this.y3);
 
-      samples[i] = isNaN(this.y3) ? 0 : this.y3;
+      samples[i] = this.y3 !== this.y3 ? 0 : this.y3;
     }
   }
 }
@@ -488,7 +495,7 @@ export class AutoPhaserFilter extends BaseDspFilter {
       let y = this.ap[0].run(s + this.ym1 * this.fb);
       for (let j = 1; j < 6; j++) y = this.ap[j].run(y);
       this.ym1 = y;
-      samples[i] = isNaN(y) ? 0 : y;
+      samples[i] = y !== y ? 0 : y;
     }
   }
 }
