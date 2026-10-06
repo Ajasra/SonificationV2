@@ -85,10 +85,21 @@ export class SonificationPipeline {
       this.workAudioBuffer.subarray(0, numSamples)
     );
 
-    // 4. Run audio DSP chain in-place
+    // 4. Run audio DSP chain in-place with L1/L2 cache chunk fusion
     this.syncFilterInstances(preset);
-    for (const filter of this.activeFilters) {
-      filter.processBlock(audioStream);
+    const numFilters = this.activeFilters.length;
+    if (numFilters === 1) {
+      this.activeFilters[0].processBlock(audioStream);
+    } else if (numFilters > 1) {
+      const CHUNK_SIZE = 16384; // 64 KB cache tile
+      const totalLen = audioStream.length;
+      for (let offset = 0; offset < totalLen; offset += CHUNK_SIZE) {
+        const end = Math.min(offset + CHUNK_SIZE, totalLen);
+        const chunk = audioStream.subarray(offset, end);
+        for (let f = 0; f < numFilters; f++) {
+          this.activeFilters[f].processBlock(chunk);
+        }
+      }
     }
 
     // 5. Decode 1D audio sample stream back into image pixels

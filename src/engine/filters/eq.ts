@@ -62,12 +62,32 @@ export class DjEqFilter extends BaseDspFilter {
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;
-    const f1 = this.f1;
-    const f2 = this.f2;
-    const f3 = this.f3;
+    let x1_1 = this.f1.x1, x2_1 = this.f1.x2, y1_1 = this.f1.y1, y2_1 = this.f1.y2;
+    const b0_1 = this.f1.b0, b1_1 = this.f1.b1, b2_1 = this.f1.b2, a1_1 = this.f1.a1, a2_1 = this.f1.a2;
+
+    let x1_2 = this.f2.x1, x2_2 = this.f2.x2, y1_2 = this.f2.y1, y2_2 = this.f2.y2;
+    const b0_2 = this.f2.b0, b1_2 = this.f2.b1, b2_2 = this.f2.b2, a1_2 = this.f2.a1, a2_2 = this.f2.a2;
+
+    let x1_3 = this.f3.x1, x2_3 = this.f3.x2, y1_3 = this.f3.y1, y2_3 = this.f3.y2;
+    const b0_3 = this.f3.b0, b1_3 = this.f3.b1, b2_3 = this.f3.b2, a1_3 = this.f3.a1, a2_3 = this.f3.a2;
+
     for (let i = 0; i < len; i++) {
-      samples[i] = f3.run(f2.run(f1.run(samples[i])));
+      const s0 = samples[i];
+      const s1 = b0_1 * s0 + b1_1 * x1_1 + b2_1 * x2_1 + a1_1 * y1_1 + a2_1 * y2_1;
+      x2_1 = x1_1; x1_1 = s0; y2_1 = y1_1; y1_1 = s1;
+
+      const s2 = b0_2 * s1 + b1_2 * x1_2 + b2_2 * x2_2 + a1_2 * y1_2 + a2_2 * y2_2;
+      x2_2 = x1_2; x1_2 = s1; y2_2 = y1_2; y1_2 = s2;
+
+      const s3 = b0_3 * s2 + b1_3 * x1_3 + b2_3 * x2_3 + a1_3 * y1_3 + a2_3 * y2_3;
+      x2_3 = x1_3; x1_3 = s2; y2_3 = y1_3; y1_3 = s3;
+
+      samples[i] = s3;
     }
+
+    this.f1.x1 = x1_1; this.f1.x2 = x2_1; this.f1.y1 = y1_1; this.f1.y2 = y2_1;
+    this.f2.x1 = x1_2; this.f2.x2 = x2_2; this.f2.y1 = y1_2; this.f2.y2 = y2_2;
+    this.f3.x1 = x1_3; this.f3.x2 = x2_3; this.f3.y1 = y1_3; this.f3.y2 = y2_3;
   }
 }
 
@@ -87,7 +107,7 @@ export class AuBassTrebleFilter extends BaseDspFilter {
   private b0Bass = 0;
   private b1Bass = 0;
   private b2Bass = 0;
-  private a0Bass = 1;
+  private invA0Bass = 1;
   private a1Bass = 0;
   private a2Bass = 0;
 
@@ -98,7 +118,7 @@ export class AuBassTrebleFilter extends BaseDspFilter {
   private b0Treble = 0;
   private b1Treble = 0;
   private b2Treble = 0;
-  private a0Treble = 1;
+  private invA0Treble = 1;
   private a1Treble = 0;
   private a2Treble = 0;
 
@@ -119,7 +139,8 @@ export class AuBassTrebleFilter extends BaseDspFilter {
     this.b0Bass = aB * (aB + 1 - (aB - 1) * Math.cos(wB) + bB * Math.sin(wB));
     this.b1Bass = 2 * aB * (aB - 1 - (aB + 1) * Math.cos(wB));
     this.b2Bass = aB * (aB + 1 - (aB - 1) * Math.cos(wB) - bB * Math.sin(wB));
-    this.a0Bass = aB + 1 + (aB - 1) * Math.cos(wB) + bB * Math.sin(wB);
+    const a0B = aB + 1 + (aB - 1) * Math.cos(wB) + bB * Math.sin(wB);
+    this.invA0Bass = 1.0 / Math.max(1e-6, a0B);
     this.a1Bass = -2 * (aB - 1 + (aB + 1) * Math.cos(wB));
     this.a2Bass = aB + 1 + (aB - 1) * Math.cos(wB) - bB * Math.sin(wB);
 
@@ -130,7 +151,8 @@ export class AuBassTrebleFilter extends BaseDspFilter {
     this.b0Treble = aT * (aT + 1 + (aT - 1) * Math.cos(wT) + bT * Math.sin(wT));
     this.b1Treble = -2 * aT * (aT - 1 + (aT + 1) * Math.cos(wT));
     this.b2Treble = aT * (aT + 1 + (aT - 1) * Math.cos(wT) - bT * Math.sin(wT));
-    this.a0Treble = aT + 1 - (aT - 1) * Math.cos(wT) + bT * Math.sin(wT);
+    const a0T = aT + 1 - (aT - 1) * Math.cos(wT) + bT * Math.sin(wT);
+    this.invA0Treble = 1.0 / Math.max(1e-6, a0T);
     this.a1Treble = 2 * (aT - 1 - (aT + 1) * Math.cos(wT));
     this.a2Treble = aT + 1 - (aT - 1) * Math.cos(wT) - bT * Math.sin(wT);
   }
@@ -168,34 +190,25 @@ export class AuBassTrebleFilter extends BaseDspFilter {
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;
+    let xn1B = this.xn1Bass, xn2B = this.xn2Bass, yn1B = this.yn1Bass, yn2B = this.yn2Bass;
+    const b0B = this.b0Bass, b1B = this.b1Bass, b2B = this.b2Bass, a1B = this.a1Bass, a2B = this.a2Bass, invA0B = this.invA0Bass;
+
+    let xn1T = this.xn1Treble, xn2T = this.xn2Treble, yn1T = this.yn1Treble, yn2T = this.yn2Treble;
+    const b0T = this.b0Treble, b1T = this.b1Treble, b2T = this.b2Treble, a1T = this.a1Treble, a2T = this.a2Treble, invA0T = this.invA0Treble;
+
     for (let i = 0; i < len; i++) {
       const inVal = samples[i];
-      const outB =
-        (this.b0Bass * inVal +
-          this.b1Bass * this.xn1Bass +
-          this.b2Bass * this.xn2Bass -
-          this.a1Bass * this.yn1Bass -
-          this.a2Bass * this.yn2Bass) /
-        this.a0Bass;
-      this.xn2Bass = this.xn1Bass;
-      this.xn1Bass = inVal;
-      this.yn2Bass = this.yn1Bass;
-      this.yn1Bass = outB;
+      const outB = (b0B * inVal + b1B * xn1B + b2B * xn2B - a1B * yn1B - a2B * yn2B) * invA0B;
+      xn2B = xn1B; xn1B = inVal; yn2B = yn1B; yn1B = outB;
 
-      const outT =
-        (this.b0Treble * outB +
-          this.b1Treble * this.xn1Treble +
-          this.b2Treble * this.xn2Treble -
-          this.a1Treble * this.yn1Treble -
-          this.a2Treble * this.yn2Treble) /
-        this.a0Treble;
-      this.xn2Treble = this.xn1Treble;
-      this.xn1Treble = outB;
-      this.yn2Treble = this.yn1Treble;
-      this.yn1Treble = outT;
+      const outT = (b0T * outB + b1T * xn1T + b2T * xn2T - a1T * yn1T - a2T * yn2T) * invA0T;
+      xn2T = xn1T; xn1T = outB; yn2T = yn1T; yn1T = outT;
 
-      samples[i] = isNaN(outT) ? 0 : outT;
+      samples[i] = outT;
     }
+
+    this.xn1Bass = xn1B; this.xn2Bass = xn2B; this.yn1Bass = yn1B; this.yn2Bass = yn2B;
+    this.xn1Treble = xn1T; this.xn2Treble = xn2T; this.yn1Treble = yn1T; this.yn2Treble = yn2T;
   }
 }
 

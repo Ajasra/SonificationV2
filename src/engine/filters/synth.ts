@@ -87,23 +87,48 @@ export class Vcf303Filter extends BaseDspFilter {
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;
+    let d1 = this.d1;
+    let d2 = this.d2;
+    let a = this.a;
+    let b = this.b;
+    let c = this.c;
+    let envpos = this.envpos;
+    const trig = this.trigger;
+
     for (let i = 0; i < len; i++) {
-      if (Math.random() < this.trigger) this.init();
-
       const inVal = samples[i];
-      const sample = this.a * this.d1 + this.b * this.d2 + this.c * inVal;
-      this.d2 = this.d1;
-      this.d1 = sample;
+      const sample = a * d1 + b * d2 + c * inVal;
+      d2 = d1;
+      d1 = sample;
 
-      this.envpos++;
-      if (this.envpos >= 64) {
-        this.envpos = 0;
-        this.c0 *= this.dec;
-        this.recalcABC();
+      envpos++;
+      if (envpos >= 64) {
+        envpos = 0;
+        if (trig > 0 && Math.random() < trig * 64) {
+          this.d1 = d1;
+          this.d2 = d2;
+          this.envpos = 0;
+          this.init();
+          d1 = this.d1;
+          d2 = this.d2;
+          a = this.a;
+          b = this.b;
+          c = this.c;
+        } else {
+          this.c0 *= this.dec;
+          this.recalcABC();
+          a = this.a;
+          b = this.b;
+          c = this.c;
+        }
       }
 
-      samples[i] = isNaN(sample) ? 0 : sample;
+      samples[i] = sample;
     }
+
+    this.d1 = d1;
+    this.d2 = d2;
+    this.envpos = envpos;
   }
 }
 
