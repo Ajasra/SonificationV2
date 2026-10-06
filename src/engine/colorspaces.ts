@@ -1,18 +1,15 @@
-// Ultra-Fast In-Place Color Space Conversions with LUTs
+// Ultra-Fast In-Place Color Space Conversions with Complete LUTs
 import type { ColorSpace } from '../types/index.ts';
-import { LUT_CORRECTION_XYZ, fastRecorrectionxyz } from './fast-lut.ts';
+import { LUT_CORRECTION_XYZ, fastCbrt, fastRecorrectionByte } from './fast-lut.ts';
 
-const D65X = 0.950456;
-const D65Y = 1.0;
-const D65Z = 1.088754;
-const CIEEpsilon = 216.0 / 24389.0;
-const CIEK = 24389.0 / 27.0;
-const CIEK2epsilon = CIEK * CIEEpsilon;
-const D65FX_4 = (4.0 * D65X) / (D65X + 15.0 * D65Y + 3.0 * D65Z);
-const D65FY_9 = (9.0 * D65Y) / (D65X + 15.0 * D65Y + 3.0 * D65Z);
+const D65FX_4 = 4.0 * 0.950456 / (0.950456 + 15.0 * 1.0 + 3.0 * 1.088754);
+const D65FY_9 = 9.0 * 1.0 / (0.950456 + 15.0 * 1.0 + 3.0 * 1.088754);
 const RANGE_X = 100.0 * (0.4124 + 0.3576 + 0.1805);
 const RANGE_Y = 100.0;
 const RANGE_Z = 100.0 * (0.0193 + 0.1192 + 0.9505);
+const CIEEpsilon = 216.0 / 24389.0;
+const CIEK = 24389.0 / 27.0;
+const CIEK2epsilon = CIEK * CIEEpsilon;
 const mepsilon = 1.0e-10;
 const One_Third = 1.0 / 3.0;
 
@@ -101,13 +98,13 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         const cr = LUT_CORRECTION_XYZ[r];
         const cg = LUT_CORRECTION_XYZ[g];
         const cb = LUT_CORRECTION_XYZ[b];
-        const xVal = (cr * 0.4124 + cg * 0.3576 + cb * 0.1805) * 0.010521268; // / (100 * D65X)
-        const yVal = (cr * 0.2126 + cg * 0.7152 + cb * 0.0722) * 0.01; // / 100
-        const zVal = (cr * 0.0193 + cg * 0.1192 + cb * 0.9505) * 0.009184811; // / (100 * D65Z)
+        const xVal = (cr * 0.4124 + cg * 0.3576 + cb * 0.1805) * 0.010521268;
+        const yVal = (cr * 0.2126 + cg * 0.7152 + cb * 0.0722) * 0.01;
+        const zVal = (cr * 0.0193 + cg * 0.1192 + cb * 0.9505) * 0.009184811;
 
-        const fx = xVal > CIEEpsilon ? Math.cbrt(xVal) : (CIEK * xVal + 16.0) * 0.008620689;
-        const fy = yVal > CIEEpsilon ? Math.cbrt(yVal) : (CIEK * yVal + 16.0) * 0.008620689;
-        const fz = zVal > CIEEpsilon ? Math.cbrt(zVal) : (CIEK * zVal + 16.0) * 0.008620689;
+        const fx = xVal > CIEEpsilon ? fastCbrt(xVal) : (CIEK * xVal + 16.0) * 0.008620689;
+        const fy = yVal > CIEEpsilon ? fastCbrt(yVal) : (CIEK * yVal + 16.0) * 0.008620689;
+        const fz = zVal > CIEEpsilon ? fastCbrt(zVal) : (CIEK * zVal + 16.0) * 0.008620689;
 
         data[i] = clamp8(255.0 * ((116.0 * fy - 16.0) * 0.01));
         data[i + 1] = clamp8(255.0 * (0.5 * (fx - fy) + 0.5));
@@ -122,7 +119,7 @@ export function convertToColorSpace(data: Uint8ClampedArray, cs: ColorSpace): vo
         const yVal = (cr * 0.2126 + cg * 0.7152 + cb * 0.0722) * 0.01;
         const zVal = (cr * 0.0193 + cg * 0.1192 + cb * 0.9505) * 0.01;
 
-        let L = yVal > CIEEpsilon ? 116.0 * Math.cbrt(yVal) - 16.0 : CIEK * yVal;
+        let L = yVal > CIEEpsilon ? 116.0 * fastCbrt(yVal) - 16.0 : CIEK * yVal;
         const alpha = perceptibleReciprocal(xVal + 15.0 * yVal + 3.0 * zVal);
         const L13 = 13.0 * L;
         let u = L13 * (4.0 * alpha * xVal - D65FX_4);
@@ -169,9 +166,9 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         const x = (c0 / 255.0) * (RANGE_X / 100.0);
         const y = (c1 / 255.0) * (RANGE_Y / 100.0);
         const z = (c2 / 255.0) * (RANGE_Z / 100.0);
-        data[i] = clamp8(255.0 * fastRecorrectionxyz(x * 3.2406 + y * -1.5372 + z * -0.4986));
-        data[i + 1] = clamp8(255.0 * fastRecorrectionxyz(x * -0.9689 + y * 1.8758 + z * 0.0415));
-        data[i + 2] = clamp8(255.0 * fastRecorrectionxyz(x * 0.0557 + y * -0.204 + z * 1.057));
+        data[i] = fastRecorrectionByte(x * 3.2406 + y * -1.5372 + z * -0.4986);
+        data[i + 1] = fastRecorrectionByte(x * -0.9689 + y * 1.8758 + z * 0.0415);
+        data[i + 2] = fastRecorrectionByte(x * 0.0557 + y * -0.204 + z * 1.057);
         break;
       }
       case 'YXY': {
@@ -182,9 +179,9 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         const xN = (x * divy) * 0.01;
         const yN = Y * 0.01;
         const zN = ((1.0 - x - y) * divy) * 0.01;
-        data[i] = clamp8(255.0 * fastRecorrectionxyz(xN * 3.2406 + yN * -1.5372 + zN * -0.4986));
-        data[i + 1] = clamp8(255.0 * fastRecorrectionxyz(xN * -0.9689 + yN * 1.8758 + zN * 0.0415));
-        data[i + 2] = clamp8(255.0 * fastRecorrectionxyz(xN * 0.0557 + yN * -0.204 + zN * 1.057));
+        data[i] = fastRecorrectionByte(xN * 3.2406 + yN * -1.5372 + zN * -0.4986);
+        data[i + 1] = fastRecorrectionByte(xN * -0.9689 + yN * 1.8758 + zN * 0.0415);
+        data[i + 2] = fastRecorrectionByte(xN * 0.0557 + yN * -0.204 + zN * 1.057);
         break;
       }
       case 'HCL': {
@@ -230,9 +227,9 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         const yN = (RANGE_Y * fy) * 0.01;
         const zN = (RANGE_Z * fz) * 0.01;
 
-        data[i] = clamp8(255.0 * fastRecorrectionxyz(xN * 3.2406 + yN * -1.5372 + zN * -0.4986));
-        data[i + 1] = clamp8(255.0 * fastRecorrectionxyz(xN * -0.9689 + yN * 1.8758 + zN * 0.0415));
-        data[i + 2] = clamp8(255.0 * fastRecorrectionxyz(xN * 0.0557 + yN * -0.204 + zN * 1.057));
+        data[i] = fastRecorrectionByte(xN * 3.2406 + yN * -1.5372 + zN * -0.4986);
+        data[i + 1] = fastRecorrectionByte(xN * -0.9689 + yN * 1.8758 + zN * 0.0415);
+        data[i + 2] = fastRecorrectionByte(xN * 0.0557 + yN * -0.204 + zN * 1.057);
         break;
       }
       case 'LUV': {
@@ -248,9 +245,9 @@ export function convertFromColorSpace(data: Uint8ClampedArray, cs: ColorSpace): 
         const X = (Y * ((39.0 * L) / (v + L13 * D65FY_9) - 5.0) + Y5) / (((L13u - 1.0) / 3.0) + One_Third);
         const Z = X * ((L13u - 1.0) / 3.0) - Y5;
 
-        data[i] = clamp8(255.0 * fastRecorrectionxyz(X * 3.2406 + Y * -1.5372 + Z * -0.4986));
-        data[i + 1] = clamp8(255.0 * fastRecorrectionxyz(X * -0.9689 + Y * 1.8758 + Z * 0.0415));
-        data[i + 2] = clamp8(255.0 * fastRecorrectionxyz(X * 0.0557 + Y * -0.204 + Z * 1.057));
+        data[i] = fastRecorrectionByte(X * 3.2406 + Y * -1.5372 + Z * -0.4986);
+        data[i + 1] = fastRecorrectionByte(X * -0.9689 + Y * 1.8758 + Z * 0.0415);
+        data[i + 2] = fastRecorrectionByte(X * 0.0557 + Y * -0.204 + Z * 1.057);
         break;
       }
     }

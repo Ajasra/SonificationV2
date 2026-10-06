@@ -571,22 +571,27 @@ class SonificationApp {
     }
   }
 
+  private cachedImageData: ImageData | null = null;
+
   private processAndBlit(): void {
     if (!this.inputImageBuffer) return;
 
     const w = this.canvas.width;
     const h = this.canvas.height;
 
+    if (!this.cachedImageData || this.cachedImageData.width !== w || this.cachedImageData.height !== h) {
+      this.cachedImageData = this.ctx.createImageData(w, h);
+    }
+
     const res = this.pipeline.processFrame(
       this.inputImageBuffer.data,
       w,
       h,
-      this.activePreset
+      this.activePreset,
+      this.cachedImageData.data
     );
 
-    const outImgData = this.ctx.createImageData(w, h);
-    outImgData.data.set(res.outputRgba);
-    this.ctx.putImageData(outImgData, 0, 0);
+    this.ctx.putImageData(this.cachedImageData, 0, 0);
 
     // Feed audio samples to the Sound Camera audio engine
     this.audioEngine.playFrameSamples(res.audioSamples);

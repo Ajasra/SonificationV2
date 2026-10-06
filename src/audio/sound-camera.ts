@@ -1,6 +1,5 @@
 // Web Audio API Player for Sonification V2
-// Bridges visual databend samples to sound output through device speakers
-
+// Reusable pre-allocated AudioBuffer to prevent GC stutter
 export class SoundCameraAudio {
   private ctx: AudioContext | null = null;
   private gainNode: GainNode | null = null;
@@ -9,14 +8,20 @@ export class SoundCameraAudio {
   private volume = 0.5;
 
   private currentSource: AudioBufferSourceNode | null = null;
+  private playbackBuffer: AudioBuffer | null = null;
+  private static readonly PLAYBACK_SIZE = 4096;
 
   init(): void {
     if (!this.ctx) {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtxClass();
       this.gainNode = this.ctx.createGain();
       this.analyserNode = this.ctx.createAnalyser();
       this.analyserNode.fftSize = 256;
+
+      this.playbackBuffer = this.ctx.createBuffer(1, SoundCameraAudio.PLAYBACK_SIZE, 44100);
 
       this.gainNode.gain.value = this.isMuted ? 0 : this.volume;
       this.gainNode.connect(this.analyserNode);
@@ -45,24 +50,26 @@ export class SoundCameraAudio {
     }
   }
 
-  // Play a block of audio samples derived from the image/video frame
-  playFrameSamples(samples: Float32Array, sampleRate: number = 44100): void {
-    if (!this.ctx || this.isMuted || samples.length === 0) return;
+  playFrameSamples(samples: Float32Array): void {
+    if (!this.ctx || this.isMuted || samples.length === 0 || !this.playbackBuffer) return;
 
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
 
     try {
-      // Create an audio buffer for this frame
-      const audioBuffer = this.ctx.createBuffer(1, samples.length, sampleRate);
-      audioBuffer.getChannelData(0).set(samples);
+      const channel = this.playbackBuffer.getChannelData(0);
+      const targetLen = SoundCameraAudio.PLAYBACK_SIZE;
+      const stride = Math.max(1, Math.floor(samples.length / targetLen));
+
+      for (let i = 0; i < targetLen; i++) {
+        channel[i] = samples[i * stride] || 0;
+      }
 
       const source = this.ctx.createBufferSource();
-      source.buffer = audioBuffer;
+      source.buffer = this.playbackBuffer;
       source.connect(this.gainNode!);
 
-      // Smoothly stop prior source to avoid clicks
       if (this.currentSource) {
         try {
           this.currentSource.stop();

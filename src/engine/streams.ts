@@ -1,4 +1,4 @@
-// High-Performance Stream Serialization with Pre-allocated Buffers & LUTs
+// Ultra-High-Performance Direct 1-Pass Stream Serialization
 import type { StreamConfig } from '../types/index.ts';
 import {
   LUT_ALAW_8,
@@ -12,7 +12,6 @@ const s8 = 1.0 / 0xff;
 const s16 = 1.0 / 0xffff;
 const s24 = 1.0 / 0xffffff;
 
-// Reusable static byte stream buffer to avoid GC allocations
 let cachedByteStream = new Uint8Array(0);
 function ensureByteStream(size: number): Uint8Array {
   if (cachedByteStream.length < size) {
@@ -28,9 +27,40 @@ export function imageToAudioStream(
 ): Float32Array {
   const numPixels = rgba.length >> 2;
   const totalColorBytes = numPixels * 3;
-  const byteStream = ensureByteStream(totalColorBytes);
+  const bits = cfg.bits;
+  const bytesPerSample = bits === 8 ? 1 : bits === 16 ? 2 : 3;
+  const numSamples = Math.floor(totalColorBytes / bytesPerSample);
+  const samples = outSamples && outSamples.length >= numSamples ? outSamples : new Float32Array(numSamples);
 
-  // Fast unpack RGBA into byteStream
+  // DIRECT 1-PASS PATH for 8-bit unsigned (bypasses byteStream completely!)
+  if (bits === 8 && cfg.sign === 'UNSIGNED') {
+    const lut = cfg.law === 'A_LAW' ? LUT_ALAW_8 : cfg.law === 'U_LAW' ? LUT_ULAW_8 : LUT_LINEAR_8;
+
+    if (cfg.rawType === 'PLANAR') {
+      let rIdx = 0;
+      let gIdx = numPixels;
+      let bIdx = numPixels << 1;
+      const len = rgba.length;
+      for (let i = 0; i < len; i += 4) {
+        samples[rIdx++] = lut[rgba[i]];
+        samples[gIdx++] = lut[rgba[i + 1]];
+        samples[bIdx++] = lut[rgba[i + 2]];
+      }
+      return samples;
+    } else {
+      let s = 0;
+      const len = rgba.length;
+      for (let i = 0; i < len; i += 4) {
+        samples[s++] = lut[rgba[i]];
+        samples[s++] = lut[rgba[i + 1]];
+        samples[s++] = lut[rgba[i + 2]];
+      }
+      return samples;
+    }
+  }
+
+  // General fallback for 16-bit / 24-bit / signed modes
+  const byteStream = ensureByteStream(totalColorBytes);
   if (cfg.rawType === 'PLANAR') {
     let rIdx = 0;
     let gIdx = numPixels;
@@ -49,32 +79,6 @@ export function imageToAudioStream(
     }
   }
 
-  const bits = cfg.bits;
-  const bytesPerSample = bits === 8 ? 1 : bits === 16 ? 2 : 3;
-  const numSamples = Math.floor(totalColorBytes / bytesPerSample);
-  const samples = outSamples && outSamples.length >= numSamples ? outSamples : new Float32Array(numSamples);
-
-  // Ultra-fast path for 8-bit unsigned (most common real-time mode)
-  if (bits === 8 && cfg.sign === 'UNSIGNED') {
-    if (cfg.law === 'A_LAW') {
-      for (let s = 0; s < numSamples; s++) {
-        samples[s] = LUT_ALAW_8[byteStream[s]];
-      }
-      return samples;
-    } else if (cfg.law === 'U_LAW') {
-      for (let s = 0; s < numSamples; s++) {
-        samples[s] = LUT_ULAW_8[byteStream[s]];
-      }
-      return samples;
-    } else {
-      for (let s = 0; s < numSamples; s++) {
-        samples[s] = LUT_LINEAR_8[byteStream[s]];
-      }
-      return samples;
-    }
-  }
-
-  // General path for 16-bit / 24-bit / signed modes
   let bytePtr = 0;
   const isBigEndian = cfg.endianess === 'BIG_ENDIAN';
   const isSigned = cfg.sign === 'SIGNED';
@@ -114,61 +118,112 @@ export function audioStreamToImage(
 ): void {
   const numPixels = outRgba.length >> 2;
   const totalColorBytes = numPixels * 3;
-  const byteStream = ensureByteStream(totalColorBytes);
-
   const bits = cfg.bits;
   const bytesPerSample = bits === 8 ? 1 : bits === 16 ? 2 : 3;
   const numSamples = Math.min(samples.length, Math.floor(totalColorBytes / bytesPerSample));
 
-  // Ultra-fast path for 8-bit unsigned
+  // DIRECT 1-PASS PATH for 8-bit unsigned
   if (bits === 8 && cfg.sign === 'UNSIGNED') {
-    if (cfg.law === 'A_LAW') {
-      for (let s = 0; s < numSamples; s++) {
-        const idx = Math.max(0, Math.min(4095, Math.floor((samples[s] + 1.0) * 2047.5)));
-        byteStream[s] = LUT_REV_ALAW_4096[idx];
+    if (cfg.rawType === 'PLANAR') {
+      let rIdx = 0;
+      let gIdx = numPixels;
+      let bIdx = numPixels << 1;
+      const len = outRgba.length;
+
+      if (cfg.law === 'A_LAW') {
+        for (let i = 0; i < len; i += 4) {
+          const rS = samples[rIdx++];
+          const gS = samples[gIdx++];
+          const bS = samples[bIdx++];
+          outRgba[i] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((rS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 1] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((gS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 2] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((bS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 3] = 255;
+        }
+      } else if (cfg.law === 'U_LAW') {
+        for (let i = 0; i < len; i += 4) {
+          const rS = samples[rIdx++];
+          const gS = samples[gIdx++];
+          const bS = samples[bIdx++];
+          outRgba[i] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((rS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 1] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((gS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 2] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((bS + 1.0) * 2047.5) | 0))];
+          outRgba[i + 3] = 255;
+        }
+      } else {
+        for (let i = 0; i < len; i += 4) {
+          const rV = (255 * (0.5 * samples[rIdx++] + 0.5)) | 0;
+          const gV = (255 * (0.5 * samples[gIdx++] + 0.5)) | 0;
+          const bV = (255 * (0.5 * samples[bIdx++] + 0.5)) | 0;
+          outRgba[i] = rV < 0 ? 0 : rV > 255 ? 255 : rV;
+          outRgba[i + 1] = gV < 0 ? 0 : gV > 255 ? 255 : gV;
+          outRgba[i + 2] = bV < 0 ? 0 : bV > 255 ? 255 : bV;
+          outRgba[i + 3] = 255;
+        }
       }
-    } else if (cfg.law === 'U_LAW') {
-      for (let s = 0; s < numSamples; s++) {
-        const idx = Math.max(0, Math.min(4095, Math.floor((samples[s] + 1.0) * 2047.5)));
-        byteStream[s] = LUT_REV_ULAW_4096[idx];
-      }
+      return;
     } else {
-      for (let s = 0; s < numSamples; s++) {
-        const v = Math.floor(255 * (0.5 * samples[s] + 0.5));
-        byteStream[s] = v < 0 ? 0 : v > 255 ? 255 : v;
-      }
-    }
-  } else {
-    // General path
-    let bytePtr = 0;
-    const isBigEndian = cfg.endianess === 'BIG_ENDIAN';
-    const isSigned = cfg.sign === 'SIGNED';
-    const sh = isSigned ? 0.0 : 0.5;
-
-    for (let s = 0; s < numSamples; s++) {
-      const res = samples[s];
-      let ires = 0;
-      if (bits === 8) {
-        ires = 0xff & Math.floor(0xff * (0.5 * res + sh));
-      } else if (bits === 16) {
-        ires = 0xffff & Math.floor(0xffff * (0.5 * res + sh));
+      // INTERLEAVED direct 1-pass
+      let s = 0;
+      const len = outRgba.length;
+      if (cfg.law === 'A_LAW') {
+        for (let i = 0; i < len; i += 4) {
+          outRgba[i] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 1] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 2] = LUT_REV_ALAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 3] = 255;
+        }
+      } else if (cfg.law === 'U_LAW') {
+        for (let i = 0; i < len; i += 4) {
+          outRgba[i] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 1] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 2] = LUT_REV_ULAW_4096[Math.max(0, Math.min(4095, ((samples[s++] + 1.0) * 2047.5) | 0))];
+          outRgba[i + 3] = 255;
+        }
       } else {
-        ires = 0xffffff & Math.floor(0xffffff * (0.5 * res + sh));
+        for (let i = 0; i < len; i += 4) {
+          const rV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
+          const gV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
+          const bV = (255 * (0.5 * samples[s++] + 0.5)) | 0;
+          outRgba[i] = rV < 0 ? 0 : rV > 255 ? 255 : rV;
+          outRgba[i + 1] = gV < 0 ? 0 : gV > 255 ? 255 : gV;
+          outRgba[i + 2] = bV < 0 ? 0 : bV > 255 ? 255 : bV;
+          outRgba[i + 3] = 255;
+        }
       }
-
-      if (isBigEndian) {
-        if (bits === 24) byteStream[bytePtr++] = (ires >> 16) & 0xff;
-        if (bits >= 16) byteStream[bytePtr++] = (ires >> 8) & 0xff;
-        byteStream[bytePtr++] = ires & 0xff;
-      } else {
-        byteStream[bytePtr++] = ires & 0xff;
-        if (bits >= 16) byteStream[bytePtr++] = (ires >> 8) & 0xff;
-        if (bits === 24) byteStream[bytePtr++] = (ires >> 16) & 0xff;
-      }
+      return;
     }
   }
 
-  // Fast write back into outRgba
+  // General path fallback
+  const byteStream = ensureByteStream(totalColorBytes);
+  let bytePtr = 0;
+  const isBigEndian = cfg.endianess === 'BIG_ENDIAN';
+  const isSigned = cfg.sign === 'SIGNED';
+  const sh = isSigned ? 0.0 : 0.5;
+
+  for (let s = 0; s < numSamples; s++) {
+    const res = samples[s];
+    let ires = 0;
+    if (bits === 8) {
+      ires = 0xff & Math.floor(0xff * (0.5 * res + sh));
+    } else if (bits === 16) {
+      ires = 0xffff & Math.floor(0xffff * (0.5 * res + sh));
+    } else {
+      ires = 0xffffff & Math.floor(0xffffff * (0.5 * res + sh));
+    }
+
+    if (isBigEndian) {
+      if (bits === 24) byteStream[bytePtr++] = (ires >> 16) & 0xff;
+      if (bits >= 16) byteStream[bytePtr++] = (ires >> 8) & 0xff;
+      byteStream[bytePtr++] = ires & 0xff;
+    } else {
+      byteStream[bytePtr++] = ires & 0xff;
+      if (bits >= 16) byteStream[bytePtr++] = (ires >> 8) & 0xff;
+      if (bits === 24) byteStream[bytePtr++] = (ires >> 16) & 0xff;
+    }
+  }
+
   if (cfg.rawType === 'PLANAR') {
     let rIdx = 0;
     let gIdx = numPixels;
