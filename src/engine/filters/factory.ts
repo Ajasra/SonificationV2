@@ -1,5 +1,4 @@
-// Filter Factory & Metadata Registry
-import type { FilterId, FilterParam } from '../../types/index.ts';
+import type { FilterCategory, FilterId, FilterParam } from '../../types/index.ts';
 import type { IDspFilter } from './base.ts';
 import { DjEqFilter, AuBassTrebleFilter, ResonFilter } from './eq.ts';
 import { CombFilter, AuEchoFilter, CanyonDelayFilter, TReverbFilter } from './delay.ts';
@@ -21,11 +20,15 @@ import {
   RandmixFilter,
   AuAmplifyFilter,
 } from './dist.ts';
+import { CompressorFilter, NoiseGateFilter } from './dynamics.ts';
+import { MoogLadderFilter, SvfFilter, FormantFilter } from './spectral.ts';
+import { BitcrusherFilter, WavefolderFilter } from './lofi.ts';
+import { RingModFilter, FlangerFilter, TremoloFilter } from './modulation.ts';
 
 export interface FilterDescriptor {
   id: FilterId;
   name: string;
-  category: 'eq' | 'delay' | 'modulation' | 'synth' | 'distortion';
+  category: FilterCategory;
   description: string;
   defaultSampleRate: number;
   params: FilterParam[];
@@ -299,6 +302,131 @@ export const FILTER_DESCRIPTORS: Record<FilterId, FilterDescriptor> = {
       { name: 'amp', label: 'Gain Multiplier', type: 'float', min: 0.1, max: 10, step: 0.1, value: 1.0 },
     ],
   },
+  compressor: {
+    id: 'compressor',
+    name: 'Studio Compressor',
+    category: 'dynamics',
+    description: 'Dynamic range compressor and peak limiter with auto-exposure tone mapping.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'threshold', label: 'Thresh (dB)', type: 'float', min: -60, max: 0, step: 1, value: -18 },
+      { name: 'ratio', label: 'Ratio (:1)', type: 'float', min: 1, max: 20, step: 0.5, value: 4 },
+      { name: 'attack', label: 'Attack (ms)', type: 'float', min: 0.1, max: 100, step: 0.5, value: 10 },
+      { name: 'release', label: 'Release (ms)', type: 'float', min: 10, max: 1000, step: 10, value: 100 },
+      { name: 'makeupGain', label: 'Gain (dB)', type: 'float', min: 0, max: 24, step: 0.5, value: 3 },
+    ],
+  },
+  noisegate: {
+    id: 'noisegate',
+    name: 'Noise Gate',
+    category: 'dynamics',
+    description: 'Downward noise gate squelch for high-contrast shadow isolation.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'threshold', label: 'Thresh (dB)', type: 'float', min: -80, max: 0, step: 1, value: -36 },
+      { name: 'range', label: 'Range (dB)', type: 'float', min: -80, max: 0, step: 1, value: -40 },
+      { name: 'attack', label: 'Attack (ms)', type: 'float', min: 0.1, max: 50, step: 0.5, value: 5 },
+      { name: 'release', label: 'Release (ms)', type: 'float', min: 10, max: 500, step: 10, value: 100 },
+    ],
+  },
+  bitcrusher: {
+    id: 'bitcrusher',
+    name: 'Bitcrusher & Decimator',
+    category: 'lofi',
+    description: 'Bit-depth quantization and sample-rate decimation for chiptune crunch.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'bits', label: 'Bit Depth', type: 'int', min: 1, max: 16, step: 1, value: 6 },
+      { name: 'downsample', label: 'Decimate', type: 'int', min: 1, max: 64, step: 1, value: 8 },
+      { name: 'mix', label: 'Dry/Wet', type: 'float', min: 0, max: 1, step: 0.05, value: 1 },
+    ],
+  },
+  ringmod: {
+    id: 'ringmod',
+    name: 'Ring Modulator',
+    category: 'modulation',
+    description: 'Carrier multiplication creating metallic sidebands and moiré interference.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'freq', label: 'Freq (Hz)', type: 'float', min: 10, max: 4000, step: 10, value: 440 },
+      { name: 'waveform', label: 'Waveform', type: 'int', min: 0, max: 2, step: 1, value: 0 },
+      { name: 'mix', label: 'Dry/Wet', type: 'float', min: 0, max: 1, step: 0.05, value: 0.85 },
+    ],
+  },
+  moogladder: {
+    id: 'moogladder',
+    name: 'Moog 24dB Ladder',
+    category: 'eq',
+    description: '4-pole resonant transistor ladder filter with nonlinear tanh feedback.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'cutoff', label: 'Cutoff (Hz)', type: 'float', min: 20, max: 18000, step: 50, value: 1200 },
+      { name: 'resonance', label: 'Resonance', type: 'float', min: 0, max: 4, step: 0.1, value: 2.2 },
+      { name: 'drive', label: 'Drive', type: 'float', min: 1, max: 5, step: 0.1, value: 1.5 },
+    ],
+  },
+  svf: {
+    id: 'svf',
+    name: 'State Variable Filter',
+    category: 'eq',
+    description: 'Multi-mode 12dB/oct filter morphing from Lowpass to Bandpass, Highpass & Notch.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'cutoff', label: 'Cutoff (Hz)', type: 'float', min: 20, max: 18000, step: 50, value: 1500 },
+      { name: 'res', label: 'Q Res', type: 'float', min: 0.5, max: 10, step: 0.25, value: 2.0 },
+      { name: 'mode', label: 'Mode (LP-BP-HP-N)', type: 'float', min: 0, max: 3, step: 0.1, value: 0.0 },
+    ],
+  },
+  formant: {
+    id: 'formant',
+    name: 'Formant Resonator',
+    category: 'eq',
+    description: 'Vocal tract acoustic resonator morphing across /A/, /E/, /I/, /O/, /U/.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'vowel', label: 'Vowel (A-E-I-O-U)', type: 'float', min: 0, max: 4, step: 0.1, value: 0.0 },
+      { name: 'resonance', label: 'Formant Q', type: 'float', min: 1, max: 20, step: 0.5, value: 8.0 },
+      { name: 'mix', label: 'Dry/Wet', type: 'float', min: 0, max: 1, step: 0.05, value: 0.9 },
+    ],
+  },
+  flanger: {
+    id: 'flanger',
+    name: 'Flanger & Chorus',
+    category: 'modulation',
+    description: 'Modulated delay line with feedback for jet-plane sweeps and lush chorus.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'rate', label: 'Rate (Hz)', type: 'float', min: 0.05, max: 10, step: 0.05, value: 0.4 },
+      { name: 'depth', label: 'Depth (ms)', type: 'float', min: 0.5, max: 10, step: 0.25, value: 3.0 },
+      { name: 'feedback', label: 'Feedback', type: 'float', min: -0.95, max: 0.95, step: 0.05, value: 0.6 },
+      { name: 'delayMs', label: 'Delay (ms)', type: 'float', min: 0.5, max: 20, step: 0.5, value: 2.0 },
+      { name: 'mix', label: 'Dry/Wet', type: 'float', min: 0, max: 1, step: 0.05, value: 0.5 },
+    ],
+  },
+  wavefolder: {
+    id: 'wavefolder',
+    name: 'Buchla Wavefolder',
+    category: 'distortion',
+    description: 'West-Coast nonlinear wavefolder creating harmonic brilliance and psychedelic color folds.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'drive', label: 'Drive', type: 'float', min: 1, max: 10, step: 0.2, value: 2.5 },
+      { name: 'folds', label: 'Folds', type: 'int', min: 1, max: 6, step: 1, value: 3 },
+      { name: 'symmetry', label: 'Symmetry', type: 'float', min: -1, max: 1, step: 0.05, value: 0.0 },
+    ],
+  },
+  tremolo: {
+    id: 'tremolo',
+    name: 'Tremolo & Strobe',
+    category: 'modulation',
+    description: 'LFO amplitude modulation producing rhythmic pulses and zebra strobe bands.',
+    defaultSampleRate: 44100,
+    params: [
+      { name: 'rate', label: 'Rate (Hz)', type: 'float', min: 0.5, max: 25, step: 0.25, value: 4.0 },
+      { name: 'depth', label: 'Depth', type: 'float', min: 0, max: 1, step: 0.05, value: 0.7 },
+      { name: 'shape', label: 'Waveform', type: 'int', min: 0, max: 2, step: 1, value: 0 },
+    ],
+  },
 };
 
 export function createFilterInstance(type: FilterId, sampleRate: number = 44100): IDspFilter {
@@ -325,6 +453,16 @@ export function createFilterInstance(type: FilterId, sampleRate: number = 44100)
     case 'shiftr': return new TShiftRFilter(sampleRate);
     case 'randmix': return new RandmixFilter(sampleRate);
     case 'amplify': return new AuAmplifyFilter(sampleRate);
+    case 'compressor': return new CompressorFilter(sampleRate);
+    case 'noisegate': return new NoiseGateFilter(sampleRate);
+    case 'bitcrusher': return new BitcrusherFilter(sampleRate);
+    case 'ringmod': return new RingModFilter(sampleRate);
+    case 'moogladder': return new MoogLadderFilter(sampleRate);
+    case 'svf': return new SvfFilter(sampleRate);
+    case 'formant': return new FormantFilter(sampleRate);
+    case 'flanger': return new FlangerFilter(sampleRate);
+    case 'wavefolder': return new WavefolderFilter(sampleRate);
+    case 'tremolo': return new TremoloFilter(sampleRate);
     default: return new AuAmplifyFilter(sampleRate);
   }
 }

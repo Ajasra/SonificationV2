@@ -48,6 +48,12 @@ class SonificationApp {
   private qrImage = document.getElementById('qr-image') as HTMLImageElement;
   private addFilterModal = document.getElementById('add-filter-modal') as HTMLDivElement;
   private filterLibraryList = document.getElementById('filter-library-list') as HTMLDivElement;
+  private filterSearchInput = document.getElementById('filter-search-input') as HTMLInputElement | null;
+  private filterSearchClear = document.getElementById('filter-search-clear') as HTMLButtonElement | null;
+  private filterCategoryTabs = document.getElementById('filter-category-tabs') as HTMLDivElement | null;
+  private activeLibraryCategory: string = 'all';
+  private librarySearchQuery: string = '';
+  private customMobileHost = '192.168.1.15:5173';
 
   // Editorial & Hardware Telemetry Elements
   private fieldNoteTitle = document.getElementById('field-note-title');
@@ -76,6 +82,44 @@ class SonificationApp {
 
   private inputImageBuffer: ImageData | null = null;
   private animFrameId: number | null = null;
+  private videoFrameId: number | null = null;
+  private frameVideo: HTMLVideoElement | null = null;
+  private loopGeneration = 0;
+  private cameraBusy = false;
+
+  private stopFrameLoop(): void {
+    this.loopGeneration++;
+    if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
+    if (this.videoFrameId !== null) this.frameVideo?.cancelVideoFrameCallback(this.videoFrameId);
+    this.animFrameId = null;
+    this.videoFrameId = null;
+    this.frameVideo = null;
+  }
+
+  private scheduleFrame(video: HTMLVideoElement, callback: () => void): void {
+    this.frameVideo = video;
+    if (typeof video.requestVideoFrameCallback === 'function') {
+      this.videoFrameId = video.requestVideoFrameCallback(callback);
+    } else {
+      this.animFrameId = requestAnimationFrame(callback);
+    }
+  }
+
+  private async flipCamera(): Promise<void> {
+    if (this.cameraBusy || !this.cameraManager.isActive()) return;
+    this.cameraBusy = true;
+    this.stopFrameLoop();
+    try {
+      await this.cameraManager.toggleFacingMode();
+      if (this.cameraManager.isActive()) this.startLiveLoop();
+    } catch (error) {
+      console.warn('Camera switch failed', error);
+      alert('Camera switch failed. Tap START CAM to retry.');
+    } finally {
+      this.cameraBusy = false;
+      this.updateCamToggleUI(this.cameraManager.isActive());
+    }
+  }
 
   private lastTime = performance.now();
   private frameCount = 0;
@@ -83,6 +127,13 @@ class SonificationApp {
 
   // Viewport Tab State
   private currentViewMode: 'developed' | 'exposure' | 'source' | 'scope' = 'developed';
+
+  // Video recording timer state
+  private recTimerInterval: number | null = null;
+  private recStartTime = 0;
+
+  // Fullscreen Sound Camera View State
+  private isFullscreenMode = false;
 
   constructor() {
     this.initPreset();
@@ -93,6 +144,19 @@ class SonificationApp {
     this.renderFilterRack();
     this.renderFilterLibrary();
     this.renderPresetDropdown();
+    this.initMobileUI();
+    const releaseCamera = () => {
+      this.stopFrameLoop();
+      this.cameraManager.stop();
+      this.updateCamToggleUI(false);
+      const button = document.getElementById('btn-toggle-camera');
+      if (button) button.textContent = 'Live camera';
+    };
+    window.addEventListener('pagehide', releaseCamera);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) releaseCamera();
+      else if (this.loadedVideoElement) this.startVideoFileLoop();
+    });
   }
 
   private initPreset(): void {
@@ -107,14 +171,18 @@ class SonificationApp {
     this.updateEditorialHeaders();
   }
 
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+  }
+
   private updateEditorialHeaders(): void {
     if (this.fieldNoteTitle) {
       const words = this.activePreset.name.split(' ');
       if (words.length > 1) {
         const last = words.pop();
-        this.fieldNoteTitle.innerHTML = `${words.join(' ')} <em>${last}</em>.`;
+        this.fieldNoteTitle.innerHTML = `${this.escapeHtml(words.join(' '))} <em>${this.escapeHtml(last!)}</em>.`;
       } else {
-        this.fieldNoteTitle.innerHTML = `Drawn by <em>${this.activePreset.name}</em>.`;
+        this.fieldNoteTitle.innerHTML = `Drawn by <em>${this.escapeHtml(this.activePreset.name)}</em>.`;
       }
     }
 
@@ -277,7 +345,29 @@ class SonificationApp {
       this.selectPreset.appendChild(opt);
     }
     this.updatePresetButtonsState();
+    this.renderMobilePresetDrawer();
+    this.updateMobilePresetBadge();
   }
+
+  private static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
+    dynamics: 'DYN',
+    eq: 'EQ',
+    delay: 'DELAY',
+    modulation: 'MOD',
+    synth: 'SYNTH',
+    distortion: 'DIST',
+    lofi: 'LO-FI',
+  };
+
+  private static readonly CATEGORY_SECTIONS: { id: string; label: string }[] = [
+    { id: 'dynamics', label: 'DYNAMICS & LEVEL' },
+    { id: 'eq', label: 'EQ & SPECTRAL' },
+    { id: 'delay', label: 'DELAY & SPACE' },
+    { id: 'modulation', label: 'MODULATION' },
+    { id: 'synth', label: 'SYNTHESIS' },
+    { id: 'distortion', label: 'DISTORTION' },
+    { id: 'lofi', label: 'LO-FI' },
+  ];
 
   private renderFilterRack(): void {
     this.filterRackContainer.innerHTML = '';
@@ -290,9 +380,21 @@ class SonificationApp {
       const header = document.createElement('div');
       header.className = 'module-header';
 
+      const titleGroup = document.createElement('div');
+      titleGroup.className = 'module-title-group';
+
+      const catBadge = document.createElement('span');
+      const catKey = desc ? desc.category : 'distortion';
+      catBadge.className = `module-cat-pill cat-${catKey}`;
+      catBadge.textContent = SonificationApp.CATEGORY_SHORT_NAMES[catKey] || catKey.toUpperCase();
+      catBadge.title = `Category: ${catKey.toUpperCase()}`;
+
       const title = document.createElement('span');
-      title.className = 'module-title';
+      title.className = 'module-title-text';
       title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : filterConfig.type}`;
+
+      titleGroup.appendChild(catBadge);
+      titleGroup.appendChild(title);
 
       const headerBtns = document.createElement('div');
       headerBtns.className = 'module-actions';
@@ -319,7 +421,7 @@ class SonificationApp {
 
       headerBtns.appendChild(toggleBtn);
       headerBtns.appendChild(removeBtn);
-      header.appendChild(title);
+      header.appendChild(titleGroup);
       header.appendChild(headerBtns);
       card.appendChild(header);
 
@@ -357,37 +459,105 @@ class SonificationApp {
   private renderFilterLibrary(): void {
     this.filterLibraryList.innerHTML = '';
     const keys = Object.keys(FILTER_DESCRIPTORS) as FilterId[];
+    const query = this.librarySearchQuery.toLowerCase().trim();
+    const activeCat = this.activeLibraryCategory;
 
-    for (const key of keys) {
+    // Filter by search query and category
+    const filteredKeys = keys.filter((key) => {
       const desc = FILTER_DESCRIPTORS[key];
-      const item = document.createElement('div');
-      item.className = 'library-item';
-      item.innerHTML = `
-        <div>
-          <b>${desc.name}</b>
-          <div class="library-item-desc">${desc.description}</div>
-        </div>
-        <button class="btn-hw btn-hw-primary btn-sm" style="margin-top: 8px; align-self: flex-start;">+ Add to Rack</button>
+      if (activeCat !== 'all' && desc.category !== activeCat) {
+        return false;
+      }
+      if (query) {
+        const matchName = desc.name.toLowerCase().includes(query);
+        const matchDesc = desc.description.toLowerCase().includes(query);
+        const matchCat = desc.category.toLowerCase().includes(query);
+        const matchId = desc.id.toLowerCase().includes(query);
+        return matchName || matchDesc || matchCat || matchId;
+      }
+      return true;
+    });
+
+    if (filteredKeys.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'library-empty-state';
+      empty.innerHTML = `
+        <div style="font-size: 1.6rem; margin-bottom: 8px;">🔍</div>
+        <div style="color: var(--text-primary); font-weight: 600;">No DSP modules found</div>
+        <div style="margin-top: 4px; font-size: 0.68rem; color: var(--text-muted);">No modules matched "${query || activeCat}"</div>
+        <button class="btn-hw btn-hw-secondary btn-sm" style="margin-top: 12px;" id="btn-reset-library-search">Reset Filters</button>
       `;
-      item.onclick = () => {
-        const defaultParams: Record<string, number> = {};
-        for (const p of desc.params) {
-          defaultParams[p.name] = p.value;
+      this.filterLibraryList.appendChild(empty);
+      empty.querySelector('#btn-reset-library-search')?.addEventListener('click', () => {
+        if (this.filterSearchInput) this.filterSearchInput.value = '';
+        this.librarySearchQuery = '';
+        this.activeLibraryCategory = 'all';
+        if (this.filterSearchClear) this.filterSearchClear.classList.add('hidden');
+        if (this.filterCategoryTabs) {
+          this.filterCategoryTabs.querySelectorAll('.filter-cat-btn').forEach((b) => {
+            b.classList.toggle('active', (b as HTMLElement).dataset.cat === 'all');
+          });
         }
+        this.renderFilterLibrary();
+      });
+      return;
+    }
 
-        this.activePreset.filters.push({
-          id: 'f_' + Math.random().toString(36).substring(2, 7),
-          type: key,
-          enabled: true,
-          sampleRate: desc.defaultSampleRate,
-          params: defaultParams,
-        });
+    // Group items by category if displaying 'all' or if multiple categories match query
+    const categoriesToRender = activeCat === 'all'
+      ? SonificationApp.CATEGORY_SECTIONS
+      : SonificationApp.CATEGORY_SECTIONS.filter((s) => s.id === activeCat);
 
-        this.addFilterModal.classList.add('hidden');
-        this.renderFilterRack();
-        this.requestRender();
-      };
-      this.filterLibraryList.appendChild(item);
+    for (const catSection of categoriesToRender) {
+      const catKeys = filteredKeys.filter((k) => FILTER_DESCRIPTORS[k].category === catSection.id);
+      if (catKeys.length === 0) continue;
+
+      // Render group header
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'library-group-section';
+      groupHeader.innerHTML = `
+        <span class="library-group-title cat-${catSection.id}">[ ${catSection.label} ]</span>
+        <span class="library-group-count">(${catKeys.length})</span>
+      `;
+      this.filterLibraryList.appendChild(groupHeader);
+
+      for (const key of catKeys) {
+        const desc = FILTER_DESCRIPTORS[key];
+        const item = document.createElement('div');
+        item.className = 'library-item';
+        item.innerHTML = `
+          <div>
+            <div class="library-item-header">
+              <b class="library-item-title">${desc.name}</b>
+              <span class="library-item-badge cat-${desc.category}">${desc.category.toUpperCase()}</span>
+            </div>
+            <div class="library-item-desc">${desc.description}</div>
+          </div>
+          <div class="library-item-footer">
+            <span class="library-item-meta">${desc.params.length} control${desc.params.length === 1 ? '' : 's'}</span>
+            <button class="btn-library-add" title="Add ${desc.name} to rack">+</button>
+          </div>
+        `;
+        item.onclick = () => {
+          const defaultParams: Record<string, number> = {};
+          for (const p of desc.params) {
+            defaultParams[p.name] = p.value;
+          }
+
+          this.activePreset.filters.push({
+            id: 'f_' + Math.random().toString(36).substring(2, 7),
+            type: key,
+            enabled: true,
+            sampleRate: desc.defaultSampleRate,
+            params: defaultParams,
+          });
+
+          this.addFilterModal.classList.add('hidden');
+          this.renderFilterRack();
+          this.requestRender();
+        };
+        this.filterLibraryList.appendChild(item);
+      }
     }
   }
 
@@ -413,12 +583,16 @@ class SonificationApp {
       this.initCanvasPlaceholder();
     });
 
-    // Fullscreen button
+    // Fullscreen button (Toggles immersive minimal sound camera mode)
     document.getElementById('btn-fullscreen')?.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        this.canvas.requestFullscreen?.().catch(() => {});
-      } else {
-        document.exitFullscreen?.().catch(() => {});
+      this.setFullscreenMode(!this.isFullscreenMode, true);
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      const isNativeFs = !!document.fullscreenElement;
+      // If native fullscreen was exited via ESC on desktop
+      if (!isNativeFs && !this.isMobileDevice()) {
+        this.setFullscreenMode(false, false);
       }
     });
 
@@ -621,9 +795,47 @@ class SonificationApp {
       };
     }
 
+    // Filter Library Search & Category Tabs
+    if (this.filterSearchInput) {
+      this.filterSearchInput.oninput = () => {
+        this.librarySearchQuery = this.filterSearchInput?.value.trim().toLowerCase() || '';
+        if (this.filterSearchClear) {
+          this.filterSearchClear.classList.toggle('hidden', !this.librarySearchQuery);
+        }
+        this.renderFilterLibrary();
+      };
+    }
+
+    if (this.filterSearchClear) {
+      this.filterSearchClear.onclick = () => {
+        if (this.filterSearchInput) {
+          this.filterSearchInput.value = '';
+        }
+        this.librarySearchQuery = '';
+        this.filterSearchClear?.classList.add('hidden');
+        this.renderFilterLibrary();
+        this.filterSearchInput?.focus();
+      };
+    }
+
+    if (this.filterCategoryTabs) {
+      const catBtns = this.filterCategoryTabs.querySelectorAll<HTMLButtonElement>('.filter-cat-btn');
+      catBtns.forEach((btn) => {
+        btn.onclick = () => {
+          catBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.activeLibraryCategory = btn.dataset.cat || 'all';
+          this.renderFilterLibrary();
+        };
+      });
+    }
+
     // Add filter modal
     document.getElementById('btn-add-filter')!.onclick = () => {
       this.addFilterModal.classList.remove('hidden');
+      if (this.filterSearchInput) {
+        setTimeout(() => this.filterSearchInput?.focus(), 100);
+      }
     };
     document.getElementById('btn-close-filter-modal')!.onclick = () => {
       this.addFilterModal.classList.add('hidden');
@@ -631,18 +843,53 @@ class SonificationApp {
 
     // QR Code modal
     document.getElementById('btn-qr-modal')!.onclick = async () => {
-      const dataUrl = await this.presetManager.generatePresetQrCode(this.activePreset);
-      this.qrImage.src = dataUrl;
+      await this.updateQrModal();
       this.qrModal.classList.remove('hidden');
     };
     document.getElementById('btn-close-qr')!.onclick = () => {
       this.qrModal.classList.add('hidden');
     };
+    const btnApplyHost = document.getElementById('btn-apply-host');
+    const hostInput = document.getElementById('input-custom-host') as HTMLInputElement | null;
+    if (btnApplyHost && hostInput) {
+      const applyHostFn = async () => {
+        const val = hostInput.value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+        if (val) {
+          this.customMobileHost = val;
+          await this.updateQrModal();
+        }
+      };
+      btnApplyHost.onclick = applyHostFn;
+      hostInput.onkeydown = async (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          await applyHostFn();
+        }
+      };
+    }
     document.getElementById('btn-copy-link')!.onclick = () => {
+      let baseUrl = window.location.origin + window.location.pathname;
+      if (this.customMobileHost) {
+        baseUrl = `https://${this.customMobileHost}${window.location.pathname}`;
+      } else if (baseUrl.startsWith('http://')) {
+        baseUrl = baseUrl.replace(/^http:\/\//, 'https://');
+      }
       const hash = this.presetManager.encodePresetToHash(this.activePreset);
-      navigator.clipboard.writeText(window.location.origin + window.location.pathname + hash);
+      navigator.clipboard.writeText(baseUrl + hash);
       alert('Preset link copied to clipboard!');
     };
+
+    window.addEventListener('hashchange', () => {
+      const hashPreset = this.presetManager.decodePresetFromHash(window.location.hash);
+      if (hashPreset) {
+        this.activePreset = hashPreset;
+        this.syncFormWithPreset();
+        this.updateEditorialHeaders();
+        this.renderPresetDropdown();
+        this.renderFilterRack();
+        this.requestRender();
+      }
+    });
 
     // Randomizers
     document.getElementById('btn-random-params')!.onclick = () => {
@@ -734,30 +981,8 @@ class SonificationApp {
     const btnCamera = document.getElementById('btn-toggle-camera') as HTMLButtonElement;
     const btnFlipCamera = document.getElementById('btn-flip-camera') as HTMLButtonElement;
 
-    btnCamera.onclick = async () => {
-      this.stopVideoFile();
-      this.loadedImageElement = null;
-      if (this.cameraManager.isActive()) {
-        this.cameraManager.stop();
-        btnCamera.textContent = 'Live camera';
-        btnCamera.classList.remove('btn-hw-primary');
-        btnFlipCamera.classList.add('hidden');
-      } else {
-        try {
-          await this.cameraManager.start(640, 480);
-          btnCamera.textContent = 'Stop camera';
-          btnCamera.classList.add('btn-hw-primary');
-          btnFlipCamera.classList.remove('hidden');
-          this.startLiveLoop();
-        } catch (_) {
-          alert('Could not access camera.');
-        }
-      }
-    };
-
-    btnFlipCamera.onclick = async () => {
-      await this.cameraManager.toggleFacingMode();
-    };
+    btnCamera.onclick = () => { void this.toggleLiveCameraFeed(); };
+    btnFlipCamera.onclick = () => { void this.flipCamera(); };
 
     // Audio controls
     const btnAudio = document.getElementById('btn-toggle-audio') as HTMLButtonElement;
@@ -775,7 +1000,7 @@ class SonificationApp {
 
     // Photo Snapshot (Shutter) — Always Exports Full Resolution
     document.getElementById('btn-shutter')!.onclick = () => {
-      this.saveFullResolutionSnapshot();
+      this.triggerShutterSnapshot();
     };
 
     // Hardware SYNC Toggle (Real-time live recording vs Offline frame-by-frame compaction)
@@ -806,63 +1031,9 @@ class SonificationApp {
 
     // Video Recording — Supports both Real-Time (SYNC ON) and Offline Frame Compaction (SYNC OFF)
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement;
-    const recText = document.getElementById('rec-btn-text');
-    const recTimerBadge = document.getElementById('rec-timer-badge');
-    const recTimeDisplay = document.getElementById('rec-time-display');
-    let recTimerInterval: number | null = null;
-    let recStartTime = 0;
-
-    btnRec.onclick = async () => {
-      // If currently running an offline render, pressing STOP finishes and exports what has been processed so far
-      if (this.offlineVideoRecorder.getIsRunning()) {
-        this.offlineVideoRecorder.stopEarly();
-        return;
-      }
-
-      // If SYNC is OFF and a video file is currently loaded: Run deterministic frame-by-frame offline render!
-      if (!this.isSyncMode && this.loadedVideoElement) {
-        await this.startOfflineVideoRecording();
-        return;
-      }
-
-      // Otherwise, standard real-time recording (live camera or video file with SYNC ON)
-      if (!this.videoRecorder.getIsRecording()) {
-        this.audioEngine.setIsRecording(true);
-        this.videoRecorder.startRecording(this.canvas, this.audioEngine.getAudioMediaStream());
-        btnRec.classList.add('recording');
-        if (recText) recText.textContent = 'STOP';
-
-        // Start live camera elapsed recording timer
-        recStartTime = Date.now();
-        recTimerBadge?.classList.remove('hidden');
-        if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
-
-        recTimerInterval = window.setInterval(() => {
-          const elapsedSec = Math.floor((Date.now() - recStartTime) / 1000);
-          const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
-          const s = String(elapsedSec % 60).padStart(2, '0');
-          if (recTimeDisplay) recTimeDisplay.textContent = `${m}:${s}`;
-        }, 500);
-      } else {
-        if (recTimerInterval) {
-          clearInterval(recTimerInterval);
-          recTimerInterval = null;
-        }
-        recTimerBadge?.classList.add('hidden');
-        if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
-
-        const { blob, ext } = await this.videoRecorder.stopRecording();
-        this.audioEngine.setIsRecording(false);
-        btnRec.classList.remove('recording');
-        if (recText) recText.textContent = 'REC';
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sonification_${Date.now()}.${ext}`;
-        a.click();
-      }
-    };
+    if (btnRec) {
+      btnRec.onclick = () => this.toggleVideoRecording();
+    }
   }
 
   private initCollapsibleCards(): void {
@@ -947,8 +1118,10 @@ class SonificationApp {
   }
 
   private stopVideoFile(): void {
+    this.stopFrameLoop();
     if (this.loadedVideoElement) {
       this.loadedVideoElement.pause();
+      URL.revokeObjectURL(this.loadedVideoElement.src);
       this.loadedVideoElement.src = '';
       this.loadedVideoElement = null;
     }
@@ -985,23 +1158,21 @@ class SonificationApp {
   private liveResolution: '360p' | '480p' | '720p' | 'native' = '480p';
 
   private getTargetDimensions(srcW: number, srcH: number): { w: number; h: number } {
-    if (this.liveResolution === 'native') return { w: srcW, h: srcH };
+    if (this.liveResolution === 'native') return { w: Math.max(2, srcW & ~1), h: Math.max(2, srcH & ~1) };
 
     const targetH = this.liveResolution === '360p' ? 360 : this.liveResolution === '480p' ? 480 : 720;
-    if (srcH <= targetH) return { w: srcW, h: srcH };
+    if (srcH <= targetH) return { w: Math.max(2, srcW & ~1), h: Math.max(2, srcH & ~1) };
 
     const aspect = srcW / srcH;
     const targetW = Math.round(targetH * aspect);
-    return { w: targetW, h: targetH };
+    return { w: Math.max(2, targetW & ~1), h: Math.max(2, targetH & ~1) };
   }
 
   private lastVideoTime = -1;
 
   private startVideoFileLoop(): void {
-    if (this.animFrameId) {
-      cancelAnimationFrame(this.animFrameId);
-      this.animFrameId = null;
-    }
+    this.stopFrameLoop();
+    const generation = this.loopGeneration;
 
     const v = this.loadedVideoElement;
     if (!v) return;
@@ -1009,7 +1180,7 @@ class SonificationApp {
     this.lastVideoTime = -1;
 
     const onFrame = () => {
-      if (!this.loadedVideoElement || this.loadedVideoElement.paused) return;
+      if (generation !== this.loopGeneration || this.loadedVideoElement !== v || v.paused) return;
       const cur = this.loadedVideoElement;
 
       if (cur.readyState >= 2 && cur.currentTime !== this.lastVideoTime) {
@@ -1030,18 +1201,10 @@ class SonificationApp {
         this.processAndBlit();
       }
 
-      if ('requestVideoFrameCallback' in cur) {
-        (cur as any).requestVideoFrameCallback(onFrame);
-      } else {
-        this.animFrameId = requestAnimationFrame(onFrame);
-      }
+      this.scheduleFrame(cur, onFrame);
     };
 
-    if ('requestVideoFrameCallback' in v) {
-      (v as any).requestVideoFrameCallback(onFrame);
-    } else {
-      this.animFrameId = requestAnimationFrame(onFrame);
-    }
+    this.scheduleFrame(v, onFrame);
   }
 
   private loadedImageElement: HTMLImageElement | null = null;
@@ -1128,14 +1291,426 @@ class SonificationApp {
     link.click();
   }
 
-  private startLiveLoop(): void {
-    if (this.animFrameId) {
-      cancelAnimationFrame(this.animFrameId);
-      this.animFrameId = null;
+  private triggerShutterSnapshot(): void {
+    // Flash visual feedback on mobile viewfinder
+    const flash = document.getElementById('mobile-shutter-flash');
+    if (flash) {
+      flash.classList.add('flashing');
+      setTimeout(() => flash.classList.remove('flashing'), 120);
+    }
+    this.saveFullResolutionSnapshot();
+  }
+
+  private async toggleVideoRecording(): Promise<void> {
+    const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement | null;
+    const btnMobileRec = document.getElementById('btn-mobile-rec') as HTMLButtonElement | null;
+    const recText = document.getElementById('rec-btn-text');
+    const recTimerBadge = document.getElementById('rec-timer-badge');
+    const recTimeDisplay = document.getElementById('rec-time-display');
+    const mobileRecBadge = document.getElementById('mobile-rec-badge');
+    const mobileRecTimer = document.getElementById('mobile-rec-timer');
+
+    // If currently running an offline render, pressing STOP finishes and exports what has been processed so far
+    if (this.offlineVideoRecorder.getIsRunning()) {
+      this.offlineVideoRecorder.stopEarly();
+      return;
     }
 
+    // If SYNC is OFF and a video file is currently loaded: Run deterministic frame-by-frame offline render!
+    if (!this.isSyncMode && this.loadedVideoElement) {
+      await this.startOfflineVideoRecording();
+      return;
+    }
+
+    // Otherwise, standard real-time recording (live camera or video file with SYNC ON)
+    if (!this.videoRecorder.getIsRecording()) {
+      // Ensure canvas has even dimensions for hardware encoder before recording begins
+      this.canvas.width = Math.max(2, this.canvas.width & ~1);
+      this.canvas.height = Math.max(2, this.canvas.height & ~1);
+
+      this.audioEngine.setIsRecording(true);
+      this.videoRecorder.startRecording(this.canvas, this.audioEngine.getAudioMediaStream());
+      btnRec?.classList.add('recording');
+      btnMobileRec?.classList.add('recording');
+      if (recText) recText.textContent = 'STOP';
+
+      // Start live camera elapsed recording timer
+      this.recStartTime = Date.now();
+      recTimerBadge?.classList.remove('hidden');
+      mobileRecBadge?.classList.remove('hidden');
+      if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
+      if (mobileRecTimer) mobileRecTimer.textContent = '00:00';
+
+      this.recTimerInterval = window.setInterval(() => {
+        const elapsedSec = Math.floor((Date.now() - this.recStartTime) / 1000);
+        const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+        const s = String(elapsedSec % 60).padStart(2, '0');
+        const timeStr = `${m}:${s}`;
+        if (recTimeDisplay) recTimeDisplay.textContent = timeStr;
+        if (mobileRecTimer) mobileRecTimer.textContent = timeStr;
+      }, 500);
+    } else {
+      if (this.recTimerInterval) {
+        clearInterval(this.recTimerInterval);
+        this.recTimerInterval = null;
+      }
+      recTimerBadge?.classList.add('hidden');
+      mobileRecBadge?.classList.add('hidden');
+      if (recTimeDisplay) recTimeDisplay.textContent = '00:00';
+      if (mobileRecTimer) mobileRecTimer.textContent = '00:00';
+
+      const { blob, ext } = await this.videoRecorder.stopRecording();
+      this.audioEngine.setIsRecording(false);
+      btnRec?.classList.remove('recording');
+      btnMobileRec?.classList.remove('recording');
+      if (recText) recText.textContent = 'REC';
+
+      // On mobile devices, offer native Web Share if supported so users can save directly to Photos / Camera roll
+      if (this.isMobileDevice() && typeof navigator.share === 'function') {
+        const file = new File([blob], `sonification_${Date.now()}.${ext}`, {
+          type: blob.type || (ext === 'mp4' ? 'video/mp4' : 'video/webm'),
+        });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Sonification Recording',
+            });
+            return;
+          } catch (shareErr) {
+            if ((shareErr as Error).name === 'AbortError') {
+              return;
+            }
+          }
+        }
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sonification_${Date.now()}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+    }
+  }
+
+  private renderMobilePresetDrawer(): void {
+    const list = document.getElementById('mobile-preset-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const presets = this.presetManager.getAllPresets();
+    for (const p of presets) {
+      const item = document.createElement('div');
+      const isActive = p.id === this.activePreset.id;
+      item.className = `mobile-preset-item ${isActive ? 'active' : ''}`;
+      item.innerHTML = `
+        <div class="mobile-preset-item-header">
+          <span class="mobile-preset-item-name">${this.escapeHtml(p.name)}</span>
+          ${isActive ? '<span class="mobile-preset-check">✓</span>' : ''}
+        </div>
+        ${p.description ? `<p class="mobile-preset-item-desc">${this.escapeHtml(p.description)}</p>` : ''}
+      `;
+      item.onclick = () => {
+        this.activePreset = JSON.parse(JSON.stringify(p));
+        this.syncFormWithPreset();
+        this.updateEditorialHeaders();
+        this.renderPresetDropdown();
+        this.renderFilterRack();
+        this.requestRender();
+        this.closeMobileDrawer();
+      };
+      list.appendChild(item);
+    }
+  }
+
+  private updateMobilePresetBadge(): void {
+    const nameEl = document.getElementById('mobile-preset-name');
+    if (nameEl) {
+      nameEl.textContent = this.activePreset.name;
+    }
+  }
+
+  private openMobileDrawer(): void {
+    document.getElementById('mobile-preset-drawer')?.classList.add('open');
+    document.getElementById('mobile-drawer-backdrop')?.classList.remove('hidden');
+    document.getElementById('mobile-drawer-backdrop')?.classList.add('open');
+  }
+
+  private closeMobileDrawer(): void {
+    document.getElementById('mobile-preset-drawer')?.classList.remove('open');
+    document.getElementById('mobile-drawer-backdrop')?.classList.remove('open');
+    setTimeout(() => {
+      document.getElementById('mobile-drawer-backdrop')?.classList.add('hidden');
+    }, 250);
+  }
+
+  private isMobileDevice(): boolean {
+    return (
+      window.innerWidth <= 900 ||
+      /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    );
+  }
+
+  private setFullscreenMode(enabled: boolean, requestBrowserFs = false): void {
+    this.isFullscreenMode = enabled;
+    document.body.classList.toggle('is-fullscreen', enabled);
+    const appEl = document.getElementById('app');
+    appEl?.classList.toggle('is-fullscreen', enabled);
+
+    if (requestBrowserFs) {
+      if (enabled) {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        }
+      } else {
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
+      }
+    }
+  }
+
+  private updateCamToggleUI(isActive: boolean): void {
+    const badgeText = document.getElementById('mobile-cam-badge-text');
+    const badge = document.getElementById('btn-mobile-cam-feed');
+    const startOverlay = document.getElementById('mobile-start-overlay');
+    if (badgeText) {
+      badgeText.textContent = isActive ? 'CAM: LIVE' : 'START CAM';
+    }
+    if (badge) {
+      badge.classList.toggle('active', isActive);
+    }
+    if (isActive) {
+      startOverlay?.classList.add('hidden');
+    } else if (this.isMobileDevice()) {
+      startOverlay?.classList.remove('hidden');
+    }
+  }
+
+  private async startLiveCameraFeed(): Promise<boolean> {
+    if (this.cameraBusy || document.hidden) return false;
+    this.cameraBusy = true;
+    try {
+      this.stopVideoFile();
+      this.loadedImageElement = null;
+      await this.cameraManager.start(640, 480);
+      if (!this.cameraManager.isActive() || document.hidden) return false;
+      this.startLiveLoop();
+      this.updateCamToggleUI(true);
+
+      const btnCam = document.getElementById('btn-toggle-camera');
+      if (btnCam) {
+        btnCam.textContent = 'Stop camera';
+        btnCam.classList.add('btn-hw-primary');
+      }
+      document.getElementById('btn-flip-camera')?.classList.remove('hidden');
+      return true;
+    } catch (e) {
+      console.warn('Could not auto-start camera:', e);
+      this.updateCamToggleUI(false);
+      if ((e as Error).name !== 'AbortError') alert(`Camera could not start: ${(e as Error).message}`);
+      return false;
+    } finally {
+      this.cameraBusy = false;
+    }
+  }
+
+  private async toggleLiveCameraFeed(): Promise<void> {
+    if (this.cameraBusy) return;
+    if (this.cameraManager.isActive()) {
+      this.stopFrameLoop();
+      this.cameraManager.stop();
+      this.updateCamToggleUI(false);
+      const btnCam = document.getElementById('btn-toggle-camera');
+      if (btnCam) {
+        btnCam.textContent = 'Live camera';
+        btnCam.classList.remove('btn-hw-primary');
+      }
+      document.getElementById('btn-flip-camera')?.classList.add('hidden');
+      this.initCanvasPlaceholder();
+    } else {
+      await this.startLiveCameraFeed();
+    }
+  }
+
+  private initMobileUI(): void {
+    const isMobile = this.isMobileDevice();
+
+    // On phone / mobile device: triggers fullscreen view by default!
+    if (isMobile) {
+      this.setFullscreenMode(true, false);
+      // Attempt immediate live camera activation
+      this.startLiveCameraFeed().catch(() => {});
+    }
+
+    // Burger button opens drawer
+    document.getElementById('btn-mobile-burger')?.addEventListener('click', () => {
+      this.openMobileDrawer();
+    });
+
+    // Preset pill in top bar opens drawer
+    document.getElementById('btn-mobile-preset-pill')?.addEventListener('click', () => {
+      this.openMobileDrawer();
+    });
+
+    // Live camera toggle button in mobile top bar
+    document.getElementById('btn-mobile-cam-feed')?.addEventListener('click', async () => {
+      if (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        if (confirm('iOS Safari blocks camera over plain HTTP.\nReload page using secure HTTPS?')) {
+          window.location.href = window.location.href.replace('http:', 'https:');
+        }
+        return;
+      }
+      await this.toggleLiveCameraFeed();
+    });
+
+    // Drawer "Switch to Live Camera" button
+    document.getElementById('btn-drawer-camera')?.addEventListener('click', async () => {
+      if (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        window.location.href = window.location.href.replace('http:', 'https:');
+        return;
+      }
+      await this.startLiveCameraFeed();
+      this.closeMobileDrawer();
+    });
+
+    // Close drawer buttons
+    document.getElementById('btn-close-mobile-drawer')?.addEventListener('click', () => {
+      this.closeMobileDrawer();
+    });
+    document.getElementById('mobile-drawer-backdrop')?.addEventListener('click', () => {
+      this.closeMobileDrawer();
+    });
+
+    // Shutter button (Make picture)
+    document.getElementById('btn-mobile-shutter')?.addEventListener('click', () => {
+      this.triggerShutterSnapshot();
+    });
+
+    // Record Video button (Record video)
+    document.getElementById('btn-mobile-rec')?.addEventListener('click', () => {
+      this.toggleVideoRecording();
+    });
+
+    // Flip Camera button
+    document.getElementById('btn-mobile-flip')?.addEventListener('click', async () => {
+      await this.flipCamera();
+    });
+
+    // Audio Output toggle on mobile
+    const btnMobileAudio = document.getElementById('btn-mobile-audio');
+    const iconOn = document.getElementById('mobile-audio-icon-on');
+    const iconOff = document.getElementById('mobile-audio-icon-off');
+    const labelAudio = document.getElementById('mobile-audio-label');
+    const updateAudioMobileUI = () => {
+      const muted = this.audioEngine.getMuted();
+      if (muted) {
+        iconOn?.classList.add('hidden');
+        iconOff?.classList.remove('hidden');
+        if (labelAudio) labelAudio.textContent = 'MUTED';
+        btnMobileAudio?.classList.remove('active');
+      } else {
+        iconOff?.classList.add('hidden');
+        iconOn?.classList.remove('hidden');
+        if (labelAudio) labelAudio.textContent = 'SOUND';
+        btnMobileAudio?.classList.add('active');
+      }
+    };
+
+    btnMobileAudio?.addEventListener('click', () => {
+      this.audioEngine.init();
+      const isMuted = !this.audioEngine.getMuted();
+      this.audioEngine.setMuted(isMuted);
+      updateAudioMobileUI();
+    });
+
+    // Fullscreen toggle on mobile
+    document.getElementById('btn-mobile-fullscreen')?.addEventListener('click', () => {
+      this.setFullscreenMode(!this.isFullscreenMode, true);
+    });
+
+    // Mobile volume slider
+    const mobileVol = document.getElementById('mobile-slider-volume') as HTMLInputElement | null;
+    if (mobileVol) {
+      mobileVol.addEventListener('input', (e) => {
+        const val = parseFloat((e.target as HTMLInputElement).value);
+        this.audioEngine.setVolume(val);
+        if (this.masterGainKnob) {
+          this.masterGainKnob.setValue(val);
+        }
+      });
+    }
+
+    // Mobile resolution selector
+    const mobileRes = document.getElementById('mobile-select-resolution') as HTMLSelectElement | null;
+    if (mobileRes) {
+      mobileRes.addEventListener('change', () => {
+        this.liveResolution = mobileRes.value as any;
+        this.selectResolution.value = mobileRes.value;
+        this.requestRender();
+      });
+    }
+
+    // Toggle full desktop rack from mobile drawer
+    document.getElementById('btn-mobile-desktop-toggle')?.addEventListener('click', () => {
+      document.getElementById('app')?.classList.toggle('show-desktop-rack');
+      this.closeMobileDrawer();
+    });
+
+    // Tap to start overlay on mobile
+    const startOverlay = document.getElementById('mobile-start-overlay');
+    const isHttpOnLan = window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isHttpOnLan && startOverlay) {
+      const cardTitle = startOverlay.querySelector('.start-title');
+      const cardDesc = startOverlay.querySelector('.start-desc');
+      const cardBtn = document.getElementById('btn-start-camera-prompt');
+      if (cardTitle) cardTitle.textContent = 'HTTPS REQUIRED FOR CAMERA';
+      if (cardDesc) cardDesc.textContent = 'iOS Safari blocks camera over HTTP. Tap to switch to HTTPS:';
+      if (cardBtn) cardBtn.textContent = 'RELOAD ON HTTPS ↗';
+    }
+
+    const activateMobileCamera = async () => {
+      if (isHttpOnLan) {
+        window.location.href = window.location.href.replace('http:', 'https:');
+        return;
+      }
+      try {
+        this.setFullscreenMode(true, true);
+        this.audioEngine.init();
+        this.audioEngine.setMuted(false);
+        updateAudioMobileUI();
+        await this.startLiveCameraFeed();
+      } catch (err) {
+        console.error('Camera start failed on gesture:', err);
+      }
+    };
+
+    if (startOverlay) {
+      if (!isMobile) {
+        startOverlay.classList.add('hidden');
+      } else {
+        startOverlay.addEventListener('click', activateMobileCamera);
+        document.getElementById('btn-start-camera-prompt')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          activateMobileCamera();
+        });
+      }
+    }
+
+    this.renderMobilePresetDrawer();
+    this.updateMobilePresetBadge();
+  }
+
+  private startLiveLoop(): void {
+    this.stopFrameLoop();
+    const generation = this.loopGeneration;
+
     const onFrame = () => {
-      if (!this.cameraManager.isActive()) return;
+      if (generation !== this.loopGeneration || !this.cameraManager.isActive()) return;
       const video = this.cameraManager.getVideoElement();
 
       if (video.readyState >= 2) {
@@ -1155,19 +1730,11 @@ class SonificationApp {
         this.processAndBlit();
       }
 
-      if ('requestVideoFrameCallback' in video) {
-        (video as any).requestVideoFrameCallback(onFrame);
-      } else {
-        this.animFrameId = requestAnimationFrame(onFrame);
-      }
+      this.scheduleFrame(video, onFrame);
     };
 
     const video = this.cameraManager.getVideoElement();
-    if ('requestVideoFrameCallback' in video) {
-      (video as any).requestVideoFrameCallback(onFrame);
-    } else {
-      this.animFrameId = requestAnimationFrame(onFrame);
-    }
+    this.scheduleFrame(video, onFrame);
   }
 
   private requestRender(): void {
@@ -1245,6 +1812,37 @@ class SonificationApp {
       if (this.perfBadge) {
         this.perfBadge.textContent = `${this.currentFps} FPS | ${res.executionTimeMs.toFixed(1)} ms`;
       }
+    }
+  }
+
+  private async updateQrModal(): Promise<void> {
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+    const lanBox = document.getElementById('qr-lan-box');
+    const urlDisplay = document.getElementById('qr-url-display');
+    const hostInput = document.getElementById('input-custom-host') as HTMLInputElement | null;
+
+    if (lanBox && isLocalhost) {
+      lanBox.classList.remove('hidden');
+      if (hostInput && !hostInput.value && this.customMobileHost) {
+        hostInput.value = this.customMobileHost;
+      }
+    }
+
+    let baseUrl: string;
+    if (this.customMobileHost) {
+      baseUrl = `https://${this.customMobileHost}${window.location.pathname}`;
+    } else {
+      baseUrl = (window.location.origin + window.location.pathname).replace(/^http:\/\//, 'https://');
+    }
+
+    const dataUrl = await this.presetManager.generatePresetQrCode(this.activePreset, baseUrl);
+    this.qrImage.src = dataUrl;
+
+    const fullUrl = baseUrl + this.presetManager.encodePresetToHash(this.activePreset);
+    if (urlDisplay) {
+      urlDisplay.textContent = fullUrl;
     }
   }
 

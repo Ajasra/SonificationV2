@@ -73,6 +73,11 @@ export class PresetManager {
 
   // Compress preset into compact URL hash string
   encodePresetToHash(preset: SonificationPreset): string {
+    // If preset matches a factory preset by ID, prefer the clean short hash
+    const factory = FACTORY_PRESETS.find((fp) => fp.id === preset.id);
+    if (factory && JSON.stringify(factory) === JSON.stringify(preset)) {
+      return `#preset=${preset.id}`;
+    }
     const jsonStr = JSON.stringify(preset);
     const b64 = btoa(encodeURIComponent(jsonStr));
     return `#p=${b64}`;
@@ -80,6 +85,11 @@ export class PresetManager {
 
   // Decode preset from URL hash string
   decodePresetFromHash(hashStr: string): SonificationPreset | null {
+    if (hashStr.startsWith('#preset=')) {
+      const id = hashStr.slice(8);
+      const fp = this.getPresetById(id);
+      if (fp) return JSON.parse(JSON.stringify(fp));
+    }
     if (!hashStr.startsWith('#p=')) return null;
     try {
       const b64 = hashStr.slice(3);
@@ -94,15 +104,20 @@ export class PresetManager {
   // Generate QR Code data URL for instant mobile scan
   async generatePresetQrCode(preset: SonificationPreset, baseUrl?: string): Promise<string> {
     const hash = this.encodePresetToHash(preset);
-    const url = (baseUrl || window.location.origin + window.location.pathname) + hash;
+    let base = baseUrl || (window.location.origin + window.location.pathname);
+    // Always enforce https:// protocol so mobile cameras and WebRTC APIs work out of the box
+    if (base.startsWith('http://')) {
+      base = base.replace(/^http:\/\//, 'https://');
+    }
+    const url = base + hash;
     return await QRCode.toDataURL(url, {
-      width: 320,
-      margin: 2,
+      width: 360,
+      margin: 4,
       color: {
-        dark: '#00f0ff',
-        light: '#0a0d14',
+        dark: '#000000',
+        light: '#ffffff',
       },
-      errorCorrectionLevel: 'M',
+      errorCorrectionLevel: 'L',
     });
   }
 }

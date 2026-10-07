@@ -28,6 +28,8 @@ export interface FilterParam {
   value: number;
 }
 
+export type FilterCategory = 'eq' | 'delay' | 'modulation' | 'synth' | 'distortion' | 'dynamics' | 'lofi';
+
 export type FilterId =
   | 'djeq'
   | 'comb'
@@ -50,7 +52,17 @@ export type FilterId =
   | 'reverb'
   | 'vacuum'
   | 'reson'
-  | 'plucked';
+  | 'plucked'
+  | 'compressor'
+  | 'noisegate'
+  | 'bitcrusher'
+  | 'ringmod'
+  | 'moogladder'
+  | 'svf'
+  | 'formant'
+  | 'flanger'
+  | 'wavefolder'
+  | 'tremolo';
 
 export interface FilterNodeConfig {
   id: string; // unique instance id

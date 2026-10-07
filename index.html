@@ -319,9 +319,127 @@
                 </div>
               </div>
             </div>
+
+            <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
+            <div id="mobile-camera-hud" class="mobile-camera-hud">
+              <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
+              <div class="mobile-top-bar">
+                <button id="btn-mobile-burger" class="btn-mobile-icon" title="Switch Presets" aria-label="Menu">
+                  <span class="burger-bar"></span>
+                  <span class="burger-bar"></span>
+                  <span class="burger-bar"></span>
+                </button>
+
+                <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
+                  <span class="pill-dot"></span>
+                  <span id="mobile-preset-name">Acid 303 Decay</span>
+                  <span class="pill-arrow">▾</span>
+                </button>
+
+                <div class="mobile-top-right">
+                  <!-- Live Camera Switch Button -->
+                  <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
+                    <span class="cam-badge-dot"></span>
+                    <span id="mobile-cam-badge-text">LIVE CAM</span>
+                  </button>
+
+                  <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
+                    <span class="rec-blink-dot"></span>
+                    <span id="mobile-rec-timer">00:00</span>
+                  </div>
+                  <button id="btn-mobile-fullscreen" class="btn-mobile-icon" title="Toggle Fullscreen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
+              <div id="mobile-start-overlay" class="mobile-start-overlay">
+                <div class="mobile-start-card">
+                  <div class="start-tag">TRANSDUCER SENSOR</div>
+                  <div class="start-title">LIVE CAMERA FEED</div>
+                  <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
+                  <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary" style="margin-top: 14px; width: 100%;">
+                    ENGAGE CAMERA ↗
+                  </button>
+                </div>
+              </div>
+
+              <!-- Shutter Flash Feedback Layer -->
+              <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
+
+              <!-- Bottom Camera Action Bar: Flip, Picture Shutter, Record Video, Audio Mute -->
+              <div class="mobile-bottom-bar">
+                <!-- Flip Camera Button -->
+                <button id="btn-mobile-flip" class="btn-mobile-action" title="Flip Camera">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3"/><path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3"/></svg>
+                  <span class="mobile-action-label">FLIP</span>
+                </button>
+
+                <!-- Make Picture (Shutter) Button -->
+                <button id="btn-mobile-shutter" class="btn-shutter-ring" title="Take Photo Snapshot">
+                  <span class="shutter-inner"></span>
+                </button>
+
+                <!-- Record Video (REC) Button -->
+                <button id="btn-mobile-rec" class="btn-rec-ring" title="Record Video">
+                  <span class="rec-inner"></span>
+                </button>
+
+                <!-- Audio Output Toggle Button -->
+                <button id="btn-mobile-audio" class="btn-mobile-action" title="Toggle Audio Output">
+                  <svg id="mobile-audio-icon-on" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                  <svg id="mobile-audio-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  <span id="mobile-audio-label" class="mobile-action-label">MUTED</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </main>
+
+      <!-- Mobile Preset Switcher Drawer (Burger Menu) -->
+      <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop hidden"></div>
+      <aside id="mobile-preset-drawer" class="mobile-preset-drawer">
+        <div class="drawer-header">
+          <div class="drawer-header-left">
+            <span class="drawer-tag">ACTIVE STUDIES</span>
+            <h2 class="drawer-title">Switch Preset</h2>
+          </div>
+          <button id="btn-close-mobile-drawer" class="btn-close-drawer" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="drawer-scrollable">
+          <button id="btn-drawer-camera" class="btn-hw btn-hw-primary btn-block" style="margin-bottom: 8px;">
+            Switch to Live Camera Feed
+          </button>
+          <div id="mobile-preset-list" class="mobile-preset-list"></div>
+
+          <div class="drawer-section">
+            <span class="drawer-section-title">AUDIO MASTER OUTPUT</span>
+            <div class="drawer-volume-row">
+              <span class="vol-label">GAIN</span>
+              <input type="range" id="mobile-slider-volume" min="0" max="1" step="0.05" value="0.5" class="mobile-range-slider" />
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <span class="drawer-section-title">CAMERA RESOLUTION</span>
+            <select id="mobile-select-resolution" class="select-hw select-block">
+              <option value="360p">360p (Fastest)</option>
+              <option value="480p" selected>480p (Balanced)</option>
+              <option value="720p">720p (HD)</option>
+              <option value="native">Native (Full Sensor)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="drawer-footer">
+          <button id="btn-mobile-desktop-toggle" class="btn-hw btn-hw-secondary btn-block">
+            Toggle Full Desktop Studio Rack
+          </button>
+        </div>
+      </aside>
 
       <!-- Hardware Studio Footer -->
       <footer class="studio-footer">
@@ -345,10 +463,21 @@
             <button id="btn-close-qr" class="btn-close">&times;</button>
           </div>
           <p class="modal-desc">
-            Scan this QR code with your smartphone camera to load this exact preset live onto your mobile Sound Camera:
+            Scan with your phone camera to open this preset on your mobile Sound Camera:
           </p>
           <div class="qr-container">
             <img id="qr-image" alt="Preset QR Code" />
+          </div>
+          <div id="qr-url-display" class="qr-url-display"></div>
+          <div id="qr-lan-box" class="qr-lan-box hidden">
+            <label class="hw-label" for="input-custom-host">LAN / WI-FI IP (FOR MOBILE ACCESS)</label>
+            <div class="qr-lan-input-row">
+              <input type="text" id="input-custom-host" class="input-hw" placeholder="192.168.1.xxx:5173" />
+              <button id="btn-apply-host" class="btn-hw btn-hw-secondary">Update QR</button>
+            </div>
+            <p class="qr-lan-hint">
+              Browsing on localhost? Enter your computer's local Wi-Fi IP so your phone can reach this dev server.
+            </p>
           </div>
           <div class="modal-actions">
             <button id="btn-copy-link" class="btn-hw btn-hw-primary">Copy preset link ↗</button>
@@ -365,6 +494,22 @@
               <span class="modal-sub">Eurorack Filters, Delays, Resonators & Modulation</span>
             </div>
             <button id="btn-close-filter-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="filter-library-toolbar">
+            <div class="filter-search-box">
+              <input type="text" id="filter-search-input" class="input-hw filter-search-input" placeholder="Search DSP modules by name, category, or characteristics..." autocomplete="off" />
+              <button id="filter-search-clear" class="btn-search-clear hidden" title="Clear search">&times;</button>
+            </div>
+            <div class="filter-category-tabs" id="filter-category-tabs">
+              <button class="filter-cat-btn active" data-cat="all">ALL</button>
+              <button class="filter-cat-btn" data-cat="dynamics">DYNAMICS</button>
+              <button class="filter-cat-btn" data-cat="eq">EQ & SPECTRAL</button>
+              <button class="filter-cat-btn" data-cat="delay">DELAY & SPACE</button>
+              <button class="filter-cat-btn" data-cat="modulation">MODULATION</button>
+              <button class="filter-cat-btn" data-cat="synth">SYNTHESIS</button>
+              <button class="filter-cat-btn" data-cat="distortion">DISTORTION</button>
+              <button class="filter-cat-btn" data-cat="lofi">LO-FI</button>
+            </div>
           </div>
           <div id="filter-library-list" class="filter-library-grid"></div>
         </div>
