@@ -1,8 +1,13 @@
 onRecordCreateRequest((e) => {
   if (!e.auth) throw new ForbiddenError('Sign in to save presets.');
-  const raw = JSON.stringify(e.record.get('payload'));
+  let payload;
+  try {
+    payload = JSON.parse(e.record.getString('payload'));
+  } catch {
+    throw new BadRequestError('Preset payload is invalid.');
+  }
+  const raw = JSON.stringify(payload);
   if (!raw || raw.length > 262144) throw new BadRequestError('Preset payload exceeds 256 KB.');
-  const payload = e.record.get('payload');
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.filters) || payload.filters.length > 64) {
     throw new BadRequestError('Preset payload is invalid.');
   }
@@ -18,9 +23,14 @@ onRecordCreateRequest((e) => {
 
 onRecordUpdateRequest((e) => {
   if (!e.auth || e.record.getString('owner') !== e.auth.id) throw new ForbiddenError('Only the owner can update this preset.');
-  const raw = JSON.stringify(e.record.get('payload'));
+  let payload;
+  try {
+    payload = JSON.parse(e.record.getString('payload'));
+  } catch {
+    throw new BadRequestError('Preset payload is invalid.');
+  }
+  const raw = JSON.stringify(payload);
   if (!raw || raw.length > 262144) throw new BadRequestError('Preset payload exceeds 256 KB.');
-  const payload = e.record.get('payload');
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.filters) || payload.filters.length > 64) {
     throw new BadRequestError('Preset payload is invalid.');
   }
