@@ -9,6 +9,10 @@ export default defineConfig({
     host: true, // Allow connections from phone on local WiFi
     port: 5173,
     https: true,
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8090', changeOrigin: true },
+      '/_': { target: 'http://127.0.0.1:8090', changeOrigin: true },
+    },
   },
   worker: {
     format: 'es',

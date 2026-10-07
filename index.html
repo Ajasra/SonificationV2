@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="studio-theme">
+    <div id="app-notice" class="app-notice hidden" role="status" aria-live="polite"></div>
     <div id="app" class="studio-app">
       <!-- Top Studio Ribbon -->
       <header class="studio-topbar">
@@ -27,6 +28,9 @@
           <span class="status-label">DIRECT DSP TRANSDUCTION</span>
         </div>
         <div class="topbar-actions">
+          <button id="btn-my-presets" class="btn-ghost" disabled>My presets</button>
+          <button id="btn-explore-presets" class="btn-ghost">Explore</button>
+          <button id="btn-account" class="btn-ghost">Log in</button>
           <button id="btn-qr-modal" class="btn-ghost" title="Share Preset via QR Code to Phone">
             Send to phone ↗
           </button>
@@ -414,6 +418,11 @@
             Switch to Live Camera Feed
           </button>
           <div id="mobile-preset-list" class="mobile-preset-list"></div>
+          <div class="drawer-account-actions">
+            <button id="btn-drawer-my-presets" class="btn-hw btn-hw-secondary btn-block" disabled>My presets</button>
+            <button id="btn-drawer-explore" class="btn-hw btn-hw-secondary btn-block">Explore shared presets</button>
+            <button id="btn-drawer-account" class="btn-hw btn-hw-secondary btn-block">Log in</button>
+          </div>
 
           <div class="drawer-section">
             <span class="drawer-section-title">AUDIO MASTER OUTPUT</span>
@@ -469,6 +478,7 @@
             <img id="qr-image" alt="Preset QR Code" />
           </div>
           <div id="qr-url-display" class="qr-url-display"></div>
+          <p id="qr-status" class="modal-desc" role="status" aria-live="polite"></p>
           <div id="qr-lan-box" class="qr-lan-box hidden">
             <label class="hw-label" for="input-custom-host">LAN / WI-FI IP (FOR MOBILE ACCESS)</label>
             <div class="qr-lan-input-row">
@@ -480,7 +490,61 @@
             </p>
           </div>
           <div class="modal-actions">
+            <button id="btn-share-public" class="btn-hw btn-hw-secondary">Publish this saved preset</button>
             <button id="btn-copy-link" class="btn-hw btn-hw-primary">Copy preset link ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="account-modal" class="modal-overlay hidden">
+        <div class="modal-card account-modal-card">
+          <div class="modal-header">
+            <h3 id="account-modal-title" class="modal-title">Save and share presets</h3>
+            <button id="btn-close-account" class="btn-close" aria-label="Close">&times;</button>
+          </div>
+          <p id="account-status" class="modal-desc">Sign in to keep your presets across devices. Camera and QR presets work without an account.</p>
+          <div id="account-form">
+            <label class="hw-label" for="account-username">USERNAME</label>
+            <input id="account-username" class="input-hw account-input" autocomplete="username" maxlength="32" />
+            <label class="hw-label" for="account-password">PASSWORD</label>
+            <input id="account-password" class="input-hw account-input" type="password" autocomplete="current-password" maxlength="128" />
+            <div id="account-confirm-wrap" class="hidden">
+              <label class="hw-label" for="account-password-confirm">CONFIRM PASSWORD</label>
+              <input id="account-password-confirm" class="input-hw account-input" type="password" autocomplete="new-password" maxlength="128" />
+            </div>
+            <div class="account-actions">
+              <button id="btn-account-submit" class="btn-hw btn-hw-primary">Log in</button>
+              <button id="btn-account-mode" class="btn-hw btn-hw-secondary">Create account</button>
+            </div>
+          </div>
+          <div id="account-signed-in" class="hidden">
+            <div id="account-user-label" class="account-user-label"></div>
+            <button id="btn-import-legacy" class="btn-hw btn-hw-secondary btn-block">Import presets from this browser</button>
+            <button id="btn-account-logout" class="btn-hw btn-hw-secondary btn-block">Log out</button>
+          </div>
+          <div id="account-message" class="account-message" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div id="preset-library-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-wide preset-library-modal">
+          <div class="modal-header">
+            <div>
+              <h3 id="preset-library-title" class="modal-title">Explore shared presets</h3>
+              <span class="modal-sub">Public presets are browsable without an account.</span>
+            </div>
+            <button id="btn-close-preset-library" class="btn-close" aria-label="Close">&times;</button>
+          </div>
+          <div class="preset-library-toolbar">
+            <input id="preset-library-search" class="input-hw" type="search" maxlength="128" placeholder="Search names, descriptions, or creators" />
+            <button id="btn-import-legacy-library" class="btn-hw btn-hw-secondary hidden">Import browser presets</button>
+          </div>
+          <div id="preset-library-status" class="modal-desc" role="status" aria-live="polite"></div>
+          <div id="preset-library-list" class="preset-library-list"></div>
+          <div class="preset-library-pagination">
+            <button id="btn-library-previous" class="btn-hw btn-hw-secondary">Previous</button>
+            <span id="preset-library-page">1 / 1</span>
+            <button id="btn-library-next" class="btn-hw btn-hw-secondary">Next</button>
           </div>
         </div>
       </div>

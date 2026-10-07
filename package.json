@@ -7,10 +7,12 @@
     "dev": "vite --host",
     "test": "node --test tests/*.test.mjs",
     "build": "tsc && vite build",
+    "build:backend": "npm run build && node scripts/copy-pocketbase-site.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "mp4-muxer": "^5.2.2",
+    "pocketbase": "^0.28.1",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@
 
 Date: 2026-10-07
 Baseline commit: `d18c8da`
-Status: ready for implementation; physical-device acceptance pending.
+Status: account and preset implementation is in place; VPS deployment and physical-device acceptance are pending.
 
 ## 1. Purpose and authority
 
@@ -230,6 +230,13 @@ T01 device testing may wait for hardware while independent T02/T03 work proceeds
 Implement the account/preset track as T09 → T10 → T11 → T12 after establishing T03 validation. It can proceed alongside profiling and worker work. Keep its fetches and UI transitions outside camera ownership so account features cannot reintroduce the switch/recovery freeze. This specification update does not install, deploy, or create accounts yet.
 
 The follow-up is complete when camera recovery and repeated recording pass the physical-device matrix, invalid presets are contained, export state is isolated, and performance/audio changes have documented acceptance evidence. Accounts must preserve login, separate private libraries, expose exactly five Defaults, and support guest QR playback and shared search. A deferred task requires an explicit disposition and remaining limitation.
+
+### Current implementation status
+
+- T09–T12 are implemented in the frontend, PocketBase migration/hooks, and deployment documentation. The implementation uses PocketBase's built-in `users` auth collection and SQLite-backed `presets` records; no separate application server or database is needed.
+- The migration was applied successfully to a fresh PocketBase 0.28.1 database. `npm run build` and `git diff --check` are the code-level completion checks for this slice.
+- Not yet established: deployment on the user's VPS, persistence across that VPS's restart/backup restore, two-account behavior against the deployed server, or physical-phone camera/QR acceptance. Treat those as deployment and device acceptance work, not as proven by the local build.
+- The UI exposes five Defaults. Other factory definitions remain resolvable for existing links. Old browser-local presets can be imported after login; current working presets can be exported as JSON.
 
 ## 6. Backend references
 

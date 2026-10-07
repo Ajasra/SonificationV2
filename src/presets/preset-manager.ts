@@ -4,6 +4,8 @@ import type { SonificationPreset } from '../types/index.ts';
 import { FACTORY_PRESETS } from './factory-presets.ts';
 
 const STORAGE_KEY = 'sonification_v2_presets';
+export const LEGACY_PRESETS_STORAGE_KEY = STORAGE_KEY;
+export const DEFAULT_PRESETS = FACTORY_PRESETS.slice(0, 5);
 
 export class PresetManager {
   private presets: SonificationPreset[] = [];
@@ -13,28 +15,34 @@ export class PresetManager {
   }
 
   private loadPresets(): void {
-    this.presets = [...FACTORY_PRESETS];
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const userPresets = JSON.parse(saved) as SonificationPreset[];
-        for (const p of userPresets) {
-          if (!this.presets.some((ep) => ep.id === p.id)) {
-            this.presets.push(p);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Could not load user presets from localStorage', e);
-    }
+    this.presets = DEFAULT_PRESETS.map(preset => JSON.parse(JSON.stringify(preset)));
   }
 
   getAllPresets(): SonificationPreset[] {
     return this.presets;
   }
 
+  getDefaultPresets(): SonificationPreset[] {
+    return this.presets;
+  }
+
   getPresetById(id: string): SonificationPreset | undefined {
-    return this.presets.find((p) => p.id === id);
+    return this.presets.find((p) => p.id === id) || FACTORY_PRESETS.find((p) => p.id === id);
+  }
+
+  getLegacyUserPresets(): SonificationPreset[] {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return [];
+      const decoded: unknown = JSON.parse(saved);
+      if (!Array.isArray(decoded)) return [];
+      return decoded.filter((item): item is SonificationPreset =>
+        !!item && typeof item === 'object' && !this.isFactoryPreset((item as SonificationPreset).id)
+      );
+    } catch (e) {
+      console.warn('Could not read legacy browser presets', e);
+      return [];
+    }
   }
 
   savePreset(preset: SonificationPreset): void {
@@ -109,7 +117,10 @@ export class PresetManager {
     if (base.startsWith('http://')) {
       base = base.replace(/^http:\/\//, 'https://');
     }
-    const url = base + hash;
+    return this.generateQrCodeForUrl(base + hash);
+  }
+
+  async generateQrCodeForUrl(url: string): Promise<string> {
     return await QRCode.toDataURL(url, {
       width: 360,
       margin: 4,

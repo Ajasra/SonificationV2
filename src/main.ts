@@ -9,10 +9,13 @@ import { CameraManager } from './camera/camera-manager.ts';
 import { VideoRecorder } from './record/video-recorder.ts';
 import { OfflineVideoRecorder } from './record/offline-video-recorder.ts';
 import { RotaryKnob } from './components/rotary-knob.ts';
+import { AccountManager, type StoredPreset } from './account/account-manager.ts';
+import { validatePreset } from './presets/validate-preset.ts';
 
 class SonificationApp {
   private pipeline = new SonificationPipeline();
   private presetManager = new PresetManager();
+  private accountManager = new AccountManager();
   private audioEngine = new SoundCameraAudio();
   private cameraManager = new CameraManager();
   private videoRecorder = new VideoRecorder();
@@ -53,7 +56,18 @@ class SonificationApp {
   private filterCategoryTabs = document.getElementById('filter-category-tabs') as HTMLDivElement | null;
   private activeLibraryCategory: string = 'all';
   private librarySearchQuery: string = '';
-  private customMobileHost = '192.168.1.15:5173';
+  private customMobileHost = '';
+  private savedPresetId: string | null = null;
+  private savedPresetOwnerId: string | null = null;
+  private libraryMode: 'mine' | 'explore' = 'explore';
+  private libraryPage = 1;
+  private libraryTotalPages = 1;
+  private libraryQuery = '';
+  private libraryRequest = 0;
+  private librarySearchTimer: number | null = null;
+  private accountMode: 'login' | 'register' = 'login';
+  private pendingAccountSave = false;
+  private pendingAccountPublish = false;
 
   // Editorial & Hardware Telemetry Elements
   private fieldNoteTitle = document.getElementById('field-note-title');
@@ -145,6 +159,8 @@ class SonificationApp {
     this.renderFilterLibrary();
     this.renderPresetDropdown();
     this.initMobileUI();
+    this.initAccountUI();
+    void this.resolveSharedPresetHash();
     const releaseCamera = () => {
       this.stopFrameLoop();
       this.cameraManager.stop();
@@ -160,7 +176,13 @@ class SonificationApp {
   }
 
   private initPreset(): void {
-    const hashPreset = this.presetManager.decodePresetFromHash(window.location.hash);
+    let hashPreset: SonificationPreset | null = null;
+    try {
+      const decoded = this.presetManager.decodePresetFromHash(window.location.hash);
+      if (decoded) hashPreset = validatePreset(decoded);
+    } catch (error) {
+      console.warn('Shared preset link is invalid; loading a default.', error);
+    }
     if (hashPreset) {
       this.activePreset = hashPreset;
     } else {
@@ -324,18 +346,18 @@ class SonificationApp {
   }
 
   private updatePresetButtonsState(): void {
-    const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
+    const canUpdate = !!this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId;
     if (this.btnPresetDelete) {
-      this.btnPresetDelete.disabled = isFactory;
-      this.btnPresetDelete.title = isFactory
-        ? 'Factory studies cannot be deleted'
-        : 'Delete this custom study';
+      this.btnPresetDelete.disabled = !canUpdate;
+      this.btnPresetDelete.title = canUpdate ? 'Delete this saved preset' : 'Save this preset to your account first';
     }
+    if (this.btnPresetUpdate) this.btnPresetUpdate.textContent = canUpdate ? 'Update' : 'Save copy';
+    if (this.btnPresetSave) this.btnPresetSave.textContent = canUpdate ? '+ Save Copy' : '+ Save New';
   }
 
   private renderPresetDropdown(): void {
     this.selectPreset.innerHTML = '';
-    const presets = this.presetManager.getAllPresets();
+    const presets = this.presetManager.getDefaultPresets();
     for (let i = 0; i < presets.length; i++) {
       const p = presets[i];
       const opt = document.createElement('option');
@@ -347,6 +369,408 @@ class SonificationApp {
     this.updatePresetButtonsState();
     this.renderMobilePresetDrawer();
     this.updateMobilePresetBadge();
+  }
+
+  private async resolveSharedPresetHash(): Promise<void> {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#shared=')) return;
+    const id = hash.slice(8).slice(0, 64);
+    try {
+      const preset = await this.accountManager.getPublic(id);
+      if (window.location.hash !== hash) return;
+      this.applyPreset(preset);
+      this.showPresetNotice('Shared preset applied.');
+    } catch (error) {
+      if (window.location.hash !== hash) return;
+      this.showPresetNotice(`Shared preset unavailable: ${(error as Error).message}`, true);
+    }
+  }
+
+  private applyPreset(preset: SonificationPreset, saved?: StoredPreset): void {
+    this.activePreset = JSON.parse(JSON.stringify(validatePreset(preset)));
+    this.savedPresetId = saved?.id || null;
+    this.savedPresetOwnerId = saved?.owner || null;
+    this.syncFormWithPreset();
+    this.renderFilterRack();
+    this.renderPresetDropdown();
+    this.requestRender();
+  }
+
+  private showPresetNotice(message: string, error = false): void {
+    const notice = document.getElementById('app-notice');
+    if (notice) {
+      notice.textContent = message;
+      notice.classList.toggle('error', error);
+      notice.classList.remove('hidden');
+      window.setTimeout(() => notice.classList.add('hidden'), 6000);
+    }
+    const status = document.getElementById('preset-library-status');
+    if (status) {
+      status.textContent = message;
+      status.dataset.error = error ? 'true' : 'false';
+    }
+    const accountStatus = document.getElementById('account-message');
+    if (accountStatus && error) {
+      accountStatus.textContent = message;
+      accountStatus.dataset.error = 'true';
+    }
+  }
+
+  private openAccountModal(mode = 'login'): void {
+    this.accountMode = mode as 'login' | 'register';
+    document.getElementById('account-modal')?.classList.remove('hidden');
+    this.renderAccountState();
+  }
+
+  private renderAccountState(): void {
+    const user = this.accountManager.user;
+    const form = document.getElementById('account-form');
+    const signedIn = document.getElementById('account-signed-in');
+    const title = document.getElementById('account-modal-title');
+    const status = document.getElementById('account-status');
+    const confirmWrap = document.getElementById('account-confirm-wrap');
+    const submit = document.getElementById('btn-account-submit');
+    const modeButton = document.getElementById('btn-account-mode');
+    const name = document.getElementById('account-user-label');
+    const loginButton = document.getElementById('btn-account');
+    const myButton = document.getElementById('btn-my-presets') as HTMLButtonElement | null;
+    const mobileLogin = document.getElementById('btn-drawer-account');
+    const mobileMine = document.getElementById('btn-drawer-my-presets') as HTMLButtonElement | null;
+
+    if (loginButton) loginButton.textContent = user ? `${user.username} · Account` : 'Log in';
+    if (mobileLogin) mobileLogin.textContent = user ? `${user.username} · Account` : 'Log in';
+    if (myButton) myButton.disabled = !user;
+    if (mobileMine) mobileMine.disabled = !user;
+    form?.classList.toggle('hidden', !!user);
+    signedIn?.classList.toggle('hidden', !user);
+    confirmWrap?.classList.toggle('hidden', this.accountMode !== 'register');
+    if (title) title.textContent = user ? 'Your account' : 'Save and share presets';
+    if (status) status.textContent = user
+      ? 'Your presets are private until you choose Share publicly.'
+      : 'Sign in to keep presets across devices. Camera and QR presets work without an account.';
+    if (submit) submit.textContent = this.accountMode === 'register' ? 'Create account' : 'Log in';
+    if (modeButton) modeButton.textContent = this.accountMode === 'register' ? 'I already have an account' : 'Create account';
+    if (name) name.textContent = user ? `Signed in as ${user.username}` : '';
+    if (user) this.refreshLegacyImportButtons();
+  }
+
+  private refreshLegacyImportButtons(): void {
+    const count = this.presetManager.getLegacyUserPresets().length;
+    const key = `sonification_v2_imported_${this.accountManager.userId}`;
+    let imported: string[] = [];
+    try { imported = JSON.parse(localStorage.getItem(key) || '[]') as string[]; } catch { imported = []; }
+    const show = count > imported.length;
+    document.getElementById('btn-import-legacy')?.classList.toggle('hidden', !show);
+    document.getElementById('btn-import-legacy-library')?.classList.toggle('hidden', !show);
+  }
+
+  private async submitAccountForm(): Promise<void> {
+    const username = (document.getElementById('account-username') as HTMLInputElement).value;
+    const password = (document.getElementById('account-password') as HTMLInputElement).value;
+    const confirmPassword = (document.getElementById('account-password-confirm') as HTMLInputElement).value;
+    const message = document.getElementById('account-message');
+    if (message) { message.textContent = ''; delete message.dataset.error; }
+    try {
+      if (this.accountMode === 'register') {
+        if (password !== confirmPassword) throw new Error('Passwords do not match.');
+        await this.accountManager.register(username, password);
+      } else {
+        await this.accountManager.login(username, password);
+      }
+      this.renderAccountState();
+      this.refreshLegacyImportButtons();
+      if (this.pendingAccountSave) {
+        this.pendingAccountSave = false;
+        await this.saveActivePreset(false);
+        const publishAfterSave = this.pendingAccountPublish;
+        this.pendingAccountPublish = false;
+        if (publishAfterSave && this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId) {
+          await this.publishSavedPreset();
+        }
+      }
+    } catch (error) {
+      if (message) {
+        const cause = error as { response?: { message?: string }; message?: string };
+        message.textContent = cause.response?.message || cause.message || 'Account request failed.';
+        message.dataset.error = 'true';
+      }
+    }
+  }
+
+  private async importLegacyPresets(): Promise<void> {
+    if (!this.accountManager.userId) return this.openAccountModal();
+    const legacy = this.presetManager.getLegacyUserPresets();
+    const key = `sonification_v2_imported_${this.accountManager.userId}`;
+    let imported: string[] = [];
+    try { imported = JSON.parse(localStorage.getItem(key) || '[]') as string[]; } catch { imported = []; }
+    const pending = legacy.filter(preset => !imported.includes(preset.id));
+    if (!pending.length) { this.showPresetNotice('There are no browser presets left to import.'); return; }
+    if (!confirm(`Import ${pending.length} presets from this browser into ${this.accountManager.user?.username}'s account? The browser copy will be kept.`)) return;
+    try {
+      for (const raw of pending) {
+        const copy = validatePreset(raw);
+        copy.id = `user_${this.newId()}`;
+        await this.accountManager.save(copy);
+        imported.push(raw.id);
+        localStorage.setItem(key, JSON.stringify(imported));
+      }
+      this.refreshLegacyImportButtons();
+      this.showPresetNotice(`Imported ${pending.length} presets.`);
+      if (this.libraryMode === 'mine') await this.loadPresetLibrary();
+    } catch (error) {
+      this.showPresetNotice(`Import stopped. Completed items are saved and can be retried: ${(error as Error).message}`, true);
+    }
+  }
+
+  private newId(): string {
+    return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+
+  private async saveActivePreset(update: boolean): Promise<void> {
+    if (!this.accountManager.userId) {
+      this.pendingAccountSave = true;
+      this.openAccountModal('login');
+      const message = document.getElementById('account-message');
+      if (message) message.textContent = 'Log in or create an account to save this preset.';
+      return;
+    }
+    const canUpdate = update && this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId;
+    const next = validatePreset(JSON.parse(JSON.stringify(this.activePreset)));
+    if (!canUpdate) {
+      const defaultName = next.name.endsWith('(Copy)') ? next.name : `${next.name} (Copy)`;
+      const name = prompt('Preset name:', defaultName);
+      if (!name?.trim()) return;
+      next.id = `user_${this.newId()}`;
+      next.name = name.trim().slice(0, 128);
+    }
+    next.description = this.inputPresetDesc?.value.slice(0, 4096) || '';
+    try {
+      const record = canUpdate
+        ? await this.accountManager.update(this.savedPresetId!, next)
+        : await this.accountManager.save(next);
+      this.applyPreset(next, record);
+      this.showPresetNotice(canUpdate ? 'Preset updated.' : 'Preset saved privately to your account.');
+    } catch (error) {
+      this.openAccountModal();
+      this.showPresetNotice(`Preset was not saved. Your current edits are still here: ${(error as Error).message}`, true);
+    }
+  }
+
+  private async publishSavedPreset(): Promise<void> {
+    if (!this.savedPresetId || this.savedPresetOwnerId !== this.accountManager.userId) return;
+    const id = this.savedPresetId;
+    await this.accountManager.setVisibility(id, 'public');
+    await this.showQrForHash(`#shared=${id}`);
+    const status = document.getElementById('qr-status');
+    if (status) status.textContent = 'Public preset link. Anyone with it can open this preset.';
+  }
+
+  private initAccountUI(): void {
+    const openAccount = () => this.openAccountModal();
+    document.getElementById('btn-account')?.addEventListener('click', openAccount);
+    document.getElementById('btn-drawer-account')?.addEventListener('click', () => { openAccount(); this.closeMobileDrawer(); });
+    document.getElementById('btn-my-presets')?.addEventListener('click', () => this.openPresetLibrary('mine'));
+    document.getElementById('btn-drawer-my-presets')?.addEventListener('click', () => { this.openPresetLibrary('mine'); this.closeMobileDrawer(); });
+    document.getElementById('btn-explore-presets')?.addEventListener('click', () => this.openPresetLibrary('explore'));
+    document.getElementById('btn-drawer-explore')?.addEventListener('click', () => { this.openPresetLibrary('explore'); this.closeMobileDrawer(); });
+    document.getElementById('btn-close-account')?.addEventListener('click', () => document.getElementById('account-modal')?.classList.add('hidden'));
+    document.getElementById('btn-account-mode')?.addEventListener('click', () => {
+      this.accountMode = this.accountMode === 'login' ? 'register' : 'login';
+      this.renderAccountState();
+    });
+    document.getElementById('btn-account-submit')?.addEventListener('click', () => { void this.submitAccountForm(); });
+    for (const id of ['account-username', 'account-password', 'account-password-confirm']) {
+      document.getElementById(id)?.addEventListener('keydown', event => {
+        if ((event as KeyboardEvent).key === 'Enter') void this.submitAccountForm();
+      });
+    }
+    document.getElementById('btn-account-logout')?.addEventListener('click', () => {
+      this.accountManager.logout();
+      document.getElementById('account-modal')?.classList.add('hidden');
+    });
+    document.getElementById('btn-import-legacy')?.addEventListener('click', () => { void this.importLegacyPresets(); });
+    document.getElementById('btn-import-legacy-library')?.addEventListener('click', () => { void this.importLegacyPresets(); });
+    document.getElementById('btn-close-preset-library')?.addEventListener('click', () => {
+      this.libraryRequest++;
+      document.getElementById('preset-library-modal')?.classList.add('hidden');
+    });
+    document.getElementById('btn-library-previous')?.addEventListener('click', () => {
+      if (this.libraryPage > 1) { this.libraryPage--; void this.loadPresetLibrary(); }
+    });
+    document.getElementById('btn-library-next')?.addEventListener('click', () => {
+      if (this.libraryPage < this.libraryTotalPages) { this.libraryPage++; void this.loadPresetLibrary(); }
+    });
+    document.getElementById('preset-library-search')?.addEventListener('input', event => {
+      const input = event.currentTarget as HTMLInputElement;
+      if (this.librarySearchTimer !== null) window.clearTimeout(this.librarySearchTimer);
+      this.librarySearchTimer = window.setTimeout(() => {
+        this.libraryQuery = input.value.slice(0, 128);
+        this.libraryPage = 1;
+        void this.loadPresetLibrary();
+      }, 250);
+    });
+    this.accountManager.onChange(() => {
+      const nextOwner = this.accountManager.userId;
+      if (this.savedPresetOwnerId && this.savedPresetOwnerId !== nextOwner) {
+        this.savedPresetId = null;
+        this.savedPresetOwnerId = null;
+      }
+      this.renderAccountState();
+      this.updatePresetButtonsState();
+      if (!nextOwner) this.pendingAccountPublish = false;
+      if (nextOwner && !document.getElementById('preset-library-modal')?.classList.contains('hidden')) {
+        this.libraryPage = 1;
+        void this.loadPresetLibrary();
+      }
+      if (this.libraryMode === 'mine' && !nextOwner) {
+        this.libraryRequest++;
+        document.getElementById('preset-library-modal')?.classList.add('hidden');
+      }
+    });
+    this.renderAccountState();
+    void this.accountManager.restore().catch(error => {
+      const status = document.getElementById('account-message');
+      if (status) {
+        status.textContent = `Account service is offline. Guest presets and camera still work. ${(error as Error).message}`;
+        status.dataset.error = 'true';
+      }
+    }).finally(() => {
+      this.renderAccountState();
+      if (this.libraryMode === 'mine' && this.accountManager.userId) void this.loadPresetLibrary();
+    });
+  }
+
+  private getShareBaseUrl(): string {
+    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocal && !this.customMobileHost) throw new Error('Enter your computer’s Wi-Fi address to make a phone link.');
+    if (this.customMobileHost) return `https://${this.customMobileHost}${window.location.pathname}`;
+    return `${window.location.origin}${window.location.pathname}`.replace(/^http:\/\//, 'https://');
+  }
+
+  private async showQrForHash(hash: string): Promise<void> {
+    const base = this.getShareBaseUrl();
+    const fullUrl = base + hash;
+    const image = document.getElementById('qr-image') as HTMLImageElement | null;
+    const display = document.getElementById('qr-url-display');
+    const status = document.getElementById('qr-status');
+    if (display) display.textContent = fullUrl;
+    if (status) status.textContent = '';
+    try {
+      if (image) image.src = await this.presetManager.generateQrCodeForUrl(fullUrl);
+    } catch {
+      if (image) image.removeAttribute('src');
+      if (status) status.textContent = 'This link is too large for a QR code. Copy the text link instead.';
+    }
+    this.qrModal.classList.remove('hidden');
+  }
+
+  private openPresetLibrary(mode: 'mine' | 'explore'): void {
+    if (mode === 'mine' && !this.accountManager.userId) {
+      this.openAccountModal();
+      return;
+    }
+    this.libraryMode = mode;
+    this.libraryPage = 1;
+    this.libraryQuery = '';
+    const search = document.getElementById('preset-library-search') as HTMLInputElement | null;
+    if (search) search.value = '';
+    const modal = document.getElementById('preset-library-modal');
+    modal?.classList.remove('hidden');
+    const title = document.getElementById('preset-library-title');
+    if (title) title.textContent = mode === 'mine' ? 'My presets' : 'Explore shared presets';
+    document.getElementById('btn-import-legacy-library')?.classList.toggle('hidden', mode !== 'mine');
+    this.refreshLegacyImportButtons();
+    void this.loadPresetLibrary();
+  }
+
+  private async loadPresetLibrary(): Promise<void> {
+    const request = ++this.libraryRequest;
+    const list = document.getElementById('preset-library-list');
+    const status = document.getElementById('preset-library-status');
+    if (!list || !status) return;
+    list.replaceChildren();
+    status.textContent = 'Loading presets…';
+    delete status.dataset.error;
+    try {
+      const result = this.libraryMode === 'mine'
+        ? await this.accountManager.listMine(this.libraryPage, this.libraryQuery)
+        : await this.accountManager.searchPublic(this.libraryPage, this.libraryQuery);
+      if (request !== this.libraryRequest || document.getElementById('preset-library-modal')?.classList.contains('hidden')) return;
+      this.libraryTotalPages = Math.max(1, result.totalPages);
+      status.textContent = result.items.length ? '' : 'No presets found.';
+      for (const preset of result.items) this.renderStoredPresetCard(preset, list);
+    } catch (error) {
+      if (request !== this.libraryRequest) return;
+      status.textContent = `Could not load presets: ${(error as Error).message}`;
+      status.dataset.error = 'true';
+    }
+    const pageLabel = document.getElementById('preset-library-page');
+    if (pageLabel) pageLabel.textContent = `${this.libraryPage} / ${this.libraryTotalPages}`;
+    (document.getElementById('btn-library-previous') as HTMLButtonElement | null)!.disabled = this.libraryPage <= 1;
+    (document.getElementById('btn-library-next') as HTMLButtonElement | null)!.disabled = this.libraryPage >= this.libraryTotalPages;
+  }
+
+  private renderStoredPresetCard(record: StoredPreset, list: HTMLElement): void {
+    const card = document.createElement('article');
+    card.className = 'preset-library-card';
+    const heading = document.createElement('h4');
+    heading.textContent = record.name;
+    const description = document.createElement('p');
+    description.textContent = record.description || 'No description.';
+    const author = document.createElement('small');
+    author.textContent = this.libraryMode === 'mine' ? record.visibility === 'public' ? 'Public · visible in Explore' : 'Private · only you can see this' : `by ${record.authorName}`;
+    const actions = document.createElement('div');
+    actions.className = 'preset-card-actions';
+    const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {
+      const control = document.createElement('button');
+      control.className = `btn-hw ${style} btn-sm`;
+      control.textContent = label;
+      control.onclick = () => { void callback(); };
+      actions.appendChild(control);
+    };
+    button('Apply', async () => {
+      try {
+        const preset = this.libraryMode === 'mine' ? await this.accountManager.getOwned(record.id) : await this.accountManager.getPublic(record.id);
+        const applied = this.libraryMode === 'mine' ? record : undefined;
+        this.applyPreset(preset, applied);
+        document.getElementById('preset-library-modal')?.classList.add('hidden');
+      } catch (error) { this.showPresetNotice((error as Error).message, true); }
+    }, 'btn-hw-primary');
+    if (this.libraryMode === 'explore') {
+      if (this.accountManager.userId) button('Save a copy', async () => {
+        try {
+          const preset = await this.accountManager.getPublic(record.id);
+          preset.id = `user_${this.newId()}`;
+          const name = prompt('Name your copy:', `${preset.name} (Copy)`);
+          if (!name?.trim()) return;
+          preset.name = name.trim().slice(0, 128);
+          const saved = await this.accountManager.save(preset);
+          this.showPresetNotice('Private copy saved to My presets.');
+          if (this.libraryMode === 'mine') this.applyPreset(preset, saved);
+        } catch (error) { this.showPresetNotice((error as Error).message, true); }
+      });
+    } else {
+      button(record.visibility === 'public' ? 'Make private' : 'Share publicly', async () => {
+        try {
+          await this.accountManager.setVisibility(record.id, record.visibility === 'public' ? 'private' : 'public');
+          await this.loadPresetLibrary();
+        } catch (error) { this.showPresetNotice((error as Error).message, true); }
+      });
+      button('QR link', async () => {
+        await this.showQrForHash(`#shared=${record.id}`);
+        document.getElementById('preset-library-modal')?.classList.add('hidden');
+      });
+      button('Delete', async () => {
+        if (!confirm(`Delete “${record.name}”?`)) return;
+        try {
+          await this.accountManager.remove(record.id);
+          if (this.savedPresetId === record.id) { this.savedPresetId = null; this.savedPresetOwnerId = null; this.updatePresetButtonsState(); }
+          await this.loadPresetLibrary();
+        } catch (error) { this.showPresetNotice((error as Error).message, true); }
+      });
+    }
+    card.append(heading, description, author, actions);
+    list.appendChild(card);
   }
 
   private static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
@@ -616,10 +1040,7 @@ class SonificationApp {
     this.selectPreset.onchange = () => {
       const found = this.presetManager.getPresetById(this.selectPreset.value);
       if (found) {
-        this.activePreset = JSON.parse(JSON.stringify(found));
-        this.syncFormWithPreset();
-        this.renderFilterRack();
-        this.requestRender();
+        this.applyPreset(found);
       }
     };
 
@@ -630,104 +1051,41 @@ class SonificationApp {
         if (this.fieldNoteDesc) {
           this.fieldNoteDesc.textContent = this.activePreset.description;
         }
+        this.updatePresetButtonsState();
       };
     }
 
-    // Save as New custom study
-    if (this.btnPresetSave) {
-      this.btnPresetSave.onclick = () => {
-        const defaultName = this.activePreset.name.endsWith('(Copy)') 
-          ? this.activePreset.name 
-          : `${this.activePreset.name} (Copy)`;
-        const name = prompt('New Study Name:', defaultName);
-        if (name && name.trim()) {
-          const newPreset: SonificationPreset = JSON.parse(JSON.stringify(this.activePreset));
-          newPreset.id = 'usr_' + Date.now();
-          newPreset.name = name.trim();
-          newPreset.description = this.inputPresetDesc ? this.inputPresetDesc.value : (newPreset.description || '');
-          this.activePreset = newPreset;
-          this.presetManager.savePreset(this.activePreset);
-          this.renderPresetDropdown();
-          this.updateEditorialHeaders();
-        }
-      };
-    }
-
-    // Update current active study
-    if (this.btnPresetUpdate) {
-      this.btnPresetUpdate.onclick = () => {
-        const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
-        if (isFactory) {
-          // If trying to overwrite a factory preset, prompt user to save as a custom study
-          const newName = prompt(
-            'Factory studies are read-only. Enter a name to save as your custom study:',
-            `${this.activePreset.name} (Custom)`
-          );
-          if (newName && newName.trim()) {
-            this.activePreset.id = 'usr_' + Date.now();
-            this.activePreset.name = newName.trim();
-            if (this.inputPresetDesc) {
-              this.activePreset.description = this.inputPresetDesc.value;
-            }
-            this.presetManager.savePreset(this.activePreset);
-            this.renderPresetDropdown();
-            this.updateEditorialHeaders();
-          }
-          return;
-        }
-
-        // Update custom preset in-place
-        if (this.inputPresetDesc) {
-          this.activePreset.description = this.inputPresetDesc.value;
-        }
-        this.presetManager.savePreset(this.activePreset);
+    // Save privately to the signed-in account; defaults and shared presets become copies.
+    this.btnPresetSave.onclick = () => { void this.saveActivePreset(false); };
+    this.btnPresetUpdate.onclick = () => { void this.saveActivePreset(true); };
+    this.btnPresetDelete.onclick = () => {
+      if (!this.savedPresetId || this.savedPresetOwnerId !== this.accountManager.userId) return;
+      const id = this.savedPresetId;
+      if (!confirm(`Delete saved preset "${this.activePreset.name}"?`)) return;
+      void this.accountManager.remove(id).then(() => {
+        this.savedPresetId = null;
+        this.savedPresetOwnerId = null;
         this.renderPresetDropdown();
-        this.updateEditorialHeaders();
-
-        // Visual flash feedback on the Update button
-        const prevText = this.btnPresetUpdate.textContent;
-        this.btnPresetUpdate.textContent = 'Updated ✓';
-        this.btnPresetUpdate.style.borderColor = 'var(--accent-phosphor)';
-        this.btnPresetUpdate.style.color = 'var(--accent-phosphor)';
-        setTimeout(() => {
-          this.btnPresetUpdate.textContent = prevText;
-          this.btnPresetUpdate.style.borderColor = '';
-          this.btnPresetUpdate.style.color = '';
-        }, 1200);
-      };
-    }
-
-    // Delete current custom study
-    if (this.btnPresetDelete) {
-      this.btnPresetDelete.onclick = () => {
-        const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
-        if (isFactory) {
-          alert('Factory studies cannot be deleted.');
-          return;
-        }
-
-        if (confirm(`Delete study "${this.activePreset.name}"?`)) {
-          this.presetManager.deletePreset(this.activePreset.id);
-          const remaining = this.presetManager.getAllPresets();
-          this.activePreset = JSON.parse(JSON.stringify(remaining[0]));
-          this.syncFormWithPreset();
-          this.renderFilterRack();
-          this.renderPresetDropdown();
-          this.requestRender();
-        }
-      };
-    }
+        this.showPresetNotice('Preset deleted.');
+      }).catch(error => this.showPresetNotice((error as Error).message, true));
+    };
 
     // Export & Import Series JSON
     document.getElementById('btn-export-series')?.addEventListener('click', () => {
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.presetManager.getAllPresets(), null, 2));
+      const data = new Blob([JSON.stringify([this.activePreset], null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(data);
       const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', dataStr);
-      downloadAnchor.setAttribute('download', `sonification_series_${Date.now()}.json`);
+      downloadAnchor.href = url;
+      downloadAnchor.download = `sonification_preset_${Date.now()}.json`;
       downloadAnchor.click();
+      URL.revokeObjectURL(url);
     });
 
     document.getElementById('btn-import-series')?.addEventListener('click', () => {
+      if (!this.accountManager.userId) {
+        this.openAccountModal();
+        return;
+      }
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'application/json';
@@ -739,9 +1097,11 @@ class SonificationApp {
             try {
               const imported = JSON.parse(event.target?.result as string);
               if (Array.isArray(imported)) {
-                imported.forEach((p) => this.presetManager.savePreset(p));
-                this.renderPresetDropdown();
-                alert(`Successfully imported ${imported.length} studies!`);
+                void Promise.all(imported.map(async (raw: unknown) => {
+                  const preset = validatePreset(raw);
+                  preset.id = `user_${this.newId()}`;
+                  await this.accountManager.save(preset);
+                })).then(() => alert(`Successfully imported ${imported.length} studies!`)).catch(error => alert(`Import failed: ${(error as Error).message}`));
               }
             } catch (err) {
               alert('Could not parse imported JSON series file.');
@@ -843,8 +1203,10 @@ class SonificationApp {
 
     // QR Code modal
     document.getElementById('btn-qr-modal')!.onclick = async () => {
-      await this.updateQrModal();
-      this.qrModal.classList.remove('hidden');
+      try {
+        await this.updateQrModal();
+        this.qrModal.classList.remove('hidden');
+      } catch (error) { this.showPresetNotice((error as Error).message, true); }
     };
     document.getElementById('btn-close-qr')!.onclick = () => {
       this.qrModal.classList.add('hidden');
@@ -868,26 +1230,43 @@ class SonificationApp {
       };
     }
     document.getElementById('btn-copy-link')!.onclick = () => {
-      let baseUrl = window.location.origin + window.location.pathname;
-      if (this.customMobileHost) {
-        baseUrl = `https://${this.customMobileHost}${window.location.pathname}`;
-      } else if (baseUrl.startsWith('http://')) {
-        baseUrl = baseUrl.replace(/^http:\/\//, 'https://');
+      try {
+        const baseUrl = this.getShareBaseUrl();
+        const hash = this.presetManager.encodePresetToHash(this.activePreset);
+        void navigator.clipboard.writeText(baseUrl + hash).then(() => {
+          const status = document.getElementById('qr-status');
+          if (status) status.textContent = 'Preset link copied.';
+        }).catch(() => alert('Could not copy the link. Select and copy the URL shown above.'));
+      } catch (error) { this.showPresetNotice((error as Error).message, true); }
+    };
+
+    document.getElementById('btn-share-public')!.onclick = async () => {
+      if (!this.savedPresetId || this.savedPresetOwnerId !== this.accountManager.userId) {
+        if (!this.accountManager.userId) {
+          this.pendingAccountSave = true;
+          this.pendingAccountPublish = true;
+          this.openAccountModal();
+          const message = document.getElementById('account-message');
+          if (message) message.textContent = 'Log in or create an account to publish this preset.';
+          return;
+        }
+        await this.saveActivePreset(false);
+        if (!this.savedPresetId) return;
       }
-      const hash = this.presetManager.encodePresetToHash(this.activePreset);
-      navigator.clipboard.writeText(baseUrl + hash);
-      alert('Preset link copied to clipboard!');
+      try {
+        await this.publishSavedPreset();
+      } catch (error) { this.showPresetNotice((error as Error).message, true); }
     };
 
     window.addEventListener('hashchange', () => {
+      if (window.location.hash.startsWith('#shared=')) {
+        void this.resolveSharedPresetHash();
+        return;
+      }
       const hashPreset = this.presetManager.decodePresetFromHash(window.location.hash);
       if (hashPreset) {
-        this.activePreset = hashPreset;
-        this.syncFormWithPreset();
-        this.updateEditorialHeaders();
-        this.renderPresetDropdown();
-        this.renderFilterRack();
-        this.requestRender();
+        try { this.applyPreset(validatePreset(hashPreset)); }
+        catch (error) { this.showPresetNotice((error as Error).message, true); }
       }
     });
 
@@ -1830,12 +2209,7 @@ class SonificationApp {
       }
     }
 
-    let baseUrl: string;
-    if (this.customMobileHost) {
-      baseUrl = `https://${this.customMobileHost}${window.location.pathname}`;
-    } else {
-      baseUrl = (window.location.origin + window.location.pathname).replace(/^http:\/\//, 'https://');
-    }
+    const baseUrl = this.getShareBaseUrl();
 
     const dataUrl = await this.presetManager.generatePresetQrCode(this.activePreset, baseUrl);
     this.qrImage.src = dataUrl;
@@ -1844,6 +2218,10 @@ class SonificationApp {
     if (urlDisplay) {
       urlDisplay.textContent = fullUrl;
     }
+    const publish = document.getElementById('btn-share-public') as HTMLButtonElement | null;
+    if (publish) publish.textContent = this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId
+      ? 'Publish this saved preset'
+      : 'Save and publish this preset';
   }
 
   private renderOscilloscope(): void {
