@@ -6,7 +6,7 @@ The app has five local default presets. User accounts, private preset libraries,
 
 ## Local test setup
 
-Use two terminals from the project directory. Put the PocketBase executable in the project root as `pocketbase.exe` on Windows or `pocketbase` on Linux/macOS. PocketBase 0.28.1 was used to validate this project's migration and hooks.
+Use two terminals from the project directory. Download PocketBase 0.28.1 for your OS from [PocketBase releases](https://github.com/pocketbase/pocketbase/releases) and put its executable in the project root as `pocketbase.exe` on Windows or `pocketbase` on Linux/macOS. This version was used to validate this project's migration and hooks.
 
 Terminal 1, start PocketBase. It listens only on this computer at port 8090:
 
@@ -27,25 +27,18 @@ For phone testing, use the computer's LAN IP with port 5173, on the same Wi-Fi n
 
 ## Ubuntu VPS with Nginx and PM2
 
-The VPS runs one PocketBase process. PocketBase serves the compiled frontend from `pb_public/`, the API, and the admin UI; SQLite data lives in `pb_data/`. Nginx terminates HTTPS and proxies the same domain to PocketBase's private port. PM2 keeps that process running. The supplied config files are `ecosystem.config.cjs` and `deploy/nginx/sonification-v2.conf`.
+The VPS runs one PocketBase process. PocketBase serves the compiled frontend from `pb_public/`, the API, and the admin UI; SQLite data lives in `pb_data/`. Nginx terminates HTTPS and proxies the same domain to PocketBase's private port. PM2 keeps that process running. The supplied files are `ecosystem.config.cjs`, `deploy/nginx/sonification-v2.conf`, and `deploy/update-ubuntu.sh`.
 
-Build the static site on your development computer:
-
-```powershell
-npm ci
-npm run build:backend
-```
-
-Copy these items to the same directory on the VPS (for example `/opt/sonification-v2/`): the Linux PocketBase executable named `pocketbase`, `ecosystem.config.cjs`, and the `pb_public/`, `pb_hooks/`, and `pb_migrations/` directories. Do not upload local `pb_data/`; the VPS creates and owns its own database. Install PocketBase 0.28.1 for the VPS architecture from [PocketBase releases](https://github.com/pocketbase/pocketbase/releases), and make it executable with `chmod +x pocketbase`.
-
-Run PM2 from that directory as the Linux user that should own the app and database:
+Install Node.js/npm, PM2, and Nginx on Ubuntu, then clone or copy this repository to the VPS (for example `/opt/sonification-v2/`). Run the updater as the Linux user that should own the app and database:
 
 ```bash
-pm2 start ecosystem.config.cjs
-pm2 startup
+cd /opt/sonification-v2
+bash deploy/update-ubuntu.sh
 ```
 
-PM2 prints one `sudo` command during `pm2 startup`; run the exact command it prints, then save the process list with `pm2 save`. The ecosystem file binds PocketBase to `127.0.0.1:8090`, so it is reachable by Nginx but not directly from the internet. If you choose a different port, update both `ecosystem.config.cjs` and the Nginx `proxy_pass` port.
+The script installs PocketBase 0.28.1 for the VPS architecture if the binary is missing, builds the frontend into `pb_public/`, and starts or restarts the PM2 app. It does not overwrite `pb_data/`. Keep that directory on persistent VPS storage and do not remove it during updates. If you choose a different PocketBase port, update both `ecosystem.config.cjs` and the Nginx `proxy_pass` port.
+
+Run `pm2 startup` once. PM2 prints a `sudo` command; run that exact command, then run `pm2 save`. PM2 can restore saved processes on Ubuntu after reboot.
 
 The supplied Nginx file is a complete virtual host for a dedicated domain or subdomain. Replace `example.com` with that host and set the certificate paths to your existing TLS certificate. If that hostname already has an Nginx virtual host, copy the `location /` block into its HTTPS server block instead of enabling a duplicate. For a dedicated host, copy the file to `/etc/nginx/sites-available/sonification-v2.conf`, enable it, then validate and reload Nginx:
 
