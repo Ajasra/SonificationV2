@@ -4,24 +4,60 @@ Browser studio and mobile camera for processing image pixels through audio DSP f
 
 The app has five local default presets. User accounts, private preset libraries, and public preset search use PocketBase. Presets are JSON records in PocketBase's SQLite database file on your VPS; each public link opens without login. Database persistence requires a VPS volume or disk that survives process restarts.
 
-## Run locally
+## Local test setup
+
+Use two terminals from the project directory. Put the PocketBase executable in the project root as `pocketbase.exe` on Windows or `pocketbase` on Linux/macOS. PocketBase 0.28.1 was used to validate this project's migration and hooks.
+
+Terminal 1, start PocketBase. It listens only on this computer at port 8090:
+
+```powershell
+.\pocketbase.exe serve --http=127.0.0.1:8090
+```
+
+Terminal 2, start the Vite development site:
 
 ```powershell
 npm ci
 npm run dev
 ```
 
-Download the matching PocketBase executable from [PocketBase releases](https://github.com/pocketbase/pocketbase/releases) and run it on the computer hosting Vite. It should listen on port 8090; Vite proxies `/api` and `/_/` to it. PocketBase applies the migration from `pb_migrations/` automatically. Local testing on a phone uses the computer's LAN address. For a VPS, use one public HTTPS origin; PocketBase serves the built app from `pb_public/` and its API from `/api/`.
+Open the HTTPS URL printed by Vite, usually `https://localhost:5173`. Vite proxies `/api` and `/_/` to PocketBase. PocketBase applies migrations from `pb_migrations/` and loads `pb_hooks/` automatically when launched from the project root. On first launch, open the PocketBase setup link printed in its terminal to create the separate admin account.
 
-Build the static app into the PocketBase web directory with:
+For phone testing, use the computer's LAN IP with port 5173, on the same Wi-Fi network. Accept the development certificate warning if prompted, then enter the computer's reachable LAN address in the QR dialog.
+
+## Ubuntu VPS with Nginx and PM2
+
+The VPS runs one PocketBase process. PocketBase serves the compiled frontend from `pb_public/`, the API, and the admin UI; SQLite data lives in `pb_data/`. Nginx terminates HTTPS and proxies the same domain to PocketBase's private port. PM2 keeps that process running. The supplied config files are `ecosystem.config.cjs` and `deploy/nginx/sonification-v2.conf`.
+
+Build the static site on your development computer:
 
 ```powershell
+npm ci
 npm run build:backend
 ```
 
-Keep `pb_data/` on persistent storage and outside Git. Back up the PocketBase data from its admin UI. Keep `pb_migrations/` and `pb_hooks/` with the deployment. The first run requires creating a PocketBase superuser through its setup page; this is an administrative account, separate from app user registration.
+Copy these items to the same directory on the VPS (for example `/opt/sonification-v2/`): the Linux PocketBase executable named `pocketbase`, `ecosystem.config.cjs`, and the `pb_public/`, `pb_hooks/`, and `pb_migrations/` directories. Do not upload local `pb_data/`; the VPS creates and owns its own database. Install PocketBase 0.28.1 for the VPS architecture from [PocketBase releases](https://github.com/pocketbase/pocketbase/releases), and make it executable with `chmod +x pocketbase`.
 
-Open the HTTPS address printed by Vite. For a phone, use the computer's LAN address on the same network and port 5173. The development server uses a self-signed certificate; the browser may require accepting it before opening the camera. In the QR dialog, enter the computer's reachable LAN address when prompted.
+Run PM2 from that directory as the Linux user that should own the app and database:
+
+```bash
+pm2 start ecosystem.config.cjs
+pm2 startup
+```
+
+PM2 prints one `sudo` command during `pm2 startup`; run the exact command it prints, then save the process list with `pm2 save`. The ecosystem file binds PocketBase to `127.0.0.1:8090`, so it is reachable by Nginx but not directly from the internet. If you choose a different port, update both `ecosystem.config.cjs` and the Nginx `proxy_pass` port.
+
+The supplied Nginx file is a complete virtual host for a dedicated domain or subdomain. Replace `example.com` with that host and set the certificate paths to your existing TLS certificate. If that hostname already has an Nginx virtual host, copy the `location /` block into its HTTPS server block instead of enabling a duplicate. For a dedicated host, copy the file to `/etc/nginx/sites-available/sonification-v2.conf`, enable it, then validate and reload Nginx:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/sonification-v2.conf /etc/nginx/sites-enabled/sonification-v2.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Make sure DNS points to the VPS and that public ports 80 and 443 are open. Visit `https://YOUR_DOMAIN/`; on first start, inspect `pm2 logs sonification-v2` for PocketBase's one-time admin setup link. App users register through the site, separately from the admin account.
+
+For updates, replace `pb_public/`, `pb_hooks/`, and `pb_migrations/`, then run `pm2 restart sonification-v2`. Keep `pb_data/` on persistent VPS storage and back it up from the PocketBase admin UI. Do not overwrite or remove it during updates. PocketBase's official [Nginx deployment guidance](https://pocketbase.io/docs/going-to-production/) covers the proxy headers used by the supplied config.
 
 Camera access requires a secure context. Production hosting must provide HTTPS. See [MDN getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
 
