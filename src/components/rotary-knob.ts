@@ -127,16 +127,23 @@ export class RotaryKnob {
       this.tickLines.push(tickLine);
     }
 
-    // Rotating needle pointer (zero background circle, pure single vector line)
+    // Rotating needle pointer (zero background circle, pure single vector line anchored at exact center)
     const needleLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     needleLine.setAttribute('x1', '50');
     needleLine.setAttribute('y1', '50');
     needleLine.setAttribute('x2', '50');
-    needleLine.setAttribute('y2', '20');
+    needleLine.setAttribute('y2', '24');
     needleLine.setAttribute('class', 'knob-needle-line');
-    needleLine.style.transformOrigin = '50px 50px';
     svg.appendChild(needleLine);
     this.needleElement = needleLine;
+
+    // Tiny center datum point (0.8px) for authentic instrument pivot
+    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    centerPoint.setAttribute('cx', '50');
+    centerPoint.setAttribute('cy', '50');
+    centerPoint.setAttribute('r', '1.2');
+    centerPoint.setAttribute('class', 'knob-pivot-dot');
+    svg.appendChild(centerPoint);
 
     assembly.appendChild(svg);
     container.appendChild(assembly);
@@ -166,8 +173,18 @@ export class RotaryKnob {
   }
 
   private updateVisuals(): void {
-    const angle = this.getAngle();
-    this.needleElement.setAttribute('transform', `rotate(${angle} 50 50)`);
+    // Exact mathematical angle in radians (-90 deg offset because 0 deg points up in dials)
+    const angleDeg = this.getAngle();
+    const rad = (angleDeg - 90) * (Math.PI / 180);
+    const needleLength = 26;
+    const nx = 50 + needleLength * Math.cos(rad);
+    const ny = 50 + needleLength * Math.sin(rad);
+
+    // Directly set needle line endpoints from center (50, 50) without transform matrix drift
+    this.needleElement.setAttribute('x1', '50');
+    this.needleElement.setAttribute('y1', '50');
+    this.needleElement.setAttribute('x2', nx.toFixed(2));
+    this.needleElement.setAttribute('y2', ny.toFixed(2));
 
     // Illuminate radial ticks up to current normalized value (Reference 1 tachometer)
     const norm = this.getNormalized();

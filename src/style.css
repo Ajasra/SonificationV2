@@ -896,57 +896,72 @@ body.studio-theme {
   gap: 8px;
 }
 
-/* Hardware Buttons (GD&T Avionics / Monospace Telemetry Styling) */
+/* Hardware Buttons (Bracket Telemetry Styling - Borderless with [ ] Glyphs) */
 .btn-hw {
-  background: var(--bg-darkest);
-  border: 1px solid var(--border-mid);
+  background: transparent;
+  border: none;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 4px 8px;
-  border-radius: 1px;
+  padding: 3px 4px;
   cursor: pointer;
   transition: all 0.12s ease;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  border-radius: 1px;
+}
+
+.btn-hw::before {
+  content: "[ ";
+  color: var(--text-muted);
+  transition: color 0.12s ease;
+}
+
+.btn-hw::after {
+  content: " ]";
+  color: var(--text-muted);
+  transition: color 0.12s ease;
 }
 
 .btn-hw:hover {
-  border-color: var(--accent-phosphor);
-  color: var(--accent-phosphor);
   background: var(--bg-elevated);
+  color: var(--accent-phosphor);
+}
+
+.btn-hw:hover::before,
+.btn-hw:hover::after {
+  color: var(--accent-phosphor);
 }
 
 .btn-hw-primary {
-  background: rgba(200, 214, 101, 0.14);
   color: var(--accent-phosphor);
-  border-color: var(--accent-phosphor);
   font-weight: 700;
-  box-shadow: 0 0 6px var(--accent-phosphor-glow);
+}
+
+.btn-hw-primary::before,
+.btn-hw-primary::after {
+  color: rgba(200, 214, 101, 0.6);
 }
 
 .btn-hw-primary:hover {
-  background: var(--accent-phosphor);
-  color: var(--bg-darkest);
-  box-shadow: 0 0 10px var(--accent-phosphor-glow);
+  background: var(--bg-elevated);
+  color: #e4f07a;
+  box-shadow: 0 0 6px var(--accent-phosphor-glow);
 }
 
 .btn-hw-secondary {
-  background: var(--bg-dark);
-  border-color: var(--border-mid);
   color: var(--text-secondary);
 }
 
 .btn-hw-secondary:hover {
-  border-color: var(--accent-phosphor);
-  color: var(--text-primary);
+  color: var(--accent-phosphor);
 }
 
 .btn-hw-icon {
-  padding: 4px 6px;
+  padding: 3px 4px;
 }
 
 .btn-icon-sq {
@@ -960,11 +975,18 @@ body.studio-theme {
   line-height: 1;
   font-weight: 700;
   border-radius: 1px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-darkest);
+}
+
+.btn-icon-sq::before,
+.btn-icon-sq::after {
+  content: none !important;
 }
 
 .btn-sm {
   font-size: 0.62rem;
-  padding: 3px 6px;
+  padding: 2px 4px;
   letter-spacing: 0.07em;
 }
 
@@ -1159,14 +1181,24 @@ body.studio-theme {
 .knob-needle-line {
   stroke: var(--accent-phosphor);
   stroke-width: 1.8;
-  stroke-linecap: square;
+  stroke-linecap: round;
   filter: drop-shadow(0 0 3px var(--accent-phosphor-glow));
+}
+
+.knob-pivot-dot {
+  fill: var(--accent-phosphor);
+  filter: drop-shadow(0 0 2px var(--accent-phosphor-glow));
 }
 
 .knob-assembly:hover .knob-needle-line,
 .knob-active .knob-needle-line {
   stroke: #e4f07a;
   filter: drop-shadow(0 0 5px var(--accent-phosphor));
+}
+
+.knob-assembly:hover .knob-pivot-dot,
+.knob-active .knob-pivot-dot {
+  fill: #e4f07a;
 }
 
 .knob-readout {
@@ -1460,22 +1492,30 @@ body.studio-theme {
 }
 
 .btn-hw-danger {
-  background: rgba(217, 75, 75, 0.12);
-  border-color: rgba(217, 75, 75, 0.45);
+  background: transparent;
+  border: none;
   color: var(--accent-red);
 }
 
+.btn-hw-danger::before,
+.btn-hw-danger::after {
+  color: rgba(217, 75, 75, 0.5);
+}
+
 .btn-hw-danger:hover {
-  background: var(--accent-red);
-  border-color: var(--accent-red);
-  color: var(--bg-darkest);
-  box-shadow: 0 0 8px rgba(217, 75, 75, 0.5);
+  background: var(--bg-elevated);
+  color: #ff6b6b;
+  box-shadow: 0 0 6px rgba(217, 75, 75, 0.4);
+}
+
+.btn-hw-danger:hover::before,
+.btn-hw-danger:hover::after {
+  color: #ff6b6b;
 }
 
 .btn-hw-danger:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-  border-color: var(--border-subtle);
   color: var(--text-muted);
   background: transparent;
 }
