@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Step Slider — detented hardware fader (see src/components/step-slider.ts)
+   ========================================================================== */
+.step-slider {
+  --thumb-w: 12px;
+  --inset: calc(var(--thumb-w) / 2);
+  width: 100%;
+  user-select: none;
+}
+
+.step-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.step-slider-readout {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent-phosphor);
+}
+
+.step-slider-hint {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.step-slider-track {
+  position: relative;
+  height: 24px;
+}
+
+.step-slider-rail {
+  position: absolute;
+  left: var(--inset);
+  right: var(--inset);
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    to right,
+    var(--accent-phosphor) calc(var(--fill) * 1%),
+    var(--border-mid) calc(var(--fill) * 1%)
+  );
+  box-shadow: 0 0 6px var(--accent-phosphor-glow);
+}
+
+.step-slider-tick {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--inset) + (100% - var(--thumb-w)) * var(--pos) / 100);
+  width: 1px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  background: var(--border-bright);
+  pointer-events: none;
+  transition: background 0.12s ease;
+}
+
+.step-slider-tick.is-passed {
+  background: var(--accent-copper);
+}
+
+/* Native input sits on top for interaction; only the thumb is visible. */
+.step-slider-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  touch-action: pan-y;
+}
+
+.step-slider-input::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 100%;
+}
+.step-slider-input::-moz-range-track {
+  background: transparent;
+  height: 100%;
+}
+
+.step-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--thumb-w);
+  height: 18px;
+  margin-top: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-phosphor);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 2px var(--bg-darkest), 0 0 6px var(--accent-phosphor-glow);
+  transition: background 0.12s ease;
+}
+.step-slider-input::-moz-range-thumb {
+  width: calc(var(--thumb-w) - 2px);
+  height: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-phosphor);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 2px var(--bg-darkest), 0 0 6px var(--accent-phosphor-glow);
+}
+
+.step-slider-input:hover::-webkit-slider-thumb,
+.step-slider-input:focus-visible::-webkit-slider-thumb {
+  background: var(--accent-phosphor);
+}
+.step-slider-input:hover::-moz-range-thumb,
+.step-slider-input:focus-visible::-moz-range-thumb {
+  background: var(--accent-phosphor);
+}
+
+.step-slider-labels {
+  position: relative;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.step-slider-label {
+  position: absolute;
+  top: 0;
+  left: calc(var(--inset) + (100% - var(--thumb-w)) * var(--pos) / 100);
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease;
+}
+
+.step-slider-label:hover,
+.step-slider-label.is-active {
+  color: var(--accent-phosphor);
+}
+
+/* Keep first/last labels inside the card edges */
+.step-slider-label:first-child { transform: translateX(-30%); }
+.step-slider-label:last-child { transform: translateX(-70%); }

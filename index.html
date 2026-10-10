@@ -108,12 +108,7 @@
               </div>
               <div class="hw-field" style="margin-top: 8px;">
                 <label class="hw-label">PREVIEW RESOLUTION</label>
-                <select id="select-resolution" class="select-hw select-block" title="Live Preview Resolution">
-                  <option value="360p">360p (Fast)</option>
-                  <option value="480p" selected>480p (Balanced)</option>
-                  <option value="720p">720p (HD)</option>
-                  <option value="native">Native (Full RAW)</option>
-                </select>
+                <div id="slider-resolution-mount"></div>
               </div>
             </div>
           </div>
@@ -147,7 +142,8 @@
           </div>
           <div class="card-collapse-body">
             <div class="preset-selector-row">
-              <div class="preset-display-panel" id="preset-display-trigger" role="button" tabindex="0" title="Click to browse presets in Preset Matrix">
+              <div class="preset-display-panel" id="preset-display-trigger" role="button" tabindex="0"
+                title="Click to browse presets in Preset Matrix">
                 <div class="preset-display-top">
                   <span class="preset-badge" id="preset-active-badge">FACTORY STUDY</span>
                   <span class="preset-open-hint">BROWSE MATRIX ⊞</span>
@@ -186,7 +182,8 @@
               <button id="btn-random-params" class="btn-hw btn-sm" title="Randomize module parameters (shortcut: c)">
                 RND Params
               </button>
-              <button id="btn-random-stream" class="btn-hw btn-sm" title="Randomize scan mode & color space (shortcut: r)">
+              <button id="btn-random-stream" class="btn-hw btn-sm"
+                title="Randomize scan mode & color space (shortcut: r)">
                 RND Topology
               </button>
               <button id="btn-random-filters" class="btn-hw btn-sm" title="Randomize filter chain (shortcut: f)">
@@ -205,8 +202,10 @@
           <div class="card-collapse-body">
             <div class="generator-controls">
               <div class="hw-field">
-                <label class="hw-label" title="How image color channels are mapped to frequency and tone">COLOR SPACE</label>
-                <select id="select-colorspace" class="select-hw select-block" title="Color space used for audio conversion">
+                <label class="hw-label" title="How image color channels are mapped to frequency and tone">COLOR
+                  SPACE</label>
+                <select id="select-colorspace" class="select-hw select-block"
+                  title="Color space used for audio conversion">
                   <option value="RGB">RGB (Linear Byte Map)</option>
                   <option value="LAB">LAB (Perceptual Opponent)</option>
                   <option value="LUV">LUV (Uniform Chromaticity)</option>
@@ -220,7 +219,8 @@
 
               <div class="hw-field-row">
                 <div class="hw-field">
-                  <label class="hw-label" title="Scanline layout: Planar produces tonal sweeps; Interleaved produces dense micro-noise">TOPOLOGY</label>
+                  <label class="hw-label"
+                    title="Scanline layout: Planar produces tonal sweeps; Interleaved produces dense micro-noise">TOPOLOGY</label>
                   <select id="select-rawtype" class="select-hw" title="Pixel byte readout layout">
                     <option value="PLANAR">Planar (Color Sweeps)</option>
                     <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
@@ -228,7 +228,8 @@
                 </div>
 
                 <div class="hw-field">
-                  <label class="hw-label" title="Audio quantization resolution: 8-bit lofi to 24-bit studio depth">BIT DEPTH</label>
+                  <label class="hw-label" title="Audio quantization resolution: 8-bit lofi to 24-bit studio depth">BIT
+                    DEPTH</label>
                   <select id="select-bitdepth" class="select-hw" title="Quantization bit depth">
                     <option value="8">8-bit</option>
                     <option value="16">16-bit</option>
@@ -239,7 +240,8 @@
 
               <div class="hw-field-row">
                 <div class="hw-field">
-                  <label class="hw-label" title="Compression curve used to shape dynamic range and harmonic distortion">COMPANDING LAW</label>
+                  <label class="hw-label"
+                    title="Compression curve used to shape dynamic range and harmonic distortion">COMPANDING LAW</label>
                   <select id="select-law" class="select-hw" title="Dynamic companding algorithm">
                     <option value="A_LAW">A-Law (Europe G.711)</option>
                     <option value="U_LAW">μ-Law (USA G.711)</option>
@@ -248,7 +250,8 @@
                 </div>
 
                 <div class="hw-field toggle-field">
-                  <label class="hw-label" title="Evenly distribute contrast across the frame to boost sonic brightness">HISTOGRAM</label>
+                  <label class="hw-label"
+                    title="Evenly distribute contrast across the frame to boost sonic brightness">HISTOGRAM</label>
                   <label class="hw-toggle-switch" title="Auto-equalize frame contrast before sonification">
                     <input type="checkbox" id="check-equalize" checked />
                     <span class="toggle-slider"></span>
@@ -340,167 +343,167 @@
               <span>Drop Image or Video Here</span>
             </div>
 
-          <!-- Offline Frame Render Progress HUD -->
-          <div id="render-progress-overlay" class="render-progress-overlay hidden">
-            <div class="render-progress-card">
-              <div class="render-progress-header">
-                <span class="render-progress-title">OFFLINE FRAME RENDERING</span>
-                <span id="render-progress-counter" class="render-progress-meta">0 / 0 (0%)</span>
-              </div>
-              <div class="render-progress-bar-bg">
-                <div id="render-progress-bar-fill" class="render-progress-bar-fill" style="width: 0%;"></div>
-              </div>
-              <div class="render-progress-footer">
-                <span id="render-progress-fps" class="render-progress-status">COMPACTING TO 30 FPS • ZERO DROPPED
-                  FRAMES</span>
-                <button id="btn-cancel-render" class="btn-hw btn-sm">CANCEL</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
-          <div id="mobile-camera-hud" class="mobile-camera-hud">
-            <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
-            <div class="mobile-top-bar">
-              <button id="btn-mobile-burger" class="btn-mobile-icon" title="Switch Presets" aria-label="Menu">
-                <span class="burger-bar"></span>
-                <span class="burger-bar"></span>
-                <span class="burger-bar"></span>
-              </button>
-
-              <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
-                <span class="pill-dot"></span>
-                <span id="mobile-preset-name">Acid 303 Decay</span>
-                <span class="pill-arrow">▾</span>
-              </button>
-
-              <div class="mobile-top-right">
-                <!-- Mobile HUD Toggle Button -->
-                <button id="btn-mobile-hud" class="btn-mobile-cam-badge" title="Toggle Reticle HUD">
-                  <span class="hud-badge-dot"></span>
-                  <span id="mobile-hud-badge-text">HUD</span>
-                </button>
-
-                <!-- Live Camera Switch Button -->
-                <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
-                  <span class="cam-badge-dot"></span>
-                  <span id="mobile-cam-badge-text">LIVE CAM</span>
-                </button>
-
-                <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
-                  <span class="rec-blink-dot"></span>
-                  <span id="mobile-rec-timer">00:00</span>
+            <!-- Offline Frame Render Progress HUD -->
+            <div id="render-progress-overlay" class="render-progress-overlay hidden">
+              <div class="render-progress-card">
+                <div class="render-progress-header">
+                  <span class="render-progress-title">OFFLINE FRAME RENDERING</span>
+                  <span id="render-progress-counter" class="render-progress-meta">0 / 0 (0%)</span>
                 </div>
-                <button id="btn-mobile-fullscreen" class="btn-mobile-icon" title="Toggle Fullscreen">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path
-                      d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                <div class="render-progress-bar-bg">
+                  <div id="render-progress-bar-fill" class="render-progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="render-progress-footer">
+                  <span id="render-progress-fps" class="render-progress-status">COMPACTING TO 30 FPS • ZERO DROPPED
+                    FRAMES</span>
+                  <button id="btn-cancel-render" class="btn-hw btn-sm">CANCEL</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
+            <div id="mobile-camera-hud" class="mobile-camera-hud">
+              <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
+              <div class="mobile-top-bar">
+                <button id="btn-mobile-burger" class="btn-mobile-icon" title="Switch Presets" aria-label="Menu">
+                  <span class="burger-bar"></span>
+                  <span class="burger-bar"></span>
+                  <span class="burger-bar"></span>
+                </button>
+
+                <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
+                  <span class="pill-dot"></span>
+                  <span id="mobile-preset-name">Acid 303 Decay</span>
+                  <span class="pill-arrow">▾</span>
+                </button>
+
+                <div class="mobile-top-right">
+                  <!-- Mobile HUD Toggle Button -->
+                  <button id="btn-mobile-hud" class="btn-mobile-cam-badge" title="Toggle Reticle HUD">
+                    <span class="hud-badge-dot"></span>
+                    <span id="mobile-hud-badge-text">HUD</span>
+                  </button>
+
+                  <!-- Live Camera Switch Button -->
+                  <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
+                    <span class="cam-badge-dot"></span>
+                    <span id="mobile-cam-badge-text">LIVE CAM</span>
+                  </button>
+
+                  <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
+                    <span class="rec-blink-dot"></span>
+                    <span id="mobile-rec-timer">00:00</span>
+                  </div>
+                  <button id="btn-mobile-fullscreen" class="btn-mobile-icon" title="Toggle Fullscreen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
+              <div id="mobile-start-overlay" class="mobile-start-overlay">
+                <div class="mobile-start-card">
+                  <div class="start-tag">TRANSDUCER SENSOR</div>
+                  <div class="start-title">LIVE CAMERA FEED</div>
+                  <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
+                  <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary"
+                    style="margin-top: 14px; width: 100%;">
+                    ENGAGE CAMERA ↗
+                  </button>
+                </div>
+              </div>
+
+              <!-- Shutter Flash Feedback Layer -->
+              <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
+
+              <!-- Bottom Camera Action Bar: Flip, Picture Shutter, Record Video, Audio Mute -->
+              <div class="mobile-bottom-bar">
+                <!-- Flip Camera Button -->
+                <button id="btn-mobile-flip" class="btn-mobile-action" title="Flip Camera">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3" />
+                    <path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3" />
                   </svg>
+                  <span class="mobile-action-label">FLIP</span>
+                </button>
+
+                <!-- Make Picture (Shutter) Button -->
+                <button id="btn-mobile-shutter" class="btn-shutter-ring" title="Take Photo Snapshot">
+                  <span class="shutter-inner"></span>
+                </button>
+
+                <!-- Record Video (REC) Button -->
+                <button id="btn-mobile-rec" class="btn-rec-ring" title="Record Video">
+                  <span class="rec-inner"></span>
+                </button>
+
+                <!-- Audio Output Toggle Button -->
+                <button id="btn-mobile-audio" class="btn-mobile-action" title="Toggle Audio Output">
+                  <svg id="mobile-audio-icon-on" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                  <svg id="mobile-audio-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </svg>
+                  <span id="mobile-audio-label" class="mobile-action-label">MUTED</span>
                 </button>
               </div>
-            </div>
-
-            <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
-            <div id="mobile-start-overlay" class="mobile-start-overlay">
-              <div class="mobile-start-card">
-                <div class="start-tag">TRANSDUCER SENSOR</div>
-                <div class="start-title">LIVE CAMERA FEED</div>
-                <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
-                <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary"
-                  style="margin-top: 14px; width: 100%;">
-                  ENGAGE CAMERA ↗
-                </button>
-              </div>
-            </div>
-
-            <!-- Shutter Flash Feedback Layer -->
-            <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
-
-            <!-- Bottom Camera Action Bar: Flip, Picture Shutter, Record Video, Audio Mute -->
-            <div class="mobile-bottom-bar">
-              <!-- Flip Camera Button -->
-              <button id="btn-mobile-flip" class="btn-mobile-action" title="Flip Camera">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3" />
-                  <path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3" />
-                </svg>
-                <span class="mobile-action-label">FLIP</span>
-              </button>
-
-              <!-- Make Picture (Shutter) Button -->
-              <button id="btn-mobile-shutter" class="btn-shutter-ring" title="Take Photo Snapshot">
-                <span class="shutter-inner"></span>
-              </button>
-
-              <!-- Record Video (REC) Button -->
-              <button id="btn-mobile-rec" class="btn-rec-ring" title="Record Video">
-                <span class="rec-inner"></span>
-              </button>
-
-              <!-- Audio Output Toggle Button -->
-              <button id="btn-mobile-audio" class="btn-mobile-action" title="Toggle Audio Output">
-                <svg id="mobile-audio-icon-on" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="1.8">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </svg>
-                <svg id="mobile-audio-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="1.8">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                  <line x1="23" y1="9" x2="17" y2="15" />
-                  <line x1="17" y1="9" x2="23" y2="15" />
-                </svg>
-                <span id="mobile-audio-label" class="mobile-action-label">MUTED</span>
-              </button>
             </div>
           </div>
+
+          <!-- Right Telemetry Bay: CRT Reticle, Oscilloscope & GD&T Matrix (Ref 1, 2, 4, 5) -->
+          <aside id="telemetry-hud-bay" class="telemetry-hud-bay">
+            <div class="hud-bay-header">
+              <span class="hud-bay-tag">[ CRT SCOPE REV 2.4 ]</span>
+              <span id="hud-bay-status" class="hud-bay-status">SYS.OPL LIVE</span>
+            </div>
+
+            <div class="hud-bay-canvas-wrap">
+              <canvas id="hud-canvas" class="hud-canvas"></canvas>
+            </div>
+
+            <!-- Monospace Telemetry Matrix (Ref 2 & Ref 4) -->
+            <div class="hud-matrix-grid">
+              <div class="matrix-cell">
+                <span class="matrix-label">SAMPLE BUS</span>
+                <span id="hud-val-bus" class="matrix-val">44.1 kHz</span>
+              </div>
+              <div class="matrix-cell">
+                <span class="matrix-label">PEAK LEVEL</span>
+                <span id="hud-val-peak" class="matrix-val">-3.2 dB</span>
+              </div>
+              <div class="matrix-cell">
+                <span class="matrix-label">SIGNAL RMS</span>
+                <span id="hud-val-rms" class="matrix-val">0.38</span>
+              </div>
+              <div class="matrix-cell">
+                <span class="matrix-label">SCAN SEED</span>
+                <span id="hud-val-seed" class="matrix-val">4821</span>
+              </div>
+            </div>
+
+            <!-- Discrete Segmented LED VU Meters (Ref 2 & Ref 4) -->
+            <div class="hud-meter-strip">
+              <div class="meter-row">
+                <span class="meter-label">VU L</span>
+                <div id="meter-segments-l" class="segmented-bar"></div>
+              </div>
+              <div class="meter-row">
+                <span class="meter-label">VU R</span>
+                <div id="meter-segments-r" class="segmented-bar"></div>
+              </div>
+            </div>
+          </aside>
         </div>
-
-        <!-- Right Telemetry Bay: CRT Reticle, Oscilloscope & GD&T Matrix (Ref 1, 2, 4, 5) -->
-        <aside id="telemetry-hud-bay" class="telemetry-hud-bay">
-          <div class="hud-bay-header">
-            <span class="hud-bay-tag">[ CRT SCOPE REV 2.4 ]</span>
-            <span id="hud-bay-status" class="hud-bay-status">SYS.OPL LIVE</span>
-          </div>
-
-          <div class="hud-bay-canvas-wrap">
-            <canvas id="hud-canvas" class="hud-canvas"></canvas>
-          </div>
-
-          <!-- Monospace Telemetry Matrix (Ref 2 & Ref 4) -->
-          <div class="hud-matrix-grid">
-            <div class="matrix-cell">
-              <span class="matrix-label">SAMPLE BUS</span>
-              <span id="hud-val-bus" class="matrix-val">44.1 kHz</span>
-            </div>
-            <div class="matrix-cell">
-              <span class="matrix-label">PEAK LEVEL</span>
-              <span id="hud-val-peak" class="matrix-val">-3.2 dB</span>
-            </div>
-            <div class="matrix-cell">
-              <span class="matrix-label">SIGNAL RMS</span>
-              <span id="hud-val-rms" class="matrix-val">0.38</span>
-            </div>
-            <div class="matrix-cell">
-              <span class="matrix-label">SCAN SEED</span>
-              <span id="hud-val-seed" class="matrix-val">4821</span>
-            </div>
-          </div>
-
-          <!-- Discrete Segmented LED VU Meters (Ref 2 & Ref 4) -->
-          <div class="hud-meter-strip">
-            <div class="meter-row">
-              <span class="meter-label">VU L</span>
-              <div id="meter-segments-l" class="segmented-bar"></div>
-            </div>
-            <div class="meter-row">
-              <span class="meter-label">VU R</span>
-              <div id="meter-segments-r" class="segmented-bar"></div>
-            </div>
-          </div>
-        </aside>
-      </div>
       </section>
     </main>
 
@@ -536,12 +539,7 @@
 
         <div class="drawer-section">
           <span class="drawer-section-title">CAMERA RESOLUTION</span>
-          <select id="mobile-select-resolution" class="select-hw select-block">
-            <option value="360p">360p (Fastest)</option>
-            <option value="480p" selected>480p (Balanced)</option>
-            <option value="720p">720p (HD)</option>
-            <option value="native">Native (Full Sensor)</option>
-          </select>
+          <div id="mobile-slider-resolution-mount"></div>
         </div>
 
         <div class="drawer-section">
@@ -573,6 +571,9 @@
       <div class="footer-right">
         <span>© <a href="https://vasily.onl" target="_blank" rel="noopener noreferrer"
             class="footer-author-link">vasily.onl</a></span>
+        <span class="footer-sep">•</span>
+        <a href="https://instagram.com/vasily.onl" target="_blank" rel="noopener noreferrer"
+          class="footer-author-link">IG @vasily.onl</a>
       </div>
     </footer>
 
@@ -722,7 +723,8 @@
             <h4>Concept & Architecture</h4>
             <p>
               <strong>Sonification V2</strong> turns pictures and live camera feeds into sound.
-              The app reads pixel data directly from your screen or webcam, feeds it into an audio synthesizer rack as raw signal,
+              The app reads pixel data directly from your screen or webcam, feeds it into an audio synthesizer rack as
+              raw signal,
               and paints the sound back onto the image in real time.
             </p>
           </div>
@@ -740,15 +742,18 @@
           <div class="about-grid">
             <div class="about-card">
               <h5>Live Optical Feed</h5>
-              <p>Stream smartphone or desktop optical sensors into continuous transduction loops. Use <em>Send to phone</em> to transfer session parameters via QR code.</p>
+              <p>Stream smartphone or desktop optical sensors into continuous transduction loops. Use <em>Send to
+                  phone</em> to transfer session parameters via QR code.</p>
             </div>
             <div class="about-card">
               <h5>Modular DSP Rack</h5>
-              <p>Chain modules including diode ladders, state-variable filters, Karplus-Strong physical models, Buchla-style wavefolders, and delay lines.</p>
+              <p>Chain modules including diode ladders, state-variable filters, Karplus-Strong physical models,
+                Buchla-style wavefolders, and delay lines.</p>
             </div>
             <div class="about-card">
               <h5>Patch Sharing</h5>
-              <p>Persist parameter configurations, save study revisions, inspect community patches, and export raw recordings.</p>
+              <p>Persist parameter configurations, save study revisions, inspect community patches, and export raw
+                recordings.</p>
             </div>
             <div class="about-card">
               <h5>Key Bindings</h5>
@@ -768,6 +773,8 @@
                 Betin</a></span>
             <span>•</span>
             <a href="https://vasily.onl" target="_blank" rel="noopener noreferrer">vasily.onl</a>
+            <span>•</span>
+            <a href="https://instagram.com/vasily_onl" target="_blank" rel="noopener noreferrer">@vasily_onl</a>
           </div>
         </div>
       </div>

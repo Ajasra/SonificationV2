@@ -1,0 +1,269 @@
+/* ==========================================================================
+   SONIFICATION V2 — HARDWARE AUDIO RACK & PCB AESTHETIC STYLING
+   Inspired by Sound Devices, Eurorack modular synthesizers, and laboratory minimalism
+   ========================================================================== */
+
+:root {
+  /* Color Palette */
+  --bg-darkest: #0c0f0c;
+  --bg-dark: #121612;
+  --bg-surface: #161b16;
+  --bg-elevated: #1d231d;
+  --bg-module: #151a15;
+
+  /* Borders & PCB Lines */
+  --border-subtle: #222921;
+  --border-mid: #2e382d;
+  --border-bright: #435241;
+  --border-copper: #8f7547;
+
+  /* Typography */
+  --text-primary: #ece8dc;       /* Bone White */
+  --text-secondary: #9ea796;     /* Muted Sage */
+  --text-muted: #606a5b;         /* Technical Slate */
+
+  /* Accents */
+  --accent-phosphor: #c8d665;    /* Warm Phosphor Chartreuse */
+  --accent-phosphor-glow: rgba(200, 214, 101, 0.25);
+  --accent-amber: #d4a373;
+  --accent-copper: #c59b58;
+  --accent-red: #d94b4b;
+
+  /* Fonts */
+  --font-serif: "Cormorant Garamond", "Newsreader", Garamond, Georgia, serif;
+  --font-mono: "JetBrains Mono", "Space Mono", "SF Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.studio-theme {
+  background-color: var(--bg-darkest);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.studio-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   00. Top Studio Ribbon
+   ========================================================================== */
+.studio-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-monogram {
+  font-weight: 700;
+  color: var(--accent-phosphor);
+  letter-spacing: 0.15em;
+}
+
+.brand-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.brand-sub {
+  color: var(--text-muted);
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.status-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor);
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-bracket {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  transition: all 0.12s ease;
+  cursor: pointer;
+  border-radius: 1px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-bracket::before { content: "[ "; color: var(--text-muted); transition: color 0.12s ease; }
+.btn-bracket::after  { content: " ]"; color: var(--text-muted); transition: color 0.12s ease; }
+
+.btn-bracket:hover {
+  background: var(--bg-elevated);
+  color: var(--accent-phosphor);
+}
+.btn-bracket:hover::before,
+.btn-bracket:hover::after {
+  color: var(--accent-phosphor);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-phosphor);
+  color: var(--accent-phosphor);
+}
+
+/* ==========================================================================
+   01. Hero Editorial & Telemetry Bar
+   ========================================================================== */
+.studio-hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px 10px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
+}
+
+.hero-left {
+  max-width: 620px;
+}
+
+.hero-tag {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  /* Optical Chromatic Aberration & CRT Phosphor Glow */
+  text-shadow: 
+    -1px 0 rgba(70, 190, 255, 0.40),
+    1px 0 rgba(230, 130, 60, 0.40),
+    0 0 6px var(--accent-phosphor-glow);
+}
+
+.hero-title em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent-phosphor);
+  text-shadow: 
+    -1px 0 rgba(70, 190, 255, 0.50),
+    1px 0 rgba(230, 130, 60, 0.50),
+    0 0 8px var(--accent-phosphor-glow);
+}
+
+.hero-desc {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.hero-right {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+
+.hero-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.hero-meta-clickable {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.hero-meta-clickable:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-mid);
+}
+
+.hero-meta-clickable:hover .meta-val {
+  color: var(--accent-phosphor);
+}
+
+.hero-meta-clickable:active {
+  transform: translateY(1px);
+}
+
+.meta-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.meta-val {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.meta-val-accent {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--accent-phosphor);
+}

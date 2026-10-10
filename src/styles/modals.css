@@ -1,0 +1,453 @@
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 10, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 1px;
+  padding: 24px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95);
+}
+
+.modal-wide {
+  max-width: 1060px;
+  width: 94vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  text-shadow: 
+    -1px 0 rgba(70, 190, 255, 0.25),
+    1px 0 rgba(230, 130, 60, 0.25);
+}
+
+.modal-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.btn-close {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-close:hover {
+  color: var(--accent-phosphor);
+  border-color: var(--accent-phosphor);
+}
+
+.modal-desc {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+/* Global Hardware Inputs (Dark Void Chassis) */
+.input-hw {
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 6px 10px;
+  border-radius: 1px;
+  outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.input-hw:focus {
+  border-color: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor-glow);
+}
+
+.input-hw::placeholder {
+  color: var(--text-muted);
+}
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 1px;
+  border: 1px solid var(--border-mid);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.qr-container img {
+  display: block;
+  width: 256px;
+  height: 256px;
+  image-rendering: pixelated;
+  background: #ffffff;
+}
+
+.qr-url-display {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-phosphor);
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  padding: 8px 10px;
+  border-radius: 1px;
+  word-break: break-all;
+  margin-bottom: 14px;
+  max-height: 54px;
+  overflow-y: auto;
+  user-select: all;
+  scrollbar-width: thin;
+  scrollbar-color: #253323 #070907;
+}
+
+.qr-url-display::-webkit-scrollbar {
+  width: 4px;
+}
+.qr-url-display::-webkit-scrollbar-track {
+  background: #070907;
+}
+.qr-url-display::-webkit-scrollbar-thumb {
+  background: #253323;
+  border-radius: 1px;
+}
+
+.qr-lan-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed var(--border-mid);
+  border-radius: 1px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.qr-lan-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.qr-lan-input-row .input-hw {
+  flex: 1;
+  font-size: 0.8rem;
+}
+
+.qr-lan-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Category Color Palette (Modular Synth PCB Accent Color Coding - Curated Muted Silkscreen Spectrum) */
+.cat-dynamics   { color: #d4a373 !important; border-color: rgba(212, 163, 115, 0.45) !important; background: rgba(212, 163, 115, 0.10) !important; }
+.cat-eq         { color: #9ea796 !important; border-color: rgba(158, 167, 150, 0.45) !important; background: rgba(158, 167, 150, 0.10) !important; }
+.cat-delay      { color: #8fa382 !important; border-color: rgba(143, 163, 130, 0.45) !important; background: rgba(143, 163, 130, 0.10) !important; }
+.cat-modulation { color: #bca0dc !important; border-color: rgba(188, 160, 220, 0.45) !important; background: rgba(188, 160, 220, 0.10) !important; }
+.cat-synth      { color: #d97585 !important; border-color: rgba(217, 117, 133, 0.45) !important; background: rgba(217, 117, 133, 0.10) !important; }
+.cat-distortion { color: #d94b4b !important; border-color: rgba(217, 75, 75, 0.45) !important; background: rgba(217, 75, 75, 0.10) !important; }
+.cat-lofi       { color: #c8d665 !important; border-color: rgba(200, 214, 101, 0.45) !important; background: rgba(200, 214, 101, 0.10) !important; }
+
+/* Filter Library Toolbar */
+.filter-library-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.filter-search-input {
+  width: 100%;
+  padding: 8px 30px 8px 10px;
+  font-size: 0.74rem;
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.filter-search-input:focus {
+  border-color: var(--accent-phosphor);
+}
+
+.btn-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.btn-search-clear:hover {
+  color: var(--text-primary);
+}
+
+/* Category Filter Tabs */
+.filter-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filter-cat-btn {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.12s ease;
+}
+
+.filter-cat-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-bright);
+}
+
+.filter-cat-btn.active {
+  background: var(--accent-phosphor);
+  color: var(--bg-darkest);
+  border-color: var(--accent-phosphor);
+  font-weight: 700;
+}
+
+/* Grouped Library List (3-4 Columns, Spacious, Beautiful Darkroom PCB Aesthetics) */
+.filter-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+  gap: 8px;
+  max-height: 58vh;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
+}
+
+/* Custom Themed Darkroom Scrollbar for Filter Library */
+.filter-library-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-library-grid::-webkit-scrollbar-track {
+  background: #070907;
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 2px;
+}
+
+.filter-library-grid::-webkit-scrollbar-thumb {
+  background: #253323;
+  border-radius: 2px;
+  border: 1px solid #131b12;
+}
+
+.filter-library-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor);
+}
+
+.filter-library-grid {
+  scrollbar-width: thin;
+  scrollbar-color: #253323 #070907;
+}
+
+.library-group-section {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.library-group-section:first-child {
+  margin-top: 0;
+}
+
+.library-group-title {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.library-group-count {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+}
+
+.library-item {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  padding: 8px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.library-item:hover {
+  border-color: var(--accent-phosphor);
+  background: var(--bg-elevated);
+}
+
+.library-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.library-item-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.library-item-badge {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+}
+
+.library-item-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.library-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.library-item-meta {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.btn-library-add {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.library-item:hover .btn-library-add {
+  background: var(--accent-phosphor);
+  color: var(--bg-darkest);
+  border-color: var(--accent-phosphor);
+}
+
+.library-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app-notice {
+  position: fixed;
+  z-index: 1200;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(680px, calc(100vw - 28px));
+  padding: 10px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-phosphor);
+  color: var(--text-primary);
+  box-shadow: 0 8px 30px #0009;
+}
+
+.app-notice.error { border-color: var(--accent-red); }

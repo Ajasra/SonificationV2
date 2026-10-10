@@ -168,6 +168,10 @@ test('modified factory studies retain parameters when shared', () => {
   const modified = JSON.parse(JSON.stringify(original));
   modified.blendAmount = 0.12345;
   const hash = manager.encodePresetToHash(modified);
-  assert.ok(hash.startsWith('#p='));
+  assert.ok(hash.startsWith('#z='));
   assert.equal(manager.decodePresetFromHash(hash).blendAmount, 0.12345);
+
+  // Backward compatibility with legacy #p= hashes
+  const legacyHash = `#p=${btoa(encodeURIComponent(JSON.stringify(modified)))}`;
+  assert.equal(manager.decodePresetFromHash(legacyHash).blendAmount, 0.12345);
 });

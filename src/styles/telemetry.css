@@ -1,0 +1,217 @@
+/* Viewport Workspace Split (Main Video Monitor + Side CRT Telemetry Bay) */
+.viewport-workspace-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000000;
+}
+
+/* Canvas Viewport Frame (Perfect Fit - Never Overflows or Crops) */
+.canvas-frame {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+  height: 100%;
+  max-height: calc(100vh - 220px);
+  min-height: 380px;
+  padding: 12px;
+}
+
+.viewport-workspace-split .canvas-frame {
+  border-right: 1px solid var(--border-subtle);
+}
+
+#main-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.95);
+}
+
+/* Right Side Telemetry & CRT Bay (Desktop) */
+.telemetry-hud-bay {
+  width: 380px;
+  min-width: 320px;
+  max-width: 440px;
+  background: #060906;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  border-left: 1px solid var(--border-subtle);
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+.telemetry-hud-bay.is-hidden {
+  display: none !important;
+}
+
+.hud-bay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-darkest);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hud-bay-tag {
+  color: var(--accent-copper);
+  font-weight: 600;
+}
+
+.hud-bay-status {
+  color: var(--accent-phosphor);
+  font-weight: 600;
+}
+
+.hud-bay-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+  background: #020402;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hud-bay-canvas-wrap #hud-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* Monospace Telemetry Matrix (Ref 2 & Ref 4) */
+.hud-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.matrix-cell {
+  background: #0b0f0b;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.matrix-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.matrix-val {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Discrete Segmented LED VU Meters (Ref 2 & Ref 4) */
+.hud-meter-strip {
+  padding: 8px 12px;
+  background: #080c08;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.meter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meter-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  width: 28px;
+}
+
+.segmented-bar {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  height: 8px;
+}
+
+.segmented-bar .seg {
+  flex: 1;
+  background: #192219;
+  border-radius: 0.5px;
+  transition: background 0.05s ease;
+}
+
+.segmented-bar .seg.active-normal {
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 4px var(--accent-phosphor-glow);
+}
+
+.segmented-bar .seg.active-amber {
+  background: var(--accent-amber);
+  box-shadow: 0 0 4px rgba(212, 163, 115, 0.4);
+}
+
+.segmented-bar .seg.active-red {
+  background: var(--accent-red);
+  box-shadow: 0 0 4px rgba(217, 75, 75, 0.5);
+}
+
+/* Corner Reticles */
+.reticle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: var(--text-muted);
+  border-style: solid;
+  opacity: 0.6;
+}
+
+.reticle-tl { top: 12px; left: 12px; border-width: 1.5px 0 0 1.5px; }
+.reticle-tr { top: 12px; right: 12px; border-width: 1.5px 1.5px 0 0; }
+.reticle-bl { bottom: 12px; left: 12px; border-width: 0 0 1.5px 1.5px; }
+.reticle-br { bottom: 12px; right: 12px; border-width: 0 1.5px 1.5px 0; }
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(200, 214, 101, 0.1);
+  border: 2px dashed var(--accent-phosphor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-phosphor);
+  font-size: 1.1rem;
+}

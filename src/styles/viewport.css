@@ -1,0 +1,581 @@
+/* Right Panel: Viewport Card (Stable Dimensions - Never Shifts when Rack Collapses/Expands) */
+.viewport-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
+
+.viewport-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-darkest);
+}
+
+.viewport-label-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-meta {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  color: var(--accent-phosphor);
+  font-weight: 600;
+}
+
+.perf-badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  border-left: 1px solid var(--border-mid);
+  padding-left: 12px;
+}
+
+.viewport-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Live Camera-Style Recording Timer */
+.rec-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a080a;
+  border: 1px solid #5a1920;
+  color: #ff8b94;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.rec-blink-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red);
+  animation: blink-rec 0.9s infinite alternate;
+}
+
+@keyframes blink-rec {
+  from { opacity: 1; transform: scale(1.1); }
+  to { opacity: 0.2; transform: scale(0.8); }
+}
+
+/* Compact Hardware SYNC Button */
+.btn-sync-compact {
+  background: #141713;
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.sync-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+/* When SYNC is ON (real-time recording) */
+.btn-sync-compact.active {
+  background: #182215;
+  border-color: #4a6832;
+  color: #c8d665;
+}
+
+.btn-sync-compact.active .sync-led {
+  background: #c8d665;
+  box-shadow: 0 0 6px rgba(200, 214, 101, 0.7);
+}
+
+.btn-sync-compact:hover {
+  border-color: var(--accent-phosphor);
+}
+
+/* When SYNC is OFF (Deterministic Frame-by-Frame render mode) */
+.btn-sync-compact:not(.active) {
+  background: #251a0e;
+  border-color: #8c581e;
+  color: #e6a756;
+}
+
+.btn-sync-compact:not(.active) .sync-led {
+  background: #e6a756;
+  box-shadow: 0 0 6px rgba(230, 167, 86, 0.7);
+}
+
+/* Compact Hardware REC Button */
+.btn-rec-compact {
+  background: #240c10;
+  border: 1px solid #521820;
+  color: #ff8b94;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-rec-compact:hover {
+  border-color: #ff4d61;
+}
+
+.btn-rec-compact.recording {
+  background: #420f16;
+  border-color: #ff3344;
+  box-shadow: 0 0 8px rgba(255, 51, 68, 0.4);
+}
+
+/* Compact Hardware HUD Reticle Button */
+.btn-hud-compact {
+  background: #121812;
+  border: 1px solid #243424;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.hud-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4a5446;
+  transition: all 0.15s ease;
+}
+
+.btn-hud-compact.active {
+  background: #182418;
+  border-color: #557838;
+  color: #c8d665;
+}
+
+.btn-hud-compact.active .hud-led {
+  background: #c8d665;
+  box-shadow: 0 0 6px rgba(200, 214, 101, 0.85);
+}
+
+.btn-hud-compact:hover {
+  border-color: var(--accent-phosphor);
+}
+
+/* Compact Hardware Shutter Button */
+.btn-shutter-compact {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shutter-bezel-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-bright);
+  background: radial-gradient(circle, #252e22 0%, #121611 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  transition: all 0.1s ease;
+}
+
+.btn-shutter-compact:hover .shutter-bezel-sm {
+  border-color: var(--accent-phosphor);
+  transform: scale(1.05);
+}
+
+.btn-shutter-compact:active .shutter-bezel-sm {
+  transform: scale(0.92);
+}
+
+.shutter-core-sm {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.tool-btn {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.tool-btn:hover {
+  color: var(--accent-phosphor);
+  border-color: var(--accent-phosphor);
+}
+
+/* Offline Frame Rendering Progress Overlay */
+.render-progress-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 10, 8, 0.88);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.15s ease;
+}
+
+.render-progress-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  padding: 20px 24px;
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.render-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.render-progress-title {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e6a756;
+}
+
+.render-progress-meta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.render-progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.render-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #b07e38, #f5bc6b);
+  box-shadow: 0 0 8px rgba(245, 188, 107, 0.5);
+  transition: width 0.1s ease;
+}
+
+.render-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.render-progress-status {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+
+/* Viewport Transport / Hardware Toolbar (Sound Devices Field Recorder Style) */
+.viewport-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  gap: 20px;
+}
+
+.toolbar-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hardware Buttons (Bracket Telemetry Styling - Borderless with [ ] Glyphs) */
+.btn-hw {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+}
+
+.btn-hw::before {
+  content: "[ ";
+  color: var(--text-muted);
+  transition: color 0.12s ease;
+}
+
+.btn-hw::after {
+  content: " ]";
+  color: var(--text-muted);
+  transition: color 0.12s ease;
+}
+
+.btn-hw:hover {
+  background: var(--bg-elevated);
+  color: var(--accent-phosphor);
+}
+
+.btn-hw:hover::before,
+.btn-hw:hover::after {
+  color: var(--accent-phosphor);
+}
+
+.btn-hw-primary {
+  color: var(--accent-phosphor);
+  font-weight: 700;
+}
+
+.btn-hw-primary::before,
+.btn-hw-primary::after {
+  color: rgba(200, 214, 101, 0.6);
+}
+
+.btn-hw-primary:hover {
+  background: var(--bg-elevated);
+  color: #e4f07a;
+  box-shadow: 0 0 6px var(--accent-phosphor-glow);
+}
+
+.btn-hw-secondary {
+  color: var(--text-secondary);
+}
+
+.btn-hw-secondary:hover {
+  color: var(--accent-phosphor);
+}
+
+.btn-hw-icon {
+  padding: 3px 4px;
+}
+
+.btn-icon-sq {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  line-height: 1;
+  font-weight: 700;
+  border-radius: 1px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-darkest);
+}
+
+.btn-icon-sq::before,
+.btn-icon-sq::after {
+  content: none !important;
+}
+
+.btn-sm {
+  font-size: 0.62rem;
+  padding: 2px 4px;
+  letter-spacing: 0.07em;
+}
+
+.file-label {
+  cursor: pointer;
+}
+
+.select-hw {
+  background: var(--bg-darkest);
+  color: var(--text-primary);
+  border: 1px solid var(--border-mid);
+  padding: 4px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.select-hw:focus,
+.select-hw:hover {
+  border-color: var(--accent-phosphor);
+}
+
+/* Shutter Trigger Button */
+.btn-shutter-hw {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.shutter-bezel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--border-bright);
+  background: radial-gradient(circle, #252e22 0%, #121611 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.08s ease;
+}
+
+.shutter-bezel:active {
+  transform: scale(0.94);
+}
+
+.shutter-core {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-phosphor);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.4);
+}
+
+.shutter-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+/* REC Button */
+.btn-record-hw {
+  background: #2a1114;
+  border: 1px solid #5a1e24;
+  color: #ff8b94;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-red);
+}
+
+.btn-record-hw.recording {
+  animation: pulse-rec 0.9s infinite alternate;
+}
+
+@keyframes pulse-rec {
+  from { background: #4a131a; border-color: #ff3344; box-shadow: 0 0 8px #ff3344; }
+  to { background: #200a0d; border-color: #5a1e24; }
+}
+
+/* Audio Master Controls */
+.btn-audio-hw {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 6px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.btn-audio-hw.active {
+  border-color: var(--accent-phosphor);
+  color: var(--text-primary);
+}
+
+.btn-audio-hw.active .audio-led {
+  background: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor);
+}
+
+.master-knob-slot {
+  display: flex;
+  align-items: center;
+}
