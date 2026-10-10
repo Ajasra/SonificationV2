@@ -103,7 +103,13 @@ export type VideoFilterId =
   | 'ruttetra'
   | 'chromasmear'
   | 'crtbloom'
-  | 'vidicon';
+  | 'vidicon'
+  | 'procamp'
+  | 'feedback'
+  | 'rftuner'
+  | 'cvislicer'
+  | 'scanimate'
+  | 'framedelay';
 
 export interface VideoFilterNodeConfig {
   id: string; // unique instance id

@@ -81,9 +81,6 @@
           <span>BUS A: DIRECT DAC</span>
           <span>GND ⊕</span>
         </div>
-        <button id="btn-rack-return-cam" class="btn-hw btn-hw-primary mobile-only-rack-return" style="display: none; width: 100%; margin-bottom: 8px;">
-          [ ◂ RETURN TO CAMERA VIEW ]
-        </button>
 
         <!-- 00 / INPUT Module -->
         <div class="rack-card collapsible-card is-collapsed" id="card-input">
@@ -461,123 +458,11 @@
               </div>
             </div>
 
-            <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
-            <div id="mobile-camera-hud" class="mobile-camera-hud">
-              <!-- Top Hardware Header Dock: Menu, Active Study Pill, Live Pip & Mode Switcher -->
-              <div class="mobile-header-dock">
-                <div class="mobile-top-bar">
-                  <button id="btn-mobile-burger" class="btn-hw-nav" title="Switch Presets" aria-label="Menu">
-                    <span>≡</span>
-                  </button>
-
-                  <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
-                    <span class="pill-dot"></span>
-                    <span id="mobile-preset-name">Acid 303 Decay</span>
-                    <span class="pill-arrow">▾</span>
-                  </button>
-
-                  <div class="mobile-top-right">
-                    <!-- Live Camera Indicator Badge -->
-                    <div class="mobile-cam-live-pip" title="Live Camera Transduction Active">
-                      <span class="cam-badge-dot"></span>
-                      <span id="mobile-cam-badge-text">LIVE</span>
-                    </div>
-
-                    <!-- Single Mode Trigger Button (Opens CAM / SCOPE / RACK dropdown) -->
-                    <button id="btn-mobile-mode-menu" class="btn-hw-nav btn-mode-menu-trigger" title="Switch View Mode">
-                      <span id="mobile-mode-label">[ CAM ▾ ]</span>
-                    </button>
-
-                    <!-- Legacy & desktop compatibility hooks -->
-                    <button id="btn-mobile-hud" class="hidden" aria-hidden="true"></button>
-                    <button id="btn-mobile-cam-feed" class="hidden" aria-hidden="true"></button>
-                    <button id="btn-mobile-fullscreen" class="btn-hw-nav hidden" title="Toggle Fullscreen" aria-hidden="true"></button>
-
-                    <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
-                      <span class="rec-blink-dot"></span>
-                      <span id="mobile-rec-timer">00:00</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Hardware Mode Switcher Strip: CAM | SCOPE | RACK (Compact Dropdown Menu) -->
-                <div id="mobile-mode-bar" class="mobile-mode-bar">
-                  <button id="btn-mode-cam" class="btn-mode-seg active" data-mode="cam" title="Optical Viewfinder">
-                    <span class="mode-pip"></span>[ CAM ]
-                  </button>
-                  <button id="btn-mode-scope" class="btn-mode-seg" data-mode="scope" title="CRT Oscilloscope & Telemetry">
-                    <span class="mode-pip"></span>[ SCOPE ]
-                  </button>
-                  <button id="btn-mode-rack" class="btn-mode-seg" data-mode="rack" title="Touch DSP Rack">
-                    <span class="mode-pip"></span>[ RACK ]
-                  </button>
-                </div>
-              </div>
-
-              <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
-              <div id="mobile-start-overlay" class="mobile-start-overlay">
-                <div class="mobile-start-card">
-                  <div class="start-tag">TRANSDUCER SENSOR</div>
-                  <div class="start-title">LIVE CAMERA FEED</div>
-                  <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
-                  <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary"
-                    style="margin-top: 14px; width: 100%;">
-                    ENGAGE CAMERA ↗
-                  </button>
-                </div>
-              </div>
-
-              <!-- Shutter Flash Feedback Layer -->
-              <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
-
-              <!-- Bottom Hardware Action Bar: Flip, Picture Shutter, Record Video, Audio Mute (Icons Only) -->
-              <div class="mobile-bottom-bar" id="mobile-bottom-bar">
-                <!-- Flip Camera Button -->
-                <button id="btn-mobile-flip" class="btn-hw-action" title="Flip Camera" aria-label="Flip Camera">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3" />
-                    <path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3" />
-                  </svg>
-                </button>
-
-                <!-- Make Picture (Shutter) Button -->
-                <button id="btn-mobile-shutter" class="btn-hw-action btn-hw-shutter" title="Take Photo Snapshot" aria-label="Take Photo">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </button>
-
-                <!-- Record Video (REC) Button -->
-                <button id="btn-mobile-rec" class="btn-hw-action btn-hw-rec" title="Record Video" aria-label="Record Video">
-                  <span class="rec-led-pip"></span>
-                </button>
-
-                <!-- Audio Output Toggle Button -->
-                <button id="btn-mobile-audio" class="btn-hw-action" title="Toggle Audio Output" aria-label="Toggle Audio">
-                  <svg id="mobile-audio-icon-on" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                  </svg>
-                  <svg id="mobile-audio-icon-off" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                    <line x1="23" y1="9" x2="17" y2="15" />
-                    <line x1="17" y1="9" x2="23" y2="15" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+          </div> <!-- /canvas-frame -->
 
           <!-- Right Telemetry Bay: CRT Reticle, Oscilloscope & GD&T Matrix (Ref 1, 2, 4, 5) -->
           <aside id="telemetry-hud-bay" class="telemetry-hud-bay">
             <div class="hud-bay-header">
-              <button id="btn-scope-return-cam" class="btn-hw btn-hw-primary mobile-only-scope-return" title="Return to Camera View">
-                [ ◂ CAM ]
-              </button>
               <span class="hud-bay-tag">[ CRT SCOPE REV 2.4 ]</span>
               <span id="hud-bay-status" class="hud-bay-status">SYS.OPL LIVE</span>
             </div>
@@ -618,6 +503,116 @@
               </div>
             </div>
           </aside>
+        </div> <!-- /viewport-workspace-split -->
+
+        <!-- Mobile Minimal Camera HUD (Fixed to entire screen, visible across all views) -->
+        <div id="mobile-camera-hud" class="mobile-camera-hud">
+          <!-- Top Hardware Header Dock: Menu, Active Study Pill, Live Pip & Mode Switcher -->
+          <div class="mobile-header-dock">
+            <div class="mobile-top-bar">
+              <button id="btn-mobile-burger" class="btn-hw-nav" title="Switch Presets" aria-label="Menu">
+                <span>≡</span>
+              </button>
+
+              <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
+                <span class="pill-dot"></span>
+                <span id="mobile-preset-name">Acid 303 Decay</span>
+                <span class="pill-arrow">▾</span>
+              </button>
+
+              <div class="mobile-top-right">
+                <!-- Live Camera Indicator Badge -->
+                <div class="mobile-cam-live-pip" title="Live Camera Transduction Active">
+                  <span class="cam-badge-dot"></span>
+                  <span id="mobile-cam-badge-text">LIVE</span>
+                </div>
+
+                <!-- Single Mode Trigger Button (Opens CAM / SCOPE / RACK dropdown) -->
+                <button id="btn-mobile-mode-menu" class="btn-hw-nav btn-mode-menu-trigger" title="Switch View Mode">
+                  <span id="mobile-mode-label">[ CAM ▾ ]</span>
+                </button>
+
+                <!-- Legacy & desktop compatibility hooks -->
+                <button id="btn-mobile-hud" class="hidden" aria-hidden="true"></button>
+                <button id="btn-mobile-cam-feed" class="hidden" aria-hidden="true"></button>
+                <button id="btn-mobile-fullscreen" class="btn-hw-nav hidden" title="Toggle Fullscreen" aria-hidden="true"></button>
+
+                <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
+                  <span class="rec-blink-dot"></span>
+                  <span id="mobile-rec-timer">00:00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hardware Mode Switcher Strip: CAM | SCOPE | RACK (Compact Dropdown Menu) -->
+            <div id="mobile-mode-bar" class="mobile-mode-bar">
+              <button id="btn-mode-cam" class="btn-mode-seg active" data-mode="cam" title="Optical Viewfinder">
+                <span class="mode-pip"></span>[ CAM ]
+              </button>
+              <button id="btn-mode-scope" class="btn-mode-seg" data-mode="scope" title="CRT Oscilloscope & Telemetry">
+                <span class="mode-pip"></span>[ SCOPE ]
+              </button>
+              <button id="btn-mode-rack" class="btn-mode-seg" data-mode="rack" title="Touch DSP Rack">
+                <span class="mode-pip"></span>[ RACK ]
+              </button>
+            </div>
+          </div>
+
+          <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
+          <div id="mobile-start-overlay" class="mobile-start-overlay">
+            <div class="mobile-start-card">
+              <div class="start-tag">TRANSDUCER SENSOR</div>
+              <div class="start-title">LIVE CAMERA FEED</div>
+              <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
+              <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary"
+                style="margin-top: 14px; width: 100%;">
+                ENGAGE CAMERA ↗
+              </button>
+            </div>
+          </div>
+
+          <!-- Shutter Flash Feedback Layer -->
+          <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
+
+          <!-- Bottom Hardware Action Bar: Flip, Picture Shutter, Record Video, Audio Mute (Icons Only) -->
+          <div class="mobile-bottom-bar" id="mobile-bottom-bar">
+            <!-- Flip Camera Button -->
+            <button id="btn-mobile-flip" class="btn-hw-action" title="Flip Camera" aria-label="Flip Camera">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3" />
+                <path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3" />
+              </svg>
+            </button>
+
+            <!-- Make Picture (Shutter) Button -->
+            <button id="btn-mobile-shutter" class="btn-hw-action btn-hw-shutter" title="Take Photo Snapshot" aria-label="Take Photo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </button>
+
+            <!-- Record Video (REC) Button -->
+            <button id="btn-mobile-rec" class="btn-hw-action btn-hw-rec" title="Record Video" aria-label="Record Video">
+              <span class="rec-led-pip"></span>
+            </button>
+
+            <!-- Audio Output Toggle Button -->
+            <button id="btn-mobile-audio" class="btn-hw-action" title="Toggle Audio Output" aria-label="Toggle Audio">
+              <svg id="mobile-audio-icon-on" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+              <svg id="mobile-audio-icon-off" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            </button>
+          </div>
         </div>
       </section>
     </main>

@@ -35,9 +35,9 @@ function load(file, globals = {}) {
 const { VIDEO_FILTER_DESCRIPTORS, createVideoFilterInstance } = load('src/engine/video-filters/factory.ts');
 const { validatePreset } = load('src/presets/validate-preset.ts');
 
-test('Video Rack: All 8 descriptors are registered with required metadata', () => {
+test('Video Rack: All 14 descriptors are registered with required metadata', () => {
   const ids = Object.keys(VIDEO_FILTER_DESCRIPTORS);
-  assert.equal(ids.length, 8, 'Expected 8 video filters registered');
+  assert.equal(ids.length, 14, 'Expected 14 video filters registered');
 
   const expectedIds = [
     'syncglitch',
@@ -48,6 +48,12 @@ test('Video Rack: All 8 descriptors are registered with required metadata', () =
     'chromasmear',
     'crtbloom',
     'vidicon',
+    'procamp',
+    'feedback',
+    'rftuner',
+    'cvislicer',
+    'scanimate',
+    'framedelay',
   ];
 
   for (const id of expectedIds) {

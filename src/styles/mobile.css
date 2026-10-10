@@ -125,29 +125,10 @@ body.is-fullscreen .studio-app.show-desktop-rack .sidebar-rack-panel {
   z-index: 75;
   background: var(--bg-darkest);
   overflow-y: auto;
-  padding: calc(96px + env(safe-area-inset-top, 0px)) 16px calc(76px + env(safe-area-inset-bottom, 0px)) 16px;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 16px calc(76px + env(safe-area-inset-bottom, 0px)) 16px;
   box-sizing: border-box;
   flex-direction: column;
   gap: 12px;
-}
-
-.mobile-only-rack-return {
-  display: none !important;
-}
-
-body.is-fullscreen .studio-app.show-desktop-rack .mobile-only-rack-return {
-  display: flex !important;
-  border: 1px solid var(--accent-phosphor) !important;
-  color: var(--accent-phosphor) !important;
-  background: rgba(200, 214, 101, 0.08) !important;
-  padding: 8px 12px !important;
-  font-family: var(--font-mono) !important;
-  font-size: 0.72rem !important;
-  letter-spacing: 0.08em !important;
-  cursor: pointer !important;
-  justify-content: center !important;
-  align-items: center !important;
-  border-radius: 2px !important;
 }
 
 body.is-fullscreen .viewport-card {
@@ -201,7 +182,11 @@ body.is-fullscreen #main-canvas {
   display: block;
 }
 
-/* Dedicated Mobile Scope View */
+/* Dedicated Mobile Scope View: HUD is in the SCOPE tab, hidden by default on mobile */
+body.is-fullscreen #telemetry-hud-bay {
+  display: none !important;
+}
+
 body.is-fullscreen #telemetry-hud-bay.mobile-active-scope {
   display: flex !important;
   position: fixed;
@@ -212,7 +197,7 @@ body.is-fullscreen #telemetry-hud-bay.mobile-active-scope {
   border: none;
   background: #060906;
   flex-direction: column;
-  padding: calc(96px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px;
   box-sizing: border-box;
 }
 
