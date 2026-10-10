@@ -11,6 +11,7 @@ function load(file, globals = {}) {
   const filename = path.resolve(file);
   let source = fs.readFileSync(filename, 'utf8');
   if (file.endsWith('main.ts')) source = source.replace('class SonificationApp', 'export class SonificationApp');
+  source = source.replace(/import\.meta/g, '({ env: {} })');
   const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const exports = {};
   vm.runInNewContext(code, {

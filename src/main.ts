@@ -641,10 +641,17 @@ class SonificationApp {
   }
 
   private getShareBaseUrl(): string {
-    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const configuredOrigin = (import.meta.env.VITE_SITE_URL || '').replace(/\/+$/, '');
+    if (configuredOrigin) {
+      const path = (typeof window !== 'undefined' && window.location ? window.location.pathname : '/');
+      return `${configuredOrigin}${path}`;
+    }
+    const isLocal = typeof window !== 'undefined' && window.location && ['localhost', '127.0.0.1'].includes(window.location.hostname);
     if (isLocal && !this.customMobileHost) throw new Error('Enter your computer’s Wi-Fi address to make a phone link.');
     if (this.customMobileHost) return `https://${this.customMobileHost}${window.location.pathname}`;
-    return `${window.location.origin}${window.location.pathname}`.replace(/^http:\/\//, 'https://');
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://sonification.vasily.onl';
+    const path = typeof window !== 'undefined' && window.location ? window.location.pathname : '/';
+    return `${origin}${path}`.replace(/^http:\/\//, 'https://');
   }
 
   private async showQrForHash(hash: string): Promise<void> {

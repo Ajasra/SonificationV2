@@ -38,6 +38,12 @@ if [[ ! -x "$PB_BINARY" ]]; then
 fi
 
 cd "$APP_DIR"
+
+if [[ ! -f "$APP_DIR/.env" && -f "$APP_DIR/.env.example" ]]; then
+  cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+  echo "Initialized .env from .env.example"
+fi
+
 npm ci
 npm run build:backend
 pm2 startOrRestart ecosystem.config.cjs --update-env

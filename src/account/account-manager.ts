@@ -11,7 +11,7 @@ export interface StoredPreset extends RecordModel {
   authorName: string;
 }
 
-const API_URL = import.meta.env.VITE_POCKETBASE_URL || window.location.origin;
+const API_URL = import.meta.env.VITE_POCKETBASE_URL || (typeof window !== 'undefined' && window.location ? window.location.origin : '');
 
 export class AccountManager {
   readonly client = new PocketBase(API_URL);

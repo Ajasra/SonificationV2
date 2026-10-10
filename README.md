@@ -27,7 +27,7 @@ For phone testing, use the computer's LAN IP with port 5173, on the same Wi-Fi n
 
 ## Ubuntu VPS with Nginx and PM2
 
-The VPS runs one PocketBase process. PocketBase serves the compiled frontend from `pb_public/`, the API, and the admin UI; SQLite data lives in `pb_data/`. Nginx terminates HTTPS and proxies the same domain to PocketBase's private port. PM2 keeps that process running. The supplied files are `ecosystem.config.cjs`, `deploy/nginx/sonification-v2.conf`, and `deploy/update-ubuntu.sh`.
+The VPS runs one PocketBase process. PocketBase serves the compiled frontend from `pb_public/`, the API, and the admin UI; SQLite data lives in `pb_data/`. Nginx terminates HTTPS and proxies `https://sonification.vasily.onl` to PocketBase's internal port (`127.0.0.1:38472`). Because it binds strictly to `127.0.0.1`, PocketBase is completely inaccessible from the public internet directly and can only be reached via Nginx. PM2 keeps that process running. The supplied files are `ecosystem.config.cjs`, `deploy/nginx/sonification-v2.conf`, and `deploy/update-ubuntu.sh`.
 
 Install Node.js/npm, PM2, and Nginx on Ubuntu, then clone or copy this repository to the VPS (for example `/opt/sonification-v2/`). Run the updater as the Linux user that should own the app and database:
 
@@ -36,19 +36,21 @@ cd /opt/sonification-v2
 bash deploy/update-ubuntu.sh
 ```
 
-The script installs PocketBase 0.28.1 for the VPS architecture if the binary is missing, builds the frontend into `pb_public/`, and starts or restarts the PM2 app. It does not overwrite `pb_data/`. Keep that directory on persistent VPS storage and do not remove it during updates. If you choose a different PocketBase port, update both `ecosystem.config.cjs` and the Nginx `proxy_pass` port.
+The script initializes `.env` from `.env.example` if absent (configured with `PB_PORT=38472` and `VITE_SITE_URL=https://sonification.vasily.onl`), installs PocketBase 0.28.1 for the VPS architecture if the binary is missing, builds the frontend into `pb_public/`, and starts or restarts the PM2 app. It does not overwrite `pb_data/`. Keep that directory on persistent VPS storage and do not remove it during updates.
 
 Run `pm2 startup` once. PM2 prints a `sudo` command; run that exact command, then run `pm2 save`. PM2 can restore saved processes on Ubuntu after reboot.
 
-The supplied Nginx file is a complete virtual host for a dedicated domain or subdomain. Replace `example.com` with that host and set the certificate paths to your existing TLS certificate. If that hostname already has an Nginx virtual host, copy the `location /` block into its HTTPS server block instead of enabling a duplicate. For a dedicated host, copy the file to `/etc/nginx/sites-available/sonification-v2.conf`, enable it, then validate and reload Nginx:
+The supplied Nginx file (`deploy/nginx/sonification-v2.conf`) is configured for `sonification.vasily.onl` and proxies to `127.0.0.1:38472`. For a dedicated host, copy the file to `/etc/nginx/sites-available/sonification-v2.conf`, enable it, obtain certificates via Certbot, then validate and reload Nginx:
 
 ```bash
+sudo cp deploy/nginx/sonification-v2.conf /etc/nginx/sites-available/sonification-v2.conf
 sudo ln -s /etc/nginx/sites-available/sonification-v2.conf /etc/nginx/sites-enabled/sonification-v2.conf
+sudo certbot --nginx -d sonification.vasily.onl
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Make sure DNS points to the VPS and that public ports 80 and 443 are open. Visit `https://YOUR_DOMAIN/`; on first start, inspect `pm2 logs sonification-v2` for PocketBase's one-time admin setup link. App users register through the site, separately from the admin account.
+Make sure DNS points `sonification.vasily.onl` to the VPS and that public ports 80 and 443 are open. Visit `https://sonification.vasily.onl/`; on first start, inspect `pm2 logs sonification-v2` for PocketBase's one-time admin setup link. App users register through the site, separately from the admin account.
 
 For updates, replace `pb_public/`, `pb_hooks/`, and `pb_migrations/`, then run `pm2 restart sonification-v2`. Keep `pb_data/` on persistent VPS storage and back it up from the PocketBase admin UI. Do not overwrite or remove it during updates. PocketBase's official [Nginx deployment guidance](https://pocketbase.io/docs/going-to-production/) covers the proxy headers used by the supplied config.
 
