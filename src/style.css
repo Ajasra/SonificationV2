@@ -1208,17 +1208,6 @@ body.studio-theme {
   position: relative;
 }
 
-/* Silkscreen screws at module corners */
-.rack-card::before,
-.rack-card::after {
-  content: "⊕";
-  position: absolute;
-  font-size: 0.6rem;
-  color: var(--border-mid);
-}
-.rack-card::before { top: 2px; left: 4px; }
-.rack-card::after { top: 2px; right: 4px; }
-
 .rack-card-header {
   display: flex;
   justify-content: space-between;
