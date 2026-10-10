@@ -9,6 +9,7 @@ import type { IDspFilter } from './filters/base.ts';
 export interface PipelineResult {
   outputRgba: Uint8ClampedArray;
   audioSamples: Float32Array;
+  rawAudioSamples?: Float32Array;
   executionTimeMs: number;
 }
 
@@ -19,6 +20,7 @@ export class SonificationPipeline {
   // Preallocated working buffers and zero-allocation chunk views
   private workRgbaBuffer = new Uint8ClampedArray(0);
   private workAudioBuffer = new Float32Array(0);
+  private rawAudioPreviewBuffer = new Float32Array(2048);
   private chunkViews: Float32Array[] = [];
   private lastChunkSamples = 0;
   private static readonly CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
@@ -103,6 +105,10 @@ export class SonificationPipeline {
       this.workAudioBuffer.subarray(0, numSamples)
     );
 
+    // Snapshot preview of unmodulated raw audio stream before DSP filter chain
+    const copyLen = Math.min(audioStream.length, this.rawAudioPreviewBuffer.length);
+    this.rawAudioPreviewBuffer.set(audioStream.subarray(0, copyLen));
+
     // 4. Run audio DSP chain in-place with preallocated L1 cache chunk fusion
     this.syncFilterInstances(preset);
     const numFilters = this.activeFilters.length;
@@ -140,6 +146,7 @@ export class SonificationPipeline {
     return {
       outputRgba: outRgba,
       audioSamples: audioStream,
+      rawAudioSamples: this.rawAudioPreviewBuffer.subarray(0, copyLen),
       executionTimeMs: t1 - t0,
     };
   }

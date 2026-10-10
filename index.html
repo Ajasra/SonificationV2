@@ -304,24 +304,33 @@
               </div>
             </button>
 
+            <!-- Hardware HUD Reticle Overlay Toggle Button -->
+            <button id="btn-toggle-hud" class="btn-hud-compact active"
+              title="Analog Telemetry Reticle HUD Overlay: ON / OFF">
+              <span class="hud-led"></span>
+              <span id="hud-btn-text">HUD</span>
+            </button>
+
             <!-- Viewport Framing Tools -->
             <button id="btn-reset-view" class="tool-btn" title="Reset Frame">⟳</button>
             <button id="btn-fullscreen" class="tool-btn" title="Fullscreen">⛶</button>
           </div>
         </div>
 
-        <!-- Canvas Container with Corner Reticles (Clean Fit) -->
-        <div class="canvas-frame">
-          <span class="reticle reticle-tl"></span>
-          <span class="reticle reticle-tr"></span>
-          <span class="reticle reticle-bl"></span>
-          <span class="reticle reticle-br"></span>
+        <!-- Split Workspace: Clean Video Frame + Dedicated CRT Oscilloscope / Telemetry Bay -->
+        <div class="viewport-workspace-split">
+          <!-- Left Primary Bay: Clean Video / Image Monitor -->
+          <div class="canvas-frame">
+            <span class="reticle reticle-tl"></span>
+            <span class="reticle reticle-tr"></span>
+            <span class="reticle reticle-bl"></span>
+            <span class="reticle reticle-br"></span>
 
-          <canvas id="main-canvas"></canvas>
+            <canvas id="main-canvas"></canvas>
 
-          <div id="drop-overlay" class="drop-overlay hidden">
-            <span>Drop Image or Video Here</span>
-          </div>
+            <div id="drop-overlay" class="drop-overlay hidden">
+              <span>Drop Image or Video Here</span>
+            </div>
 
           <!-- Offline Frame Render Progress HUD -->
           <div id="render-progress-overlay" class="render-progress-overlay hidden">
@@ -358,6 +367,12 @@
               </button>
 
               <div class="mobile-top-right">
+                <!-- Mobile HUD Toggle Button -->
+                <button id="btn-mobile-hud" class="btn-mobile-cam-badge" title="Toggle Reticle HUD">
+                  <span class="hud-badge-dot"></span>
+                  <span id="mobile-hud-badge-text">HUD</span>
+                </button>
+
                 <!-- Live Camera Switch Button -->
                 <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
                   <span class="cam-badge-dot"></span>
@@ -433,6 +448,51 @@
             </div>
           </div>
         </div>
+
+        <!-- Right Telemetry Bay: CRT Reticle, Oscilloscope & GD&T Matrix (Ref 1, 2, 4, 5) -->
+        <aside id="telemetry-hud-bay" class="telemetry-hud-bay">
+          <div class="hud-bay-header">
+            <span class="hud-bay-tag">[ CRT SCOPE REV 2.4 ]</span>
+            <span id="hud-bay-status" class="hud-bay-status">SYS.OPL LIVE</span>
+          </div>
+
+          <div class="hud-bay-canvas-wrap">
+            <canvas id="hud-canvas" class="hud-canvas"></canvas>
+          </div>
+
+          <!-- Monospace Telemetry Matrix (Ref 2 & Ref 4) -->
+          <div class="hud-matrix-grid">
+            <div class="matrix-cell">
+              <span class="matrix-label">SAMPLE BUS</span>
+              <span id="hud-val-bus" class="matrix-val">44.1 kHz</span>
+            </div>
+            <div class="matrix-cell">
+              <span class="matrix-label">PEAK LEVEL</span>
+              <span id="hud-val-peak" class="matrix-val">-3.2 dB</span>
+            </div>
+            <div class="matrix-cell">
+              <span class="matrix-label">SIGNAL RMS</span>
+              <span id="hud-val-rms" class="matrix-val">0.38</span>
+            </div>
+            <div class="matrix-cell">
+              <span class="matrix-label">SCAN SEED</span>
+              <span id="hud-val-seed" class="matrix-val">4821</span>
+            </div>
+          </div>
+
+          <!-- Discrete Segmented LED VU Meters (Ref 2 & Ref 4) -->
+          <div class="hud-meter-strip">
+            <div class="meter-row">
+              <span class="meter-label">VU L</span>
+              <div id="meter-segments-l" class="segmented-bar"></div>
+            </div>
+            <div class="meter-row">
+              <span class="meter-label">VU R</span>
+              <div id="meter-segments-r" class="segmented-bar"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
       </section>
     </main>
 
@@ -475,6 +535,16 @@
             <option value="720p">720p (HD)</option>
             <option value="native">Native (Full Sensor)</option>
           </select>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-section-title">OPTICAL RETICLE & TELEMETRY</span>
+          <div class="drawer-volume-row">
+            <span class="vol-label">HUD</span>
+            <button id="btn-drawer-hud" class="btn-hw btn-hw-secondary" style="padding: 4px 12px; font-size: 0.72rem;">
+              TOGGLE RETICLE HUD
+            </button>
+          </div>
         </div>
       </div>
 

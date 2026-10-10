@@ -6,3 +6,4 @@ pocketbase
 pocketbase.exe
 .DS_Store
 *.local
+.env

@@ -11,6 +11,7 @@ import { OfflineVideoRecorder } from './record/offline-video-recorder.ts';
 import { RotaryKnob } from './components/rotary-knob.ts';
 import { AccountManager, type StoredPreset } from './account/account-manager.ts';
 import { validatePreset } from './presets/validate-preset.ts';
+import { HudOverlay } from './components/hud-overlay.ts';
 
 class SonificationApp {
   private pipeline = new SonificationPipeline();
@@ -31,6 +32,11 @@ class SonificationApp {
   private offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
   private scopeCanvas = document.getElementById('scope-canvas') as HTMLCanvasElement;
   private scopeCtx = this.scopeCanvas?.getContext('2d');
+  private hudCanvas = document.getElementById('hud-canvas') as HTMLCanvasElement;
+  private hudOverlay!: HudOverlay;
+  private btnToggleHud = document.getElementById('btn-toggle-hud') as HTMLButtonElement | null;
+  private btnMobileHud = document.getElementById('btn-mobile-hud') as HTMLButtonElement | null;
+  private btnDrawerHud = document.getElementById('btn-drawer-hud') as HTMLButtonElement | null;
   private perfBadge = document.getElementById('perf-badge') as HTMLDivElement;
 
   private selectPreset = document.getElementById('select-preset') as HTMLSelectElement;
@@ -153,6 +159,7 @@ class SonificationApp {
   constructor() {
     this.initPreset();
     this.initCanvasPlaceholder();
+    this.initHudOverlay();
     this.initMasterKnob();
     this.initCollapsibleCards();
     this.bindEvents();
@@ -174,6 +181,60 @@ class SonificationApp {
       if (document.hidden) releaseCamera();
       else if (this.loadedVideoElement) this.startVideoFileLoop();
     });
+  }
+
+  private initHudOverlay(): void {
+    const wrap = document.querySelector('.hud-bay-canvas-wrap') as HTMLElement;
+    if (this.hudCanvas && wrap) {
+      this.hudOverlay = new HudOverlay(wrap, this.hudCanvas);
+      this.updateHudToggleUI();
+
+      this.btnToggleHud?.addEventListener('click', () => {
+        this.hudOverlay.toggle();
+        this.updateHudToggleUI();
+        this.requestRender();
+      });
+
+      this.btnMobileHud?.addEventListener('click', () => {
+        this.hudOverlay.toggle();
+        this.updateHudToggleUI();
+        this.requestRender();
+      });
+
+      this.btnDrawerHud?.addEventListener('click', () => {
+        this.hudOverlay.toggle();
+        this.updateHudToggleUI();
+        this.requestRender();
+      });
+    }
+  }
+
+  private updateHudToggleUI(): void {
+    if (!this.hudOverlay) return;
+    const isEnabled = this.hudOverlay.isEnabled();
+
+    const hudBay = document.getElementById('telemetry-hud-bay');
+    if (hudBay) {
+      hudBay.classList.toggle('is-hidden', !isEnabled);
+    }
+
+    if (this.btnToggleHud) {
+      this.btnToggleHud.classList.toggle('active', isEnabled);
+      const text = document.getElementById('hud-btn-text');
+      if (text) text.textContent = isEnabled ? 'HUD' : 'NO HUD';
+    }
+
+    if (this.btnMobileHud) {
+      this.btnMobileHud.classList.toggle('active', isEnabled);
+      const text = document.getElementById('mobile-hud-badge-text');
+      if (text) text.textContent = isEnabled ? 'HUD ON' : 'HUD OFF';
+    }
+
+    if (this.btnDrawerHud) {
+      this.btnDrawerHud.classList.toggle('btn-hw-primary', isEnabled);
+      this.btnDrawerHud.classList.toggle('btn-hw-secondary', !isEnabled);
+      this.btnDrawerHud.textContent = isEnabled ? 'RETICLE HUD: ACTIVE' : 'RETICLE HUD: OFF';
+    }
   }
 
   private initPreset(): void {
@@ -2221,6 +2282,20 @@ class SonificationApp {
 
     // Audio transmission
     this.audioEngine.playFrameSamples(res.audioSamples);
+
+    // Update Analog Telemetry Reticle HUD (Ref 1 & Ref 5)
+    if (this.hudOverlay) {
+      this.hudOverlay.setTelemetryData({
+        fps: this.currentFps,
+        sampleRate: SonificationApp.BUS_RATES[this.currentBusIndex]?.rate || 44100,
+        width: w,
+        height: h,
+        audioSamples: res.audioSamples,
+        rawAudioSamples: res.rawAudioSamples,
+        analyser: this.audioEngine.getAnalyser(),
+        seed: this.currentSeed
+      });
+    }
 
     // Live Oscilloscope Render
     if (this.currentViewMode === 'scope' && this.scopeCtx) {
