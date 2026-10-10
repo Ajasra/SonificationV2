@@ -179,6 +179,7 @@ export class MobileController {
 
     if (isMobile) {
       this.setFullscreenMode(true, false);
+      this.setMode('cam');
       this.opts.onStartCamera().catch(() => {});
     }
 
@@ -295,14 +296,6 @@ export class MobileController {
 
     document.getElementById('btn-mode-rack')?.addEventListener('click', () => {
       this.setMode('rack');
-    });
-
-    document.getElementById('btn-rack-return-cam')?.addEventListener('click', () => {
-      this.setMode('cam');
-    });
-
-    document.getElementById('btn-scope-return-cam')?.addEventListener('click', () => {
-      this.setMode('cam');
     });
 
     document.getElementById('btn-mobile-desktop-toggle')?.addEventListener('click', () => {

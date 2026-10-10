@@ -308,6 +308,9 @@ class SonificationApp {
           this.hudOverlay?.setEnabled(true);
           this.hudOverlay?.resize();
           this.requestRender();
+        } else if (document.body.classList.contains('is-fullscreen') || window.innerWidth <= 900) {
+          this.hudOverlay?.setEnabled(false);
+          this.requestRender();
         }
       },
     });

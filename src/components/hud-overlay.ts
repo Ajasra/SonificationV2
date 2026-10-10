@@ -61,14 +61,16 @@ export class HudOverlay {
   }
 
   private initDefaultState(): void {
-    const isMobile = window.innerWidth <= 768 || (navigator.maxTouchPoints > 1 && window.innerWidth <= 1024);
-    const saved = localStorage.getItem('sonification_hud_enabled');
+    const isMobile =
+      window.innerWidth <= 900 ||
+      /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    if (saved !== null) {
-      this.enabled = saved === 'true';
+    if (isMobile) {
+      // HUD telemetry oscilloscope is strictly housed within SCOPE tab on mobile; default OFF
+      this.enabled = false;
     } else {
-      // Default OFF on phone, ON on desktop
-      this.enabled = !isMobile;
+      const saved = localStorage.getItem('sonification_hud_enabled');
+      this.enabled = saved !== null ? saved === 'true' : true;
     }
   }
 

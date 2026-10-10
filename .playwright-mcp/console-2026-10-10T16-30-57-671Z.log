@@ -1,0 +1,18 @@
+[    6129ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[    6130ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[   18095ms] [ERROR] Camera access failed: TimeoutError: Camera did not respond. Tap START CAM to retry. @ https://localhost:5173/src/camera/camera-manager.ts:114
+[   18095ms] [WARNING] Could not auto-start camera: TimeoutError: Camera did not respond. Tap START CAM to retry. @ https://localhost:5173/src/main.ts?t=1791649473529:802
+[  215649ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  215649ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  224590ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  224590ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  234801ms] [ERROR] Camera access failed: AbortError: Timeout starting video source @ https://localhost:5173/src/camera/camera-manager.ts:114
+[  234801ms] [WARNING] Could not auto-start camera: AbortError: Timeout starting video source @ https://localhost:5173/src/main.ts?t=1791650081653:802
+[  242468ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  242468ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  252774ms] [ERROR] Camera access failed: AbortError: Timeout starting video source @ https://localhost:5173/src/camera/camera-manager.ts:114
+[  252775ms] [WARNING] Could not auto-start camera: AbortError: Timeout starting video source @ https://localhost:5173/src/main.ts?t=1791650099608:805
+[  258659ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  258659ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://localhost:5173/:0
+[  268943ms] [ERROR] Camera access failed: AbortError: Timeout starting video source @ https://localhost:5173/src/camera/camera-manager.ts:114
+[  268944ms] [WARNING] Could not auto-start camera: AbortError: Timeout starting video source @ https://localhost:5173/src/main.ts?t=1791650115826:805

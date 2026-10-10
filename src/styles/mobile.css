@@ -30,6 +30,11 @@ body:not(.is-fullscreen) .mobile-drawer-backdrop {
     display: none !important;
   }
 
+  /* Telemetry bay is exclusively housed within SCOPE tab on mobile */
+  #telemetry-hud-bay:not(.mobile-active-scope) {
+    display: none !important;
+  }
+
   body:not(.is-fullscreen) .workspace-grid {
     grid-template-columns: 1fr;
     height: auto;
@@ -151,6 +156,8 @@ body.is-fullscreen .viewport-workspace-split {
   width: 100%;
   height: 100%;
   border: none;
+  display: block;
+  overflow: hidden;
 }
 
 body.is-fullscreen .canvas-frame {
@@ -182,8 +189,9 @@ body.is-fullscreen #main-canvas {
   display: block;
 }
 
-/* Dedicated Mobile Scope View: HUD is in the SCOPE tab, hidden by default on mobile */
-body.is-fullscreen #telemetry-hud-bay {
+/* Dedicated Mobile Scope View: HUD is in the SCOPE tab only, hidden by default on mobile */
+body.is-fullscreen #telemetry-hud-bay,
+body.is-fullscreen #telemetry-hud-bay:not(.mobile-active-scope) {
   display: none !important;
 }
 
@@ -197,8 +205,43 @@ body.is-fullscreen #telemetry-hud-bay.mobile-active-scope {
   border: none;
   background: #060906;
   flex-direction: column;
-  padding: calc(56px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px;
+  padding: calc(60px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.is-fullscreen #telemetry-hud-bay.mobile-active-scope .hud-bay-header {
+  background: rgba(18, 22, 18, 0.75);
+  border: 1px solid var(--border-mid);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  padding: 8px 12px;
+}
+
+body.is-fullscreen #telemetry-hud-bay.mobile-active-scope .hud-bay-canvas-wrap {
+  flex: 1 1 auto;
+  min-height: 280px;
+  max-height: 48vh;
+  background: #020402;
+  border-left: 1px solid var(--border-mid);
+  border-right: 1px solid var(--border-mid);
+  position: relative;
+}
+
+body.is-fullscreen #telemetry-hud-bay.mobile-active-scope .hud-matrix-grid {
+  border: 1px solid var(--border-mid);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--border-subtle);
+}
+
+body.is-fullscreen #telemetry-hud-bay.mobile-active-scope .hud-meter-strip {
+  border: 1px solid var(--border-mid);
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+  background: #080c08;
+  padding: 10px 14px;
+  margin-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 body.is-fullscreen .studio-app.mobile-scope-mode .canvas-frame {
@@ -555,28 +598,6 @@ body.is-fullscreen .mobile-start-overlay {
     width: 12px;
     height: 12px;
     animation: blink 0.9s infinite ease-in-out;
-  }
-
-  /* Return to Camera Buttons */
-  .mobile-only-scope-return {
-    display: none !important;
-  }
-
-  body.is-fullscreen .mobile-only-scope-return {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 8px !important;
-    background: rgba(200, 214, 101, 0.15) !important;
-    border: 1px solid var(--accent-phosphor) !important;
-    color: var(--accent-phosphor) !important;
-    font-family: var(--font-mono) !important;
-    font-size: 0.72rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.08em !important;
-    border-radius: 2px !important;
-    cursor: pointer !important;
-    margin-right: 8px;
   }
 
   body.is-fullscreen #btn-mobile-fullscreen {
