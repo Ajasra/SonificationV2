@@ -63,7 +63,27 @@ export type FilterId =
   | 'formant'
   | 'flanger'
   | 'wavefolder'
-  | 'tremolo';
+  | 'tremolo'
+  | 'tapewow'
+  | 'srreducer'
+  | 'dropout'
+  | 'fmop'
+  | 'drone'
+  | 'pitchshift'
+  | 'envfilter'
+  | 'ducker'
+  | 'limiter'
+  | 'tapesat'
+  | 'telephone'
+  | 'hiss'
+  | 'suboct'
+  | 'resbank'
+  | 'granular'
+  | 'vocoder'
+  | 'shrandom'
+  | 'transient'
+  | 'expander'
+  | 'multiband';
 
 export interface FilterNodeConfig {
   id: string; // unique instance id
