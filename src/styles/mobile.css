@@ -357,7 +357,7 @@ body.is-fullscreen .mobile-start-overlay {
     font-size: 0.70rem;
     letter-spacing: 0.06em;
     cursor: pointer;
-    max-width: 52%;
+    max-width: 68%;
     min-width: 0;
     flex: 1 1 auto;
     justify-content: center;
@@ -399,33 +399,6 @@ body.is-fullscreen .mobile-start-overlay {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .mobile-cam-live-pip {
-    background: rgba(22, 27, 22, 0.55);
-    border: 1px solid var(--border-mid);
-    border-radius: 2px;
-    padding: 4px 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    color: var(--accent-phosphor);
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    user-select: none;
-    flex-shrink: 0;
-  }
-
-  .cam-badge-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 1px;
-    background: var(--accent-phosphor);
-    box-shadow: 0 0 5px var(--accent-phosphor);
-    animation: blink 1.2s infinite ease-in-out;
     flex-shrink: 0;
   }
 
