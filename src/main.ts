@@ -235,6 +235,7 @@ class SonificationApp {
       onRequestRender: () => this.requestRender(),
       onBusRateChanged: (rate) => {
         this.audioEngine.setSampleRate(rate);
+        this.hudOverlay?.setTelemetryData({ sampleRate: rate });
       },
     });
 
@@ -515,15 +516,15 @@ class SonificationApp {
     const btnHeroBus = document.getElementById('btn-hero-bus');
     if (btnHeroBus) {
       btnHeroBus.onclick = () => {
-        const busBtn = document.getElementById('btn-bus-step');
-        busBtn?.click();
+        this.presetController.cycleBusRate();
       };
     }
 
     const presetTrigger = document.getElementById('preset-display-trigger');
     if (presetTrigger) {
       presetTrigger.addEventListener('click', () => {
-        this.presetController.openPresetLibrary('mine');
+        const isDefault = this.presetManager.isFactoryPreset(this.activePreset.id);
+        this.presetController.openPresetLibrary(isDefault ? 'defaults' : 'mine');
       });
     }
 
@@ -619,11 +620,31 @@ class SonificationApp {
     }
 
     // Modal triggers
-    document.getElementById('btn-about')?.addEventListener('click', () => {
+    const openAboutModal = () => {
       document.getElementById('about-modal')?.classList.remove('hidden');
-    });
-    document.getElementById('btn-close-about')?.addEventListener('click', () => {
+    };
+    const closeAboutModal = () => {
       document.getElementById('about-modal')?.classList.add('hidden');
+    };
+
+    document.getElementById('btn-about')?.addEventListener('click', openAboutModal);
+    document.getElementById('btn-about-modal')?.addEventListener('click', openAboutModal);
+    document.getElementById('btn-close-about')?.addEventListener('click', closeAboutModal);
+
+    const aboutModal = document.getElementById('about-modal');
+    aboutModal?.addEventListener('click', (e) => {
+      if (e.target === aboutModal) {
+        closeAboutModal();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('about-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          closeAboutModal();
+        }
+      }
     });
 
     document.getElementById('btn-qr-modal')?.addEventListener('click', () => {
