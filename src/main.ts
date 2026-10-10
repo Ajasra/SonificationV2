@@ -12,6 +12,7 @@ import { RotaryKnob } from './components/rotary-knob.ts';
 import { AccountManager, type StoredPreset } from './account/account-manager.ts';
 import { validatePreset } from './presets/validate-preset.ts';
 import { HudOverlay } from './components/hud-overlay.ts';
+import { createResolutionSlider } from './ui/resolution-slider.ts';
 
 // Extracted UI Controllers
 import { QrModalController } from './ui/qr-modal.ts';
@@ -53,7 +54,13 @@ class SonificationApp {
   private selectBitDepth = document.getElementById('select-bitdepth') as HTMLSelectElement;
   private selectLaw = document.getElementById('select-law') as HTMLSelectElement;
   private checkEqualize = document.getElementById('check-equalize') as HTMLInputElement;
-  private selectResolution = document.getElementById('select-resolution') as HTMLSelectElement;
+  private resolutionSlider = createResolutionSlider(
+    document.getElementById('slider-resolution-mount'),
+    (res) => {
+      this.mediaController.setResolution(res);
+      this.requestRender();
+    },
+  );
   private inputPresetDesc = document.getElementById('input-preset-desc') as HTMLTextAreaElement;
 
   private statusResolution = document.getElementById('status-resolution');
@@ -279,7 +286,7 @@ class SonificationApp {
       onToggleRecording: () => this.mediaController.toggleVideoRecording(),
       onSetResolution: (res) => {
         this.mediaController.setResolution(res);
-        if (this.selectResolution) this.selectResolution.value = res;
+        this.resolutionSlider?.setValue(res);
         this.requestRender();
       },
       onVolumeChange: (vol) => {
@@ -602,14 +609,6 @@ class SonificationApp {
     if (this.checkEqualize) {
       this.checkEqualize.onchange = () => {
         this.activePreset.equalize = this.checkEqualize.checked;
-        this.requestRender();
-      };
-    }
-
-    if (this.selectResolution) {
-      this.selectResolution.onchange = () => {
-        const res = this.selectResolution.value as '360p' | '480p' | '720p' | 'native';
-        this.mediaController.setResolution(res);
         this.requestRender();
       };
     }

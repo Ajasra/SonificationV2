@@ -2,6 +2,7 @@
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import type { PresetManager } from '../presets/preset-manager.ts';
 import type { SonificationPreset } from '../types/index.ts';
+import { createResolutionSlider } from './resolution-slider.ts';
 
 export interface MobileControllerOptions {
   audioEngine: SoundCameraAudio;
@@ -218,12 +219,10 @@ export class MobileController {
       });
     }
 
-    const mobileRes = document.getElementById('mobile-select-resolution') as HTMLSelectElement | null;
-    if (mobileRes) {
-      mobileRes.addEventListener('change', () => {
-        this.opts.onSetResolution(mobileRes.value as any);
-      });
-    }
+    createResolutionSlider(
+      document.getElementById('mobile-slider-resolution-mount'),
+      (res) => this.opts.onSetResolution(res),
+    );
 
     document.getElementById('btn-mobile-desktop-toggle')?.addEventListener('click', () => {
       document.getElementById('app')?.classList.toggle('show-desktop-rack');
