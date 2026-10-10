@@ -9,6 +9,7 @@ export interface RotaryKnobOptions {
   defaultValue?: number;
   label: string;
   unit?: string;
+  tooltip?: string;
   size?: number; // diameter in pixels (default: 46)
   onChange: (value: number) => void;
 }
@@ -78,17 +79,23 @@ export class RotaryKnob {
   private buildElement(): HTMLElement {
     const container = document.createElement('div');
     container.className = 'knob-container';
+    if (this.options.tooltip) {
+      container.title = this.options.tooltip;
+    }
 
     // Label on top (PCB silkscreen style)
     const labelEl = document.createElement('div');
     labelEl.className = 'knob-label';
     labelEl.textContent = this.options.label;
-    labelEl.title = this.options.label;
+    labelEl.title = this.options.tooltip || this.options.label;
     container.appendChild(labelEl);
 
     // Knob assembly wrapper
     const assembly = document.createElement('div');
     assembly.className = 'knob-assembly';
+    if (this.options.tooltip) {
+      assembly.title = this.options.tooltip;
+    }
     const sz = this.options.size!;
     assembly.style.width = `${sz}px`;
     assembly.style.height = `${sz}px`;

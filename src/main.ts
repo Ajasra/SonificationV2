@@ -322,6 +322,7 @@ class SonificationApp {
         value: 0.5,
         defaultValue: 0.5,
         label: 'GAIN',
+        tooltip: 'Master Audio Output Gain (0.0 to 1.0)',
         size: 32,
         onChange: (val) => {
           this.audioEngine.setVolume(val);
@@ -347,13 +348,19 @@ class SonificationApp {
   }
 
   private updatePresetButtonsState(): void {
-    const canUpdate = !!this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId;
+    const isSavedPreset = !!this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId;
+    const isDefaultPreset = this.presetManager.isFactoryPreset(this.activePreset?.id);
+    const canDelete = isSavedPreset || isDefaultPreset;
     if (this.btnPresetDelete) {
-      this.btnPresetDelete.disabled = !canUpdate;
-      this.btnPresetDelete.title = canUpdate ? 'Delete this saved preset' : 'Save this preset to your account first';
+      this.btnPresetDelete.disabled = !canDelete;
+      this.btnPresetDelete.title = isSavedPreset
+        ? 'Delete this saved preset'
+        : isDefaultPreset
+          ? 'Remove this default preset from your preset list'
+          : 'Save this preset to your account first';
     }
-    if (this.btnPresetUpdate) this.btnPresetUpdate.textContent = canUpdate ? 'Update' : 'Save copy';
-    if (this.btnPresetSave) this.btnPresetSave.textContent = canUpdate ? '+ Save Copy' : '+ Save New';
+    if (this.btnPresetUpdate) this.btnPresetUpdate.textContent = isSavedPreset ? 'Update' : 'Save copy';
+    if (this.btnPresetSave) this.btnPresetSave.textContent = isSavedPreset ? '+ Save Copy' : '+ Save New';
   }
 
   private renderPresetDropdown(): void {
@@ -864,6 +871,10 @@ class SonificationApp {
         for (const p of desc.params) {
           const val = filterConfig.params[p.name] !== undefined ? filterConfig.params[p.name] : p.value;
 
+          const knobTooltip = p.tooltip
+            ? `${p.label}: ${p.tooltip} [Range: ${p.min} to ${p.max}]`
+            : `${p.label} [Range: ${p.min} to ${p.max}]`;
+
           const knob = new RotaryKnob({
             min: p.min,
             max: p.max,
@@ -871,6 +882,7 @@ class SonificationApp {
             value: val,
             defaultValue: p.value,
             label: p.label.split(' ')[0], // Compact label
+            tooltip: knobTooltip,
             size: 34,
             onChange: (newVal) => {
               filterConfig.params[p.name] = newVal;
@@ -1067,15 +1079,33 @@ class SonificationApp {
     this.btnPresetSave.onclick = () => { void this.saveActivePreset(false); };
     this.btnPresetUpdate.onclick = () => { void this.saveActivePreset(true); };
     this.btnPresetDelete.onclick = () => {
-      if (!this.savedPresetId || this.savedPresetOwnerId !== this.accountManager.userId) return;
-      const id = this.savedPresetId;
-      if (!confirm(`Delete saved preset "${this.activePreset.name}"?`)) return;
-      void this.accountManager.remove(id).then(() => {
-        this.savedPresetId = null;
-        this.savedPresetOwnerId = null;
-        this.renderPresetDropdown();
-        this.showPresetNotice('Preset deleted.');
-      }).catch(error => this.showPresetNotice((error as Error).message, true));
+      // Custom saved preset belonging to user
+      if (this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId) {
+        const id = this.savedPresetId;
+        if (!confirm(`Delete saved preset "${this.activePreset.name}"?`)) return;
+        void this.accountManager.remove(id).then(() => {
+          this.savedPresetId = null;
+          this.savedPresetOwnerId = null;
+          this.renderPresetDropdown();
+          this.showPresetNotice('Preset deleted.');
+        }).catch(error => this.showPresetNotice((error as Error).message, true));
+        return;
+      }
+
+      // Default preset removal
+      if (this.presetManager.isFactoryPreset(this.activePreset.id)) {
+        if (!confirm(`Delete preset "${this.activePreset.name}" from your preset list?`)) return;
+        const deletedId = this.activePreset.id;
+        const success = this.presetManager.deletePreset(deletedId);
+        if (success) {
+          const remaining = this.presetManager.getAllPresets();
+          if (remaining.length > 0) {
+            this.applyPreset(remaining[0]);
+          }
+          this.renderPresetDropdown();
+          this.showPresetNotice('Preset removed from list.');
+        }
+      }
     };
 
     // Export & Import Series JSON

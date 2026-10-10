@@ -26,6 +26,7 @@ export interface FilterParam {
   max: number;
   step: number;
   value: number;
+  tooltip?: string;
 }
 
 export type FilterCategory = 'eq' | 'delay' | 'modulation' | 'synth' | 'distortion' | 'dynamics' | 'lofi';

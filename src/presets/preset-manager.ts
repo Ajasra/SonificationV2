@@ -4,18 +4,45 @@ import type { SonificationPreset } from '../types/index.ts';
 import { FACTORY_PRESETS } from './factory-presets.ts';
 
 const STORAGE_KEY = 'sonification_v2_presets';
+const HIDDEN_PRESETS_KEY = 'sonification_v2_hidden_presets';
 export const LEGACY_PRESETS_STORAGE_KEY = STORAGE_KEY;
 export const DEFAULT_PRESETS = FACTORY_PRESETS;
 
 export class PresetManager {
   private presets: SonificationPreset[] = [];
+  private hiddenPresetIds: Set<string> = new Set();
 
   constructor() {
+    this.loadHiddenPresets();
     this.loadPresets();
   }
 
+  private loadHiddenPresets(): void {
+    try {
+      const stored = localStorage.getItem(HIDDEN_PRESETS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          this.hiddenPresetIds = new Set(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load hidden presets', e);
+    }
+  }
+
+  private persistHiddenPresets(): void {
+    try {
+      localStorage.setItem(HIDDEN_PRESETS_KEY, JSON.stringify([...this.hiddenPresetIds]));
+    } catch (e) {
+      console.warn('Failed to save hidden presets', e);
+    }
+  }
+
   private loadPresets(): void {
-    this.presets = DEFAULT_PRESETS.map(preset => JSON.parse(JSON.stringify(preset)));
+    this.presets = DEFAULT_PRESETS
+      .filter(preset => !this.hiddenPresetIds.has(preset.id))
+      .map(preset => JSON.parse(JSON.stringify(preset)));
   }
 
   getAllPresets(): SonificationPreset[] {
@@ -60,8 +87,18 @@ export class PresetManager {
     if (idx === -1) return false;
     // Remove from in-memory array
     this.presets.splice(idx, 1);
+    if (this.isFactoryPreset(id)) {
+      this.hiddenPresetIds.add(id);
+      this.persistHiddenPresets();
+    }
     this.persistUserPresets();
     return true;
+  }
+
+  restoreFactoryPresets(): void {
+    this.hiddenPresetIds.clear();
+    this.persistHiddenPresets();
+    this.loadPresets();
   }
 
   isFactoryPreset(id: string): boolean {

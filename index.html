@@ -175,13 +175,13 @@
 
             <!-- Quick Patch Randomization Controls -->
             <div class="preset-random-row">
-              <button id="btn-random-params" class="btn-hw btn-sm" title="Randomize Filter Parameters (shortcut: c)">
+              <button id="btn-random-params" class="btn-hw btn-sm" title="Randomize module parameters (shortcut: c)">
                 RND Params
               </button>
-              <button id="btn-random-stream" class="btn-hw btn-sm" title="Randomize Topology & Color (shortcut: r)">
+              <button id="btn-random-stream" class="btn-hw btn-sm" title="Randomize scan mode & color space (shortcut: r)">
                 RND Topology
               </button>
-              <button id="btn-random-filters" class="btn-hw btn-sm" title="Randomize Filter Rack (shortcut: f)">
+              <button id="btn-random-filters" class="btn-hw btn-sm" title="Randomize filter chain (shortcut: f)">
                 RND Rack
               </button>
             </div>
@@ -197,8 +197,8 @@
           <div class="card-collapse-body">
             <div class="generator-controls">
               <div class="hw-field">
-                <label class="hw-label">COLOR SPACE</label>
-                <select id="select-colorspace" class="select-hw select-block">
+                <label class="hw-label" title="How image color channels are mapped to frequency and tone">COLOR SPACE</label>
+                <select id="select-colorspace" class="select-hw select-block" title="Color space used for audio conversion">
                   <option value="RGB">RGB (Linear Byte Map)</option>
                   <option value="LAB">LAB (Perceptual Opponent)</option>
                   <option value="LUV">LUV (Uniform Chromaticity)</option>
@@ -212,16 +212,16 @@
 
               <div class="hw-field-row">
                 <div class="hw-field">
-                  <label class="hw-label">TOPOLOGY</label>
-                  <select id="select-rawtype" class="select-hw">
+                  <label class="hw-label" title="Scanline layout: Planar produces tonal sweeps; Interleaved produces dense micro-noise">TOPOLOGY</label>
+                  <select id="select-rawtype" class="select-hw" title="Pixel byte readout layout">
                     <option value="PLANAR">Planar (Color Sweeps)</option>
                     <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
                   </select>
                 </div>
 
                 <div class="hw-field">
-                  <label class="hw-label">BIT DEPTH</label>
-                  <select id="select-bitdepth" class="select-hw">
+                  <label class="hw-label" title="Audio quantization resolution: 8-bit lofi to 24-bit studio depth">BIT DEPTH</label>
+                  <select id="select-bitdepth" class="select-hw" title="Quantization bit depth">
                     <option value="8">8-bit</option>
                     <option value="16">16-bit</option>
                     <option value="24">24-bit</option>
@@ -231,8 +231,8 @@
 
               <div class="hw-field-row">
                 <div class="hw-field">
-                  <label class="hw-label">COMPANDING LAW</label>
-                  <select id="select-law" class="select-hw">
+                  <label class="hw-label" title="Compression curve used to shape dynamic range and harmonic distortion">COMPANDING LAW</label>
+                  <select id="select-law" class="select-hw" title="Dynamic companding algorithm">
                     <option value="A_LAW">A-Law (Europe G.711)</option>
                     <option value="U_LAW">μ-Law (USA G.711)</option>
                     <option value="NONE">Linear (None)</option>
@@ -240,8 +240,8 @@
                 </div>
 
                 <div class="hw-field toggle-field">
-                  <label class="hw-label">HISTOGRAM</label>
-                  <label class="hw-toggle-switch">
+                  <label class="hw-label" title="Evenly distribute contrast across the frame to boost sonic brightness">HISTOGRAM</label>
+                  <label class="hw-toggle-switch" title="Auto-equalize frame contrast before sonification">
                     <input type="checkbox" id="check-equalize" checked />
                     <span class="toggle-slider"></span>
                     <span class="toggle-text">Equalize</span>
@@ -508,7 +508,7 @@
           <button id="btn-close-qr" class="btn-close">&times;</button>
         </div>
         <p class="modal-desc">
-          Scan with your phone camera to open this preset on your mobile Sound Camera:
+          Scan with your phone to use its camera as a handheld sound sensor:
         </p>
         <div class="qr-container">
           <img id="qr-image" alt="Preset QR Code" />
@@ -635,33 +635,45 @@
           <div class="about-section">
             <h4>Concept & Architecture</h4>
             <p>
-              <strong>Sonification V2</strong> is a browser-based optical sensor studio and audio-visual transducer.
-              Visual buffers from live cameras, images, and videos are translated directly into acoustic byte streams,
-              processed through modular 32-bit floating-point audio DSP filters (filters, delay lines, diode ladders,
-              wavefolders, resonators),
-              and synthesized back into image frames and audible sound in real time.
+              <strong>Sonification V2</strong> turns pictures and live camera feeds into sound.
+              The app reads pixel data directly from your screen or webcam, feeds it into an audio synthesizer rack as raw signal,
+              and paints the sound back onto the image in real time.
+            </p>
+          </div>
+
+          <div class="about-section">
+            <h4>Philosophy & Intent</h4>
+            <p>
+              Pixels and audio samples are just bytes.
+              When you feed an image into a synth filter, you hear textures and edges as tones and noise.
+              When you route that audio back into the picture, the sound bends the frame.
+              It is a two-way loop where visual art and electronic music run on the exact same signal wire.
             </p>
           </div>
 
           <div class="about-grid">
             <div class="about-card">
-              <h5>📷 Live Sound Camera</h5>
-              <p>Stream your smartphone or webcam sensors into continuous audio-visual feedback loops. Tap <em>Send to
-                  phone ↗</em> to open any study instantly on mobile via QR code.</p>
+              <h5>Live Optical Feed</h5>
+              <p>Stream smartphone or desktop optical sensors into continuous transduction loops. Use <em>Send to phone</em> to transfer session parameters via QR code.</p>
             </div>
             <div class="about-card">
-              <h5>🎛 Modular Eurorack DSP</h5>
-              <p>Chain 20+ hardware modules including TB-303 diode ladders, Moog 4-pole filters, Karplus-Strong string
-                synthesis, Buchla wavefolders, and vintage vinyl emulators.</p>
+              <h5>Modular DSP Rack</h5>
+              <p>Chain modules including diode ladders, state-variable filters, Karplus-Strong physical models, Buchla-style wavefolders, and delay lines.</p>
             </div>
             <div class="about-card">
-              <h5>💾 Cloud Sync & Sharing</h5>
-              <p>Create custom patches, save revisions, share public links, and browse curated community studies.</p>
+              <h5>Patch Sharing</h5>
+              <p>Persist parameter configurations, save study revisions, inspect community patches, and export raw recordings.</p>
             </div>
             <div class="about-card">
-              <h5>⌨️ Keyboard Shortcuts</h5>
-              <p><code>Space</code> Toggle audio • <code>c</code> Randomize params • <code>r</code> Randomize stream •
-                <code>f</code> Randomize rack • <code>s</code> Snapshot • <code>v</code> Record</p>
+              <h5>Key Bindings</h5>
+              <div class="about-shortcuts-list">
+                <div class="shortcut-item"><code>Space</code><span>Toggle audio output</span></div>
+                <div class="shortcut-item"><code>c</code><span>Mutate module parameters</span></div>
+                <div class="shortcut-item"><code>r</code><span>Mutate visual source</span></div>
+                <div class="shortcut-item"><code>f</code><span>Mutate DSP rack topology</span></div>
+                <div class="shortcut-item"><code>s</code><span>Capture frame snapshot</span></div>
+                <div class="shortcut-item"><code>v</code><span>Start / stop recording</span></div>
+              </div>
             </div>
           </div>
 
