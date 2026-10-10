@@ -1,587 +1,682 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Sonification V2 — Live Sound Camera & Databending Studio</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Editorial Serif & Precision Monospace Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body class="studio-theme">
-    <div id="app-notice" class="app-notice hidden" role="status" aria-live="polite"></div>
-    <div id="app" class="studio-app">
-      <!-- Top Studio Ribbon -->
-      <header class="studio-topbar">
-        <div class="topbar-brand">
-          <span class="brand-monogram">S / V2</span>
-          <span class="brand-title">SONIFICATION</span>
-          <span class="brand-sub">AUDIO-VISUAL DATABENDING & SOUND CAMERA</span>
-        </div>
-        <div class="topbar-status">
-          <span class="status-pip"></span>
-          <span class="status-label">DIRECT DSP TRANSDUCTION</span>
-        </div>
-        <div class="topbar-actions">
-          <button id="btn-my-presets" class="btn-ghost" disabled>My presets</button>
-          <button id="btn-explore-presets" class="btn-ghost">Explore</button>
-          <button id="btn-account" class="btn-ghost">Log in</button>
-          <button id="btn-qr-modal" class="btn-ghost" title="Share Preset via QR Code to Phone">
-            Send to phone ↗
-          </button>
-          <button id="btn-random-params" class="btn-ghost" title="Randomize Parameters (c)">
-            Random params
-          </button>
-          <button id="btn-random-stream" class="btn-ghost" title="Randomize Format & Stream (r)">
-            Random stream
-          </button>
-          <button id="btn-random-filters" class="btn-ghost" title="Randomize Filter Chain (f)">
-            Random rack
-          </button>
-        </div>
-      </header>
 
-      <!-- Editorial Headline & Telemetry Strip -->
-      <section class="studio-hero-bar">
-        <div class="hero-left">
-          <div class="hero-tag">PATCH ARCHITECTURE</div>
-          <h1 id="field-note-title" class="hero-title">
-            Drawn by <em>resonance</em>.
-          </h1>
-          <p id="field-note-desc" class="hero-desc">
-            Raw image buffers mapped into acoustic byte streams and modulated through 32-bit floating-point audio DSP filters.
-          </p>
-        </div>
-        <div class="hero-right">
-          <div class="hero-meta-item">
-            <span class="meta-label">PATCH</span>
-            <span id="study-number" class="meta-val-accent">01</span>
-          </div>
-          <div class="hero-meta-item hero-meta-clickable" id="btn-hero-seed" title="Click to randomize patch seed">
-            <span class="meta-label">SEED</span>
-            <span id="patch-seed" class="meta-val">4821</span>
-          </div>
-          <div class="hero-meta-item hero-meta-clickable" id="btn-hero-bus" title="Click to toggle DAC bus sample rate (8kHz, 11kHz, 22kHz, 32kHz, 44.1kHz, 48kHz, 96kHz)">
-            <span class="meta-label">BUS</span>
-            <span id="bus-rate" class="meta-val">44.1 kHz</span>
-          </div>
-        </div>
-      </section>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sonification V2 — Live Sound Camera & Databending Studio</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Editorial Serif & Precision Monospace Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
 
-      <!-- Main Workspace (Spacious Left Control Rack + Right Fitted Viewport) -->
-      <main class="workspace-grid">
-        <!-- Left Panel: Modular Eurorack Hardware Console (Collapsible Modules) -->
-        <aside class="sidebar-rack-panel">
-          <!-- PCB Header Silkscreen -->
-          <div class="rack-silkscreen-bar">
-            <span>[PCB RACK REV 2.4]</span>
-            <span>BUS A: DIRECT DAC</span>
-            <span>GND ⊕</span>
-          </div>
+<body class="studio-theme">
+  <div id="app-notice" class="app-notice hidden" role="status" aria-live="polite"></div>
+  <div id="app" class="studio-app">
+    <!-- Top Studio Ribbon -->
+    <header class="studio-topbar">
+      <div class="topbar-brand">
+        <span class="brand-monogram">S / V2</span>
+        <span class="brand-title">SONIFICATION</span>
+        <span class="brand-sub">AUDIO-VISUAL DATABENDING & SOUND CAMERA</span>
+      </div>
+      <div class="topbar-status">
+        <span class="status-pip"></span>
+        <span class="status-label">DIRECT DSP TRANSDUCTION</span>
+      </div>
+      <div class="topbar-actions">
+        <button id="btn-my-presets" class="btn-ghost" disabled>My presets</button>
+        <button id="btn-explore-presets" class="btn-ghost">Explore</button>
+        <button id="btn-account" class="btn-ghost">Log in</button>
+        <button id="btn-qr-modal" class="btn-ghost" title="Share Preset via QR Code to Phone">
+          Send to phone ↗
+        </button>
+        <button id="btn-about-modal" class="btn-ghost" title="About Sonification V2">
+          About
+        </button>
+      </div>
+    </header>
 
-          <!-- 00 / INPUT Module -->
-          <div class="rack-card collapsible-card is-collapsed" id="card-input">
-            <div class="rack-card-header" data-toggle="collapse">
-              <div class="card-title">00 / INPUT <span class="card-subtitle">Media & Sensor Source</span></div>
+    <!-- Editorial Headline & Telemetry Strip -->
+    <section class="studio-hero-bar">
+      <div class="hero-left">
+        <div class="hero-tag">PATCH ARCHITECTURE</div>
+        <h1 id="field-note-title" class="hero-title">
+          Drawn by <em>resonance</em>.
+        </h1>
+        <p id="field-note-desc" class="hero-desc">
+          Raw image buffers mapped into acoustic byte streams and modulated through 32-bit floating-point audio DSP
+          filters.
+        </p>
+      </div>
+      <div class="hero-right">
+        <div class="hero-meta-item">
+          <span class="meta-label">PATCH</span>
+          <span id="study-number" class="meta-val-accent">01</span>
+        </div>
+        <div class="hero-meta-item hero-meta-clickable" id="btn-hero-seed" title="Click to randomize patch seed">
+          <span class="meta-label">SEED</span>
+          <span id="patch-seed" class="meta-val">4821</span>
+        </div>
+        <div class="hero-meta-item hero-meta-clickable" id="btn-hero-bus"
+          title="Click to toggle DAC bus sample rate (8kHz, 11kHz, 22kHz, 32kHz, 44.1kHz, 48kHz, 96kHz)">
+          <span class="meta-label">BUS</span>
+          <span id="bus-rate" class="meta-val">44.1 kHz</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace (Spacious Left Control Rack + Right Fitted Viewport) -->
+    <main class="workspace-grid">
+      <!-- Left Panel: Modular Eurorack Hardware Console (Collapsible Modules) -->
+      <aside class="sidebar-rack-panel">
+        <!-- PCB Header Silkscreen -->
+        <div class="rack-silkscreen-bar">
+          <span>[PCB RACK REV 2.4]</span>
+          <span>BUS A: DIRECT DAC</span>
+          <span>GND ⊕</span>
+        </div>
+
+        <!-- 00 / INPUT Module -->
+        <div class="rack-card collapsible-card is-collapsed" id="card-input">
+          <div class="rack-card-header" data-toggle="collapse">
+            <div class="card-title">00 / INPUT <span class="card-subtitle">Media & Sensor Source</span></div>
+            <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+          </div>
+          <div class="card-collapse-body">
+            <div class="input-controls-grid">
+              <div class="input-btn-row">
+                <label class="btn-hw btn-hw-primary file-label" title="Load Still Image">
+                  <span>Open image</span>
+                  <input type="file" id="input-file" accept="image/*" hidden />
+                </label>
+                <label class="btn-hw btn-hw-secondary file-label" title="Load Video">
+                  <span>Open video</span>
+                  <input type="file" id="input-video-file" accept="video/*" hidden />
+                </label>
+                <button id="btn-toggle-camera" class="btn-hw btn-hw-secondary" title="Live Camera Feed">
+                  Live camera
+                </button>
+                <button id="btn-flip-camera" class="btn-hw btn-hw-icon hidden" title="Flip Camera">
+                  Flip
+                </button>
+              </div>
+              <div class="hw-field" style="margin-top: 8px;">
+                <label class="hw-label">PREVIEW RESOLUTION</label>
+                <select id="select-resolution" class="select-hw select-block" title="Live Preview Resolution">
+                  <option value="360p">360p (Fast)</option>
+                  <option value="480p" selected>480p (Balanced)</option>
+                  <option value="720p">720p (HD)</option>
+                  <option value="native">Native (Full RAW)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 01 / SOUND Module -->
+        <div class="rack-card collapsible-card is-collapsed" id="card-sound">
+          <div class="rack-card-header" data-toggle="collapse">
+            <div class="card-title">01 / SOUND <span class="card-subtitle">Transducer & Master Gain</span></div>
+            <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+          </div>
+          <div class="card-collapse-body">
+            <div class="sound-rack-controls">
+              <button id="btn-toggle-audio" class="btn-audio-hw" title="Toggle Sound Output">
+                <span class="audio-led"></span>
+                <span id="audio-btn-label">AUDIO: MUTED</span>
+              </button>
+              <div id="master-gain-knob-slot" class="master-knob-slot"></div>
+              <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.5" hidden />
+            </div>
+          </div>
+        </div>
+
+        <!-- 02 / PRESET MATRIX Module -->
+        <div class="rack-card collapsible-card is-collapsed" id="card-preset">
+          <div class="rack-card-header" data-toggle="collapse">
+            <div class="card-title">02 / PRESET MATRIX <span class="card-subtitle">Active Study</span></div>
+            <div class="header-action-group">
               <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
             </div>
-            <div class="card-collapse-body">
-              <div class="input-controls-grid">
-                <div class="input-btn-row">
-                  <label class="btn-hw btn-hw-primary file-label" title="Load Still Image">
-                    <span>Open image</span>
-                    <input type="file" id="input-file" accept="image/*" hidden />
-                  </label>
-                  <label class="btn-hw btn-hw-secondary file-label" title="Load Video">
-                    <span>Open video</span>
-                    <input type="file" id="input-video-file" accept="video/*" hidden />
-                  </label>
-                  <button id="btn-toggle-camera" class="btn-hw btn-hw-secondary" title="Live Camera Feed">
-                    Live camera
-                  </button>
-                  <button id="btn-flip-camera" class="btn-hw btn-hw-icon hidden" title="Flip Camera">
-                    Flip
-                  </button>
-                </div>
-                <div class="hw-field" style="margin-top: 8px;">
-                  <label class="hw-label">PREVIEW RESOLUTION</label>
-                  <select id="select-resolution" class="select-hw select-block" title="Live Preview Resolution">
-                    <option value="360p">360p (Fast)</option>
-                    <option value="480p" selected>480p (Balanced)</option>
-                    <option value="720p">720p (HD)</option>
-                    <option value="native">Native (Full RAW)</option>
-                  </select>
-                </div>
-              </div>
+          </div>
+          <div class="card-collapse-body">
+            <div class="preset-selector-row">
+              <select id="select-preset" class="select-hw select-block"></select>
+            </div>
+
+            <!-- Editable Preset Description -->
+            <div class="preset-desc-box">
+              <label class="hw-label" for="input-preset-desc">STUDY DESCRIPTION / NOTES</label>
+              <textarea id="input-preset-desc" class="preset-desc-textarea" rows="2"
+                placeholder="Study description and sonic notes..."></textarea>
+            </div>
+
+            <!-- Study Actions: Save As New, Update Existing, Delete, Randomize -->
+            <div class="preset-actions-bar">
+              <button id="btn-preset-save" class="btn-hw btn-hw-primary btn-sm"
+                title="Save current settings as a new custom study">
+                + Save New
+              </button>
+              <button id="btn-preset-update" class="btn-hw btn-hw-secondary btn-sm"
+                title="Update the selected study with current settings and description">
+                Update
+              </button>
+              <button id="btn-preset-delete" class="btn-hw btn-hw-danger btn-sm" title="Delete this custom study">
+                Delete
+              </button>
+            </div>
+
+            <!-- Quick Patch Randomization Controls -->
+            <div class="preset-random-row">
+              <button id="btn-random-params" class="btn-hw btn-sm" title="Randomize Filter Parameters (shortcut: c)">
+                RND Params
+              </button>
+              <button id="btn-random-stream" class="btn-hw btn-sm" title="Randomize Topology & Color (shortcut: r)">
+                RND Topology
+              </button>
+              <button id="btn-random-filters" class="btn-hw btn-sm" title="Randomize Filter Rack (shortcut: f)">
+                RND Rack
+              </button>
             </div>
           </div>
+        </div>
 
-          <!-- 01 / SOUND Module -->
-          <div class="rack-card collapsible-card is-collapsed" id="card-sound">
-            <div class="rack-card-header" data-toggle="collapse">
-              <div class="card-title">01 / SOUND <span class="card-subtitle">Transducer & Master Gain</span></div>
-              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
-            </div>
-            <div class="card-collapse-body">
-              <div class="sound-rack-controls">
-                <button id="btn-toggle-audio" class="btn-audio-hw" title="Toggle Sound Output">
-                  <span class="audio-led"></span>
-                  <span id="audio-btn-label">AUDIO: MUTED</span>
-                </button>
-                <div id="master-gain-knob-slot" class="master-knob-slot"></div>
-                <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.5" hidden />
-              </div>
-            </div>
+        <!-- 03 / TOPOLOGY Module -->
+        <div class="rack-card collapsible-card is-collapsed" id="card-topology">
+          <div class="rack-card-header" data-toggle="collapse">
+            <div class="card-title">03 / TOPOLOGY <span class="card-subtitle">Stream & Color Architecture</span></div>
+            <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
           </div>
-
-          <!-- 02 / PRESET MATRIX Module -->
-          <div class="rack-card collapsible-card is-collapsed" id="card-preset">
-            <div class="rack-card-header" data-toggle="collapse">
-              <div class="card-title">02 / PRESET MATRIX <span class="card-subtitle">Active Study</span></div>
-              <div class="header-action-group">
-                <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
-              </div>
-            </div>
-            <div class="card-collapse-body">
-              <div class="preset-selector-row">
-                <select id="select-preset" class="select-hw select-block"></select>
-              </div>
-
-              <!-- Editable Preset Description -->
-              <div class="preset-desc-box">
-                <label class="hw-label" for="input-preset-desc">STUDY DESCRIPTION / NOTES</label>
-                <textarea id="input-preset-desc" class="preset-desc-textarea" rows="2" placeholder="Study description and sonic notes..."></textarea>
+          <div class="card-collapse-body">
+            <div class="generator-controls">
+              <div class="hw-field">
+                <label class="hw-label">COLOR SPACE</label>
+                <select id="select-colorspace" class="select-hw select-block">
+                  <option value="RGB">RGB (Linear Byte Map)</option>
+                  <option value="LAB">LAB (Perceptual Opponent)</option>
+                  <option value="LUV">LUV (Uniform Chromaticity)</option>
+                  <option value="HCL">HCL (Chroma & Hue Polarity)</option>
+                  <option value="XYZ">XYZ (CIE Colorimetric Tristimulus)</option>
+                  <option value="YXY">Yxy (Luminance Chromaticity)</option>
+                  <option value="CMY">CMY (Subtractive Print Dyes)</option>
+                  <option value="OHTA">OHTA (Decoupled Color Variance)</option>
+                </select>
               </div>
 
-              <!-- Study Actions: Save As New, Update Existing, Delete -->
-              <div class="preset-actions-bar">
-                <button id="btn-preset-save" class="btn-hw btn-hw-primary btn-sm" title="Save current settings as a new custom study">
-                  + Save New
-                </button>
-                <button id="btn-preset-update" class="btn-hw btn-hw-secondary btn-sm" title="Update the selected study with current settings and description">
-                  Update
-                </button>
-                <button id="btn-preset-delete" class="btn-hw btn-hw-danger btn-sm" title="Delete this custom study">
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 03 / TOPOLOGY Module -->
-          <div class="rack-card collapsible-card is-collapsed" id="card-topology">
-            <div class="rack-card-header" data-toggle="collapse">
-              <div class="card-title">03 / TOPOLOGY <span class="card-subtitle">Stream & Color Architecture</span></div>
-              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
-            </div>
-            <div class="card-collapse-body">
-              <div class="generator-controls">
+              <div class="hw-field-row">
                 <div class="hw-field">
-                  <label class="hw-label">COLOR SPACE</label>
-                  <select id="select-colorspace" class="select-hw select-block">
-                    <option value="RGB">RGB (Linear Byte Map)</option>
-                    <option value="LAB">LAB (Perceptual Opponent)</option>
-                    <option value="LUV">LUV (Uniform Chromaticity)</option>
-                    <option value="HCL">HCL (Chroma & Hue Polarity)</option>
-                    <option value="XYZ">XYZ (CIE Colorimetric Tristimulus)</option>
-                    <option value="YXY">Yxy (Luminance Chromaticity)</option>
-                    <option value="CMY">CMY (Subtractive Print Dyes)</option>
-                    <option value="OHTA">OHTA (Decoupled Color Variance)</option>
+                  <label class="hw-label">TOPOLOGY</label>
+                  <select id="select-rawtype" class="select-hw">
+                    <option value="PLANAR">Planar (Color Sweeps)</option>
+                    <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
                   </select>
                 </div>
 
-                <div class="hw-field-row">
-                  <div class="hw-field">
-                    <label class="hw-label">TOPOLOGY</label>
-                    <select id="select-rawtype" class="select-hw">
-                      <option value="PLANAR">Planar (Color Sweeps)</option>
-                      <option value="INTERLEAVED">Interleaved (Micro-Noise)</option>
-                    </select>
-                  </div>
-
-                  <div class="hw-field">
-                    <label class="hw-label">BIT DEPTH</label>
-                    <select id="select-bitdepth" class="select-hw">
-                      <option value="8">8-bit</option>
-                      <option value="16">16-bit</option>
-                      <option value="24">24-bit</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="hw-field-row">
-                  <div class="hw-field">
-                    <label class="hw-label">COMPANDING LAW</label>
-                    <select id="select-law" class="select-hw">
-                      <option value="A_LAW">A-Law (Europe G.711)</option>
-                      <option value="U_LAW">μ-Law (USA G.711)</option>
-                      <option value="NONE">Linear (None)</option>
-                    </select>
-                  </div>
-
-                  <div class="hw-field toggle-field">
-                    <label class="hw-label">HISTOGRAM</label>
-                    <label class="hw-toggle-switch">
-                      <input type="checkbox" id="check-equalize" checked />
-                      <span class="toggle-slider"></span>
-                      <span class="toggle-text">Equalize</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 04 / DSP RACK Module -->
-          <div class="rack-card collapsible-card is-collapsed modular-chain-card" id="card-dsp">
-            <div class="rack-card-header" data-toggle="collapse">
-              <div class="card-title">04 / DSP RACK <span class="card-subtitle">Modular Processing Chain</span></div>
-              <div class="header-action-group">
-                <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-icon-sq" title="Add DSP Module">+</button>
-                <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
-              </div>
-            </div>
-            <div class="card-collapse-body">
-              <div id="filter-rack-container" class="filter-rack-stack"></div>
-            </div>
-          </div>
-        </aside>
-
-        <!-- Right Panel: Viewport Area (Max 2/3 of screen, fits all resolutions cleanly) -->
-        <section class="viewport-card">
-          <!-- Viewport Bar (Top of Preview Window) -->
-          <div class="viewport-header">
-            <div class="viewport-label-group">
-              <span id="status-resolution" class="view-meta">MODEL RESOLUTION 640 × 480</span>
-              <span id="perf-badge" class="perf-badge">-- FPS | -- ms</span>
-            </div>
-
-            <!-- Top-Right Viewport Controls (Recording Timer, REC, Shutter, Tools) -->
-            <div class="viewport-tools">
-              <!-- Live Camera-style Recording Timer -->
-              <div id="rec-timer-badge" class="rec-timer-badge hidden">
-                <span class="rec-blink-dot"></span>
-                <span id="rec-time-display">00:00</span>
-              </div>
-
-              <!-- Hardware SYNC Toggle Button -->
-              <button id="btn-sync-mode" class="btn-sync-compact active" title="Recording Sync: ON (Real-Time Live) / OFF (Frame-by-Frame Offline Render for Video Files)">
-                <span class="sync-led"></span>
-                <span id="sync-btn-text">SYNC</span>
-              </button>
-
-              <!-- Compact Hardware REC Button -->
-              <button id="btn-record-video" class="btn-rec-compact" title="Record Video">
-                <span class="rec-led"></span>
-                <span id="rec-btn-text">REC</span>
-              </button>
-
-              <!-- Compact Hardware Shutter Button -->
-              <button id="btn-shutter" class="btn-shutter-compact" title="Snapshot Photo (Full Resolution)">
-                <div class="shutter-bezel-sm">
-                  <div class="shutter-core-sm"></div>
-                </div>
-              </button>
-
-              <!-- Viewport Framing Tools -->
-              <button id="btn-reset-view" class="tool-btn" title="Reset Frame">⟳</button>
-              <button id="btn-fullscreen" class="tool-btn" title="Fullscreen">⛶</button>
-            </div>
-          </div>
-
-          <!-- Canvas Container with Corner Reticles (Clean Fit) -->
-          <div class="canvas-frame">
-            <span class="reticle reticle-tl"></span>
-            <span class="reticle reticle-tr"></span>
-            <span class="reticle reticle-bl"></span>
-            <span class="reticle reticle-br"></span>
-
-            <canvas id="main-canvas"></canvas>
-
-            <div id="drop-overlay" class="drop-overlay hidden">
-              <span>Drop Image or Video Here</span>
-            </div>
-
-            <!-- Offline Frame Render Progress HUD -->
-            <div id="render-progress-overlay" class="render-progress-overlay hidden">
-              <div class="render-progress-card">
-                <div class="render-progress-header">
-                  <span class="render-progress-title">OFFLINE FRAME RENDERING</span>
-                  <span id="render-progress-counter" class="render-progress-meta">0 / 0 (0%)</span>
-                </div>
-                <div class="render-progress-bar-bg">
-                  <div id="render-progress-bar-fill" class="render-progress-bar-fill" style="width: 0%;"></div>
-                </div>
-                <div class="render-progress-footer">
-                  <span id="render-progress-fps" class="render-progress-status">COMPACTING TO 30 FPS • ZERO DROPPED FRAMES</span>
-                  <button id="btn-cancel-render" class="btn-hw btn-sm">CANCEL</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
-            <div id="mobile-camera-hud" class="mobile-camera-hud">
-              <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
-              <div class="mobile-top-bar">
-                <button id="btn-mobile-burger" class="btn-mobile-icon" title="Switch Presets" aria-label="Menu">
-                  <span class="burger-bar"></span>
-                  <span class="burger-bar"></span>
-                  <span class="burger-bar"></span>
-                </button>
-
-                <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
-                  <span class="pill-dot"></span>
-                  <span id="mobile-preset-name">Acid 303 Decay</span>
-                  <span class="pill-arrow">▾</span>
-                </button>
-
-                <div class="mobile-top-right">
-                  <!-- Live Camera Switch Button -->
-                  <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
-                    <span class="cam-badge-dot"></span>
-                    <span id="mobile-cam-badge-text">LIVE CAM</span>
-                  </button>
-
-                  <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
-                    <span class="rec-blink-dot"></span>
-                    <span id="mobile-rec-timer">00:00</span>
-                  </div>
-                  <button id="btn-mobile-fullscreen" class="btn-mobile-icon" title="Toggle Fullscreen">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                  </button>
+                <div class="hw-field">
+                  <label class="hw-label">BIT DEPTH</label>
+                  <select id="select-bitdepth" class="select-hw">
+                    <option value="8">8-bit</option>
+                    <option value="16">16-bit</option>
+                    <option value="24">24-bit</option>
+                  </select>
                 </div>
               </div>
 
-              <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
-              <div id="mobile-start-overlay" class="mobile-start-overlay">
-                <div class="mobile-start-card">
-                  <div class="start-tag">TRANSDUCER SENSOR</div>
-                  <div class="start-title">LIVE CAMERA FEED</div>
-                  <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
-                  <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary" style="margin-top: 14px; width: 100%;">
-                    ENGAGE CAMERA ↗
-                  </button>
+              <div class="hw-field-row">
+                <div class="hw-field">
+                  <label class="hw-label">COMPANDING LAW</label>
+                  <select id="select-law" class="select-hw">
+                    <option value="A_LAW">A-Law (Europe G.711)</option>
+                    <option value="U_LAW">μ-Law (USA G.711)</option>
+                    <option value="NONE">Linear (None)</option>
+                  </select>
+                </div>
+
+                <div class="hw-field toggle-field">
+                  <label class="hw-label">HISTOGRAM</label>
+                  <label class="hw-toggle-switch">
+                    <input type="checkbox" id="check-equalize" checked />
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-text">Equalize</span>
+                  </label>
                 </div>
               </div>
-
-              <!-- Shutter Flash Feedback Layer -->
-              <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
-
-              <!-- Bottom Camera Action Bar: Flip, Picture Shutter, Record Video, Audio Mute -->
-              <div class="mobile-bottom-bar">
-                <!-- Flip Camera Button -->
-                <button id="btn-mobile-flip" class="btn-mobile-action" title="Flip Camera">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3"/><path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3"/></svg>
-                  <span class="mobile-action-label">FLIP</span>
-                </button>
-
-                <!-- Make Picture (Shutter) Button -->
-                <button id="btn-mobile-shutter" class="btn-shutter-ring" title="Take Photo Snapshot">
-                  <span class="shutter-inner"></span>
-                </button>
-
-                <!-- Record Video (REC) Button -->
-                <button id="btn-mobile-rec" class="btn-rec-ring" title="Record Video">
-                  <span class="rec-inner"></span>
-                </button>
-
-                <!-- Audio Output Toggle Button -->
-                <button id="btn-mobile-audio" class="btn-mobile-action" title="Toggle Audio Output">
-                  <svg id="mobile-audio-icon-on" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                  <svg id="mobile-audio-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                  <span id="mobile-audio-label" class="mobile-action-label">MUTED</span>
-                </button>
-              </div>
             </div>
-          </div>
-        </section>
-      </main>
-
-      <!-- Mobile Preset Switcher Drawer (Burger Menu) -->
-      <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop hidden"></div>
-      <aside id="mobile-preset-drawer" class="mobile-preset-drawer">
-        <div class="drawer-header">
-          <div class="drawer-header-left">
-            <span class="drawer-tag">ACTIVE STUDIES</span>
-            <h2 class="drawer-title">Switch Preset</h2>
-          </div>
-          <button id="btn-close-mobile-drawer" class="btn-close-drawer" aria-label="Close">&times;</button>
-        </div>
-
-        <div class="drawer-scrollable">
-          <button id="btn-drawer-camera" class="btn-hw btn-hw-primary btn-block" style="margin-bottom: 8px;">
-            Switch to Live Camera Feed
-          </button>
-          <div id="mobile-preset-list" class="mobile-preset-list"></div>
-          <div class="drawer-account-actions">
-            <button id="btn-drawer-my-presets" class="btn-hw btn-hw-secondary btn-block" disabled>My presets</button>
-            <button id="btn-drawer-explore" class="btn-hw btn-hw-secondary btn-block">Explore shared presets</button>
-            <button id="btn-drawer-account" class="btn-hw btn-hw-secondary btn-block">Log in</button>
-          </div>
-
-          <div class="drawer-section">
-            <span class="drawer-section-title">AUDIO MASTER OUTPUT</span>
-            <div class="drawer-volume-row">
-              <span class="vol-label">GAIN</span>
-              <input type="range" id="mobile-slider-volume" min="0" max="1" step="0.05" value="0.5" class="mobile-range-slider" />
-            </div>
-          </div>
-
-          <div class="drawer-section">
-            <span class="drawer-section-title">CAMERA RESOLUTION</span>
-            <select id="mobile-select-resolution" class="select-hw select-block">
-              <option value="360p">360p (Fastest)</option>
-              <option value="480p" selected>480p (Balanced)</option>
-              <option value="720p">720p (HD)</option>
-              <option value="native">Native (Full Sensor)</option>
-            </select>
           </div>
         </div>
 
-        <div class="drawer-footer">
-          <button id="btn-mobile-desktop-toggle" class="btn-hw btn-hw-secondary btn-block">
-            Toggle Full Desktop Studio Rack
-          </button>
+        <!-- 04 / DSP RACK Module -->
+        <div class="rack-card collapsible-card is-collapsed modular-chain-card" id="card-dsp">
+          <div class="rack-card-header" data-toggle="collapse">
+            <div class="card-title">04 / DSP RACK <span class="card-subtitle">Modular Processing Chain</span></div>
+            <div class="header-action-group">
+              <button id="btn-add-filter" class="btn-hw btn-hw-primary btn-icon-sq" title="Add DSP Module">+</button>
+              <button class="btn-collapse-toggle" title="Collapse/Expand">▾</button>
+            </div>
+          </div>
+          <div class="card-collapse-body">
+            <div id="filter-rack-container" class="filter-rack-stack"></div>
+          </div>
         </div>
       </aside>
 
-      <!-- Hardware Studio Footer -->
-      <footer class="studio-footer">
-        <div class="footer-left">
-          <span>SONIFICATION V2 • AUDIO-VISUAL DATABENDING</span>
-        </div>
-        <div class="footer-center">
-          <span>DIRECT 32-BIT FLOATING DSP PIPELINE • FULL-RESOLUTION TRANSDUCTION</span>
-        </div>
-        <div class="footer-right">
-          <span>STATUS: ONLINE ⊕</span>
-        </div>
-      </footer>
-
-      <!-- Modals -->
-      <!-- QR Code Modal -->
-      <div id="qr-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-          <div class="modal-header">
-            <h3 class="modal-title">Mobile Sensor Link</h3>
-            <button id="btn-close-qr" class="btn-close">&times;</button>
+      <!-- Right Panel: Viewport Area (Max 2/3 of screen, fits all resolutions cleanly) -->
+      <section class="viewport-card">
+        <!-- Viewport Bar (Top of Preview Window) -->
+        <div class="viewport-header">
+          <div class="viewport-label-group">
+            <span id="status-resolution" class="view-meta">MODEL RESOLUTION 640 × 480</span>
+            <span id="perf-badge" class="perf-badge">-- FPS | -- ms</span>
           </div>
-          <p class="modal-desc">
-            Scan with your phone camera to open this preset on your mobile Sound Camera:
+
+          <!-- Top-Right Viewport Controls (Recording Timer, REC, Shutter, Tools) -->
+          <div class="viewport-tools">
+            <!-- Live Camera-style Recording Timer -->
+            <div id="rec-timer-badge" class="rec-timer-badge hidden">
+              <span class="rec-blink-dot"></span>
+              <span id="rec-time-display">00:00</span>
+            </div>
+
+            <!-- Hardware SYNC Toggle Button -->
+            <button id="btn-sync-mode" class="btn-sync-compact active"
+              title="Recording Sync: ON (Real-Time Live) / OFF (Frame-by-Frame Offline Render for Video Files)">
+              <span class="sync-led"></span>
+              <span id="sync-btn-text">SYNC</span>
+            </button>
+
+            <!-- Compact Hardware REC Button -->
+            <button id="btn-record-video" class="btn-rec-compact" title="Record Video">
+              <span class="rec-led"></span>
+              <span id="rec-btn-text">REC</span>
+            </button>
+
+            <!-- Compact Hardware Shutter Button -->
+            <button id="btn-shutter" class="btn-shutter-compact" title="Snapshot Photo (Full Resolution)">
+              <div class="shutter-bezel-sm">
+                <div class="shutter-core-sm"></div>
+              </div>
+            </button>
+
+            <!-- Viewport Framing Tools -->
+            <button id="btn-reset-view" class="tool-btn" title="Reset Frame">⟳</button>
+            <button id="btn-fullscreen" class="tool-btn" title="Fullscreen">⛶</button>
+          </div>
+        </div>
+
+        <!-- Canvas Container with Corner Reticles (Clean Fit) -->
+        <div class="canvas-frame">
+          <span class="reticle reticle-tl"></span>
+          <span class="reticle reticle-tr"></span>
+          <span class="reticle reticle-bl"></span>
+          <span class="reticle reticle-br"></span>
+
+          <canvas id="main-canvas"></canvas>
+
+          <div id="drop-overlay" class="drop-overlay hidden">
+            <span>Drop Image or Video Here</span>
+          </div>
+
+          <!-- Offline Frame Render Progress HUD -->
+          <div id="render-progress-overlay" class="render-progress-overlay hidden">
+            <div class="render-progress-card">
+              <div class="render-progress-header">
+                <span class="render-progress-title">OFFLINE FRAME RENDERING</span>
+                <span id="render-progress-counter" class="render-progress-meta">0 / 0 (0%)</span>
+              </div>
+              <div class="render-progress-bar-bg">
+                <div id="render-progress-bar-fill" class="render-progress-bar-fill" style="width: 0%;"></div>
+              </div>
+              <div class="render-progress-footer">
+                <span id="render-progress-fps" class="render-progress-status">COMPACTING TO 30 FPS • ZERO DROPPED
+                  FRAMES</span>
+                <button id="btn-cancel-render" class="btn-hw btn-sm">CANCEL</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
+          <div id="mobile-camera-hud" class="mobile-camera-hud">
+            <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
+            <div class="mobile-top-bar">
+              <button id="btn-mobile-burger" class="btn-mobile-icon" title="Switch Presets" aria-label="Menu">
+                <span class="burger-bar"></span>
+                <span class="burger-bar"></span>
+                <span class="burger-bar"></span>
+              </button>
+
+              <button id="btn-mobile-preset-pill" class="mobile-preset-pill" title="Tap to switch study preset">
+                <span class="pill-dot"></span>
+                <span id="mobile-preset-name">Acid 303 Decay</span>
+                <span class="pill-arrow">▾</span>
+              </button>
+
+              <div class="mobile-top-right">
+                <!-- Live Camera Switch Button -->
+                <button id="btn-mobile-cam-feed" class="btn-mobile-cam-badge" title="Switch to Live Camera Feed">
+                  <span class="cam-badge-dot"></span>
+                  <span id="mobile-cam-badge-text">LIVE CAM</span>
+                </button>
+
+                <div id="mobile-rec-badge" class="mobile-rec-badge hidden">
+                  <span class="rec-blink-dot"></span>
+                  <span id="mobile-rec-timer">00:00</span>
+                </div>
+                <button id="btn-mobile-fullscreen" class="btn-mobile-icon" title="Toggle Fullscreen">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                      d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Center Tap-To-Activate Overlay (Prompts user gesture for camera & Web Audio) -->
+            <div id="mobile-start-overlay" class="mobile-start-overlay">
+              <div class="mobile-start-card">
+                <div class="start-tag">TRANSDUCER SENSOR</div>
+                <div class="start-title">LIVE CAMERA FEED</div>
+                <div class="start-desc">Tap anywhere to activate direct optical stream & audio transducer</div>
+                <button id="btn-start-camera-prompt" class="btn-hw btn-hw-primary"
+                  style="margin-top: 14px; width: 100%;">
+                  ENGAGE CAMERA ↗
+                </button>
+              </div>
+            </div>
+
+            <!-- Shutter Flash Feedback Layer -->
+            <div id="mobile-shutter-flash" class="mobile-shutter-flash"></div>
+
+            <!-- Bottom Camera Action Bar: Flip, Picture Shutter, Record Video, Audio Mute -->
+            <div class="mobile-bottom-bar">
+              <!-- Flip Camera Button -->
+              <button id="btn-mobile-flip" class="btn-mobile-action" title="Flip Camera">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8v2l-3-3m0 6l3-3" />
+                  <path d="M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8v-2l3 3m0-6l-3 3" />
+                </svg>
+                <span class="mobile-action-label">FLIP</span>
+              </button>
+
+              <!-- Make Picture (Shutter) Button -->
+              <button id="btn-mobile-shutter" class="btn-shutter-ring" title="Take Photo Snapshot">
+                <span class="shutter-inner"></span>
+              </button>
+
+              <!-- Record Video (REC) Button -->
+              <button id="btn-mobile-rec" class="btn-rec-ring" title="Record Video">
+                <span class="rec-inner"></span>
+              </button>
+
+              <!-- Audio Output Toggle Button -->
+              <button id="btn-mobile-audio" class="btn-mobile-action" title="Toggle Audio Output">
+                <svg id="mobile-audio-icon-on" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.8">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+                <svg id="mobile-audio-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.8">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <line x1="23" y1="9" x2="17" y2="15" />
+                  <line x1="17" y1="9" x2="23" y2="15" />
+                </svg>
+                <span id="mobile-audio-label" class="mobile-action-label">MUTED</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Mobile Preset Switcher Drawer (Burger Menu) -->
+    <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop hidden"></div>
+    <aside id="mobile-preset-drawer" class="mobile-preset-drawer">
+      <div class="drawer-header">
+        <div class="drawer-header-left">
+          <span class="drawer-tag">ACTIVE STUDIES</span>
+          <h2 class="drawer-title">Switch Preset</h2>
+        </div>
+        <button id="btn-close-mobile-drawer" class="btn-close-drawer" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="drawer-scrollable">
+        <button id="btn-drawer-camera" class="btn-hw btn-hw-primary btn-block" style="margin-bottom: 8px;">
+          Switch to Live Camera Feed
+        </button>
+        <div id="mobile-preset-list" class="mobile-preset-list"></div>
+        <div class="drawer-account-actions">
+          <button id="btn-drawer-my-presets" class="btn-hw btn-hw-secondary btn-block" disabled>My presets</button>
+          <button id="btn-drawer-explore" class="btn-hw btn-hw-secondary btn-block">Explore shared presets</button>
+          <button id="btn-drawer-account" class="btn-hw btn-hw-secondary btn-block">Log in</button>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-section-title">AUDIO MASTER OUTPUT</span>
+          <div class="drawer-volume-row">
+            <span class="vol-label">GAIN</span>
+            <input type="range" id="mobile-slider-volume" min="0" max="1" step="0.05" value="0.5"
+              class="mobile-range-slider" />
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-section-title">CAMERA RESOLUTION</span>
+          <select id="mobile-select-resolution" class="select-hw select-block">
+            <option value="360p">360p (Fastest)</option>
+            <option value="480p" selected>480p (Balanced)</option>
+            <option value="720p">720p (HD)</option>
+            <option value="native">Native (Full Sensor)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button id="btn-mobile-desktop-toggle" class="btn-hw btn-hw-secondary btn-block">
+          Toggle Full Desktop Studio Rack
+        </button>
+      </div>
+    </aside>
+
+    <!-- Hardware Studio Footer -->
+    <footer class="studio-footer">
+      <div class="footer-left">
+        <span>SONIFICATION V2 • AUDIO-VISUAL DATABENDING</span>
+      </div>
+      <div class="footer-center">
+        <span>DIRECT 32-BIT FLOATING DSP PIPELINE • FULL-RESOLUTION TRANSDUCTION</span>
+      </div>
+      <div class="footer-right">
+        <span>© <a href="https://vasily.onl" target="_blank" rel="noopener noreferrer"
+            class="footer-author-link">vasily.onl</a></span>
+      </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">Mobile Sensor Link</h3>
+          <button id="btn-close-qr" class="btn-close">&times;</button>
+        </div>
+        <p class="modal-desc">
+          Scan with your phone camera to open this preset on your mobile Sound Camera:
+        </p>
+        <div class="qr-container">
+          <img id="qr-image" alt="Preset QR Code" />
+        </div>
+        <div id="qr-url-display" class="qr-url-display"></div>
+        <p id="qr-status" class="modal-desc" role="status" aria-live="polite"></p>
+        <div id="qr-lan-box" class="qr-lan-box hidden">
+          <label class="hw-label" for="input-custom-host">LAN / WI-FI IP (FOR MOBILE ACCESS)</label>
+          <div class="qr-lan-input-row">
+            <input type="text" id="input-custom-host" class="input-hw" placeholder="192.168.1.xxx:5173" />
+            <button id="btn-apply-host" class="btn-hw btn-hw-secondary">Update QR</button>
+          </div>
+          <p class="qr-lan-hint">
+            Browsing on localhost? Enter your computer's local Wi-Fi IP so your phone can reach this dev server.
           </p>
-          <div class="qr-container">
-            <img id="qr-image" alt="Preset QR Code" />
-          </div>
-          <div id="qr-url-display" class="qr-url-display"></div>
-          <p id="qr-status" class="modal-desc" role="status" aria-live="polite"></p>
-          <div id="qr-lan-box" class="qr-lan-box hidden">
-            <label class="hw-label" for="input-custom-host">LAN / WI-FI IP (FOR MOBILE ACCESS)</label>
-            <div class="qr-lan-input-row">
-              <input type="text" id="input-custom-host" class="input-hw" placeholder="192.168.1.xxx:5173" />
-              <button id="btn-apply-host" class="btn-hw btn-hw-secondary">Update QR</button>
-            </div>
-            <p class="qr-lan-hint">
-              Browsing on localhost? Enter your computer's local Wi-Fi IP so your phone can reach this dev server.
-            </p>
-          </div>
-          <div class="modal-actions">
-            <button id="btn-share-public" class="btn-hw btn-hw-secondary">Publish this saved preset</button>
-            <button id="btn-copy-link" class="btn-hw btn-hw-primary">Copy preset link ↗</button>
-          </div>
         </div>
-      </div>
-
-      <div id="account-modal" class="modal-overlay hidden">
-        <div class="modal-card account-modal-card">
-          <div class="modal-header">
-            <h3 id="account-modal-title" class="modal-title">Save and share presets</h3>
-            <button id="btn-close-account" class="btn-close" aria-label="Close">&times;</button>
-          </div>
-          <p id="account-status" class="modal-desc">Sign in to keep your presets across devices. Camera and QR presets work without an account.</p>
-          <div id="account-form">
-            <label class="hw-label" for="account-username">USERNAME</label>
-            <input id="account-username" class="input-hw account-input" autocomplete="username" maxlength="32" />
-            <label class="hw-label" for="account-password">PASSWORD</label>
-            <input id="account-password" class="input-hw account-input" type="password" autocomplete="current-password" maxlength="128" />
-            <div id="account-confirm-wrap" class="hidden">
-              <label class="hw-label" for="account-password-confirm">CONFIRM PASSWORD</label>
-              <input id="account-password-confirm" class="input-hw account-input" type="password" autocomplete="new-password" maxlength="128" />
-            </div>
-            <div class="account-actions">
-              <button id="btn-account-submit" class="btn-hw btn-hw-primary">Log in</button>
-              <button id="btn-account-mode" class="btn-hw btn-hw-secondary">Create account</button>
-            </div>
-          </div>
-          <div id="account-signed-in" class="hidden">
-            <div id="account-user-label" class="account-user-label"></div>
-            <button id="btn-import-legacy" class="btn-hw btn-hw-secondary btn-block">Import presets from this browser</button>
-            <button id="btn-account-logout" class="btn-hw btn-hw-secondary btn-block">Log out</button>
-          </div>
-          <div id="account-message" class="account-message" role="status" aria-live="polite"></div>
-        </div>
-      </div>
-
-      <div id="preset-library-modal" class="modal-overlay hidden">
-        <div class="modal-card modal-wide preset-library-modal">
-          <div class="modal-header">
-            <div>
-              <h3 id="preset-library-title" class="modal-title">Explore shared presets</h3>
-              <span class="modal-sub">Public presets are browsable without an account.</span>
-            </div>
-            <button id="btn-close-preset-library" class="btn-close" aria-label="Close">&times;</button>
-          </div>
-          <div class="preset-library-toolbar">
-            <input id="preset-library-search" class="input-hw" type="search" maxlength="128" placeholder="Search names, descriptions, or creators" />
-            <button id="btn-import-legacy-library" class="btn-hw btn-hw-secondary hidden">Import browser presets</button>
-          </div>
-          <div id="preset-library-status" class="modal-desc" role="status" aria-live="polite"></div>
-          <div id="preset-library-list" class="preset-library-list"></div>
-          <div class="preset-library-pagination">
-            <button id="btn-library-previous" class="btn-hw btn-hw-secondary">Previous</button>
-            <span id="preset-library-page">1 / 1</span>
-            <button id="btn-library-next" class="btn-hw btn-hw-secondary">Next</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add Filter Modal -->
-      <div id="add-filter-modal" class="modal-overlay hidden">
-        <div class="modal-card modal-wide">
-          <div class="modal-header">
-            <div class="modal-title-group">
-              <h3 class="modal-title">Select DSP Hardware Module</h3>
-              <span class="modal-sub">Eurorack Filters, Delays, Resonators & Modulation</span>
-            </div>
-            <button id="btn-close-filter-modal" class="btn-close">&times;</button>
-          </div>
-          <div class="filter-library-toolbar">
-            <div class="filter-search-box">
-              <input type="text" id="filter-search-input" class="input-hw filter-search-input" placeholder="Search DSP modules by name, category, or characteristics..." autocomplete="off" />
-              <button id="filter-search-clear" class="btn-search-clear hidden" title="Clear search">&times;</button>
-            </div>
-            <div class="filter-category-tabs" id="filter-category-tabs">
-              <button class="filter-cat-btn active" data-cat="all">ALL</button>
-              <button class="filter-cat-btn" data-cat="dynamics">DYNAMICS</button>
-              <button class="filter-cat-btn" data-cat="eq">EQ & SPECTRAL</button>
-              <button class="filter-cat-btn" data-cat="delay">DELAY & SPACE</button>
-              <button class="filter-cat-btn" data-cat="modulation">MODULATION</button>
-              <button class="filter-cat-btn" data-cat="synth">SYNTHESIS</button>
-              <button class="filter-cat-btn" data-cat="distortion">DISTORTION</button>
-              <button class="filter-cat-btn" data-cat="lofi">LO-FI</button>
-            </div>
-          </div>
-          <div id="filter-library-list" class="filter-library-grid"></div>
+        <div class="modal-actions">
+          <button id="btn-share-public" class="btn-hw btn-hw-secondary">Publish this saved preset</button>
+          <button id="btn-copy-link" class="btn-hw btn-hw-primary">Copy preset link ↗</button>
         </div>
       </div>
     </div>
 
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+    <div id="account-modal" class="modal-overlay hidden">
+      <div class="modal-card account-modal-card">
+        <div class="modal-header">
+          <h3 id="account-modal-title" class="modal-title">Save and share presets</h3>
+          <button id="btn-close-account" class="btn-close" aria-label="Close">&times;</button>
+        </div>
+        <p id="account-status" class="modal-desc">Sign in to keep your presets across devices. Camera and QR presets
+          work without an account.</p>
+        <div id="account-form">
+          <label class="hw-label" for="account-username">USERNAME</label>
+          <input id="account-username" class="input-hw account-input" autocomplete="username" maxlength="32" />
+          <label class="hw-label" for="account-password">PASSWORD</label>
+          <input id="account-password" class="input-hw account-input" type="password" autocomplete="current-password"
+            maxlength="128" />
+          <div id="account-confirm-wrap" class="hidden">
+            <label class="hw-label" for="account-password-confirm">CONFIRM PASSWORD</label>
+            <input id="account-password-confirm" class="input-hw account-input" type="password"
+              autocomplete="new-password" maxlength="128" />
+          </div>
+          <div class="account-actions">
+            <button id="btn-account-submit" class="btn-hw btn-hw-primary">Log in</button>
+            <button id="btn-account-mode" class="btn-hw btn-hw-secondary">Create account</button>
+          </div>
+        </div>
+        <div id="account-signed-in" class="hidden">
+          <div id="account-user-label" class="account-user-label"></div>
+          <button id="btn-import-legacy" class="btn-hw btn-hw-secondary btn-block">Import presets from this
+            browser</button>
+          <button id="btn-account-logout" class="btn-hw btn-hw-secondary btn-block">Log out</button>
+        </div>
+        <div id="account-message" class="account-message" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div id="preset-library-modal" class="modal-overlay hidden">
+      <div class="modal-card modal-wide preset-library-modal">
+        <div class="modal-header">
+          <div>
+            <h3 id="preset-library-title" class="modal-title">Explore shared presets</h3>
+            <span class="modal-sub">Public presets are browsable without an account.</span>
+          </div>
+          <button id="btn-close-preset-library" class="btn-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="preset-library-toolbar">
+          <input id="preset-library-search" class="input-hw" type="search" maxlength="128"
+            placeholder="Search names, descriptions, or creators" />
+          <button id="btn-import-legacy-library" class="btn-hw btn-hw-secondary hidden">Import browser presets</button>
+        </div>
+        <div id="preset-library-status" class="modal-desc" role="status" aria-live="polite"></div>
+        <div id="preset-library-list" class="preset-library-list"></div>
+        <div class="preset-library-pagination">
+          <button id="btn-library-previous" class="btn-hw btn-hw-secondary">Previous</button>
+          <span id="preset-library-page">1 / 1</span>
+          <button id="btn-library-next" class="btn-hw btn-hw-secondary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Filter Modal -->
+    <div id="add-filter-modal" class="modal-overlay hidden">
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title">Select DSP Hardware Module</h3>
+            <span class="modal-sub">Eurorack Filters, Delays, Resonators & Modulation</span>
+          </div>
+          <button id="btn-close-filter-modal" class="btn-close">&times;</button>
+        </div>
+        <div class="filter-library-toolbar">
+          <div class="filter-search-box">
+            <input type="text" id="filter-search-input" class="input-hw filter-search-input"
+              placeholder="Search DSP modules by name, category, or characteristics..." autocomplete="off" />
+            <button id="filter-search-clear" class="btn-search-clear hidden" title="Clear search">&times;</button>
+          </div>
+          <div class="filter-category-tabs" id="filter-category-tabs">
+            <button class="filter-cat-btn active" data-cat="all">ALL</button>
+            <button class="filter-cat-btn" data-cat="dynamics">DYNAMICS</button>
+            <button class="filter-cat-btn" data-cat="eq">EQ & SPECTRAL</button>
+            <button class="filter-cat-btn" data-cat="delay">DELAY & SPACE</button>
+            <button class="filter-cat-btn" data-cat="modulation">MODULATION</button>
+            <button class="filter-cat-btn" data-cat="synth">SYNTHESIS</button>
+            <button class="filter-cat-btn" data-cat="distortion">DISTORTION</button>
+            <button class="filter-cat-btn" data-cat="lofi">LO-FI</button>
+          </div>
+        </div>
+        <div id="filter-library-list" class="filter-library-grid"></div>
+      </div>
+    </div>
+
+    <!-- Info / About Modal -->
+    <div id="about-modal" class="modal-overlay hidden">
+      <div class="modal-card modal-wide about-modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title">About Sonification V2</h3>
+            <span class="modal-sub">Live Sound Camera & Audio-Visual Databending Studio</span>
+          </div>
+          <button id="btn-close-about" class="btn-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="about-modal-body">
+          <div class="about-section">
+            <h4>Concept & Architecture</h4>
+            <p>
+              <strong>Sonification V2</strong> is a browser-based optical sensor studio and audio-visual transducer.
+              Visual buffers from live cameras, images, and videos are translated directly into acoustic byte streams,
+              processed through modular 32-bit floating-point audio DSP filters (filters, delay lines, diode ladders,
+              wavefolders, resonators),
+              and synthesized back into image frames and audible sound in real time.
+            </p>
+          </div>
+
+          <div class="about-grid">
+            <div class="about-card">
+              <h5>📷 Live Sound Camera</h5>
+              <p>Stream your smartphone or webcam sensors into continuous audio-visual feedback loops. Tap <em>Send to
+                  phone ↗</em> to open any study instantly on mobile via QR code.</p>
+            </div>
+            <div class="about-card">
+              <h5>🎛 Modular Eurorack DSP</h5>
+              <p>Chain 20+ hardware modules including TB-303 diode ladders, Moog 4-pole filters, Karplus-Strong string
+                synthesis, Buchla wavefolders, and vintage vinyl emulators.</p>
+            </div>
+            <div class="about-card">
+              <h5>💾 Cloud Sync & Sharing</h5>
+              <p>Create custom patches, save revisions, share public links, and browse curated community studies.</p>
+            </div>
+            <div class="about-card">
+              <h5>⌨️ Keyboard Shortcuts</h5>
+              <p><code>Space</code> Toggle audio • <code>c</code> Randomize params • <code>r</code> Randomize stream •
+                <code>f</code> Randomize rack • <code>s</code> Snapshot • <code>v</code> Record</p>
+            </div>
+          </div>
+
+          <div class="about-footer-info">
+            <span>Created by <a href="https://vasily.onl" target="_blank" rel="noopener noreferrer">Vasily
+                Betin</a></span>
+            <span>•</span>
+            <a href="https://vasily.onl" target="_blank" rel="noopener noreferrer">vasily.onl</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

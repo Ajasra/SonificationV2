@@ -2412,3 +2412,103 @@ body.is-fullscreen .mobile-start-overlay {
     border-top: 1px solid var(--border-mid);
     background: var(--bg-surface);
   }
+
+  /* Preset Random Row in 02 / PRESET MATRIX */
+  .preset-random-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .preset-random-row .btn-hw {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Footer Author Link */
+  .footer-author-link {
+    color: var(--accent-phosphor);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+  .footer-author-link:hover {
+    color: var(--accent-cyan);
+    text-decoration: underline;
+  }
+
+  /* About Modal */
+  .about-modal-card {
+    max-width: 680px;
+    width: 92%;
+    max-height: min(85vh, 720px);
+    display: flex;
+    flex-direction: column;
+  }
+  .about-modal-body {
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .about-section h4 {
+    font-size: 0.85rem;
+    color: var(--accent-phosphor);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .about-section p {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .about-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .about-card {
+    background: var(--bg-darkest);
+    border: 1px solid var(--border-mid);
+    border-radius: 3px;
+    padding: 12px;
+  }
+  .about-card h5 {
+    font-size: 0.76rem;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .about-card p {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin: 0;
+  }
+  .about-card code {
+    background: var(--bg-surface);
+    color: var(--accent-cyan);
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+  }
+  .about-footer-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .about-footer-info a {
+    color: var(--accent-phosphor);
+    text-decoration: none;
+  }
+  .about-footer-info a:hover {
+    text-decoration: underline;
+  }

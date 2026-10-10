@@ -49,6 +49,7 @@ class SonificationApp {
 
   private qrModal = document.getElementById('qr-modal') as HTMLDivElement;
   private qrImage = document.getElementById('qr-image') as HTMLImageElement;
+  private aboutModal = document.getElementById('about-modal') as HTMLDivElement | null;
   private addFilterModal = document.getElementById('add-filter-modal') as HTMLDivElement;
   private filterLibraryList = document.getElementById('filter-library-list') as HTMLDivElement;
   private filterSearchInput = document.getElementById('filter-search-input') as HTMLInputElement | null;
@@ -1207,6 +1208,14 @@ class SonificationApp {
     document.getElementById('btn-close-filter-modal')!.onclick = () => {
       this.addFilterModal.classList.add('hidden');
     };
+
+    // About modal
+    document.getElementById('btn-about-modal')?.addEventListener('click', () => {
+      this.aboutModal?.classList.remove('hidden');
+    });
+    document.getElementById('btn-close-about')?.addEventListener('click', () => {
+      this.aboutModal?.classList.add('hidden');
+    });
 
     // QR Code modal
     document.getElementById('btn-qr-modal')!.onclick = async () => {
