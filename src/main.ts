@@ -1107,7 +1107,7 @@ class SonificationApp {
       headerBtns.className = 'module-actions';
 
       const toggleBtn = document.createElement('button');
-      toggleBtn.className = `btn-hw ${filterConfig.enabled ? 'btn-hw-primary' : 'btn-hw-secondary'} btn-sm`;
+      toggleBtn.className = `btn-module-toggle ${filterConfig.enabled ? 'is-active' : 'is-bypassed'}`;
       toggleBtn.textContent = filterConfig.enabled ? 'ON' : 'BYP';
       toggleBtn.title = 'Bypass or engage module';
       toggleBtn.onclick = () => {
@@ -1117,7 +1117,7 @@ class SonificationApp {
       };
 
       const removeBtn = document.createElement('button');
-      removeBtn.className = 'btn-hw btn-hw-secondary btn-sm';
+      removeBtn.className = 'btn-module-remove';
       removeBtn.textContent = '✕';
       removeBtn.title = 'Remove module from rack';
       removeBtn.onclick = () => {

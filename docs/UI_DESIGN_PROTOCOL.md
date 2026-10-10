@@ -156,10 +156,10 @@ Buttons feature crisp borders with bracket glyphs, transitioning to high-contras
 .btn-bracket {
   background: transparent;
   color: var(--text-primary);
-  border: 1px solid var(--border-mid);
-  padding: 4px 10px;
+  border: none;
+  padding: 4px 6px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.10em;
   transition: all 0.12s ease;
@@ -167,14 +167,12 @@ Buttons feature crisp borders with bracket glyphs, transitioning to high-contras
   border-radius: 1px;
 }
 
-.btn-bracket::before { content: "[ "; color: var(--text-muted); }
-.btn-bracket::after  { content: " ]"; color: var(--text-muted); }
+.btn-bracket::before { content: "[ "; color: var(--text-muted); transition: color 0.12s ease; }
+.btn-bracket::after  { content: " ]"; color: var(--text-muted); transition: color 0.12s ease; }
 
 .btn-bracket:hover {
   background: var(--bg-elevated);
-  border-color: var(--accent-phosphor);
   color: var(--accent-phosphor);
-  box-shadow: 0 0 8px var(--accent-phosphor-glow);
 }
 .btn-bracket:hover::before,
 .btn-bracket:hover::after {
