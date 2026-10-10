@@ -106,7 +106,7 @@ class SonificationApp {
 
   private scheduleFrame(video: HTMLVideoElement, callback: () => void): void {
     this.frameVideo = video;
-    if (typeof video.requestVideoFrameCallback === 'function') {
+    if (typeof video.requestVideoFrameCallback === 'function' && video.isConnected) {
       this.videoFrameId = video.requestVideoFrameCallback(callback);
     } else {
       this.animFrameId = requestAnimationFrame(callback);

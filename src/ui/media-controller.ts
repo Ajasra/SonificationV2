@@ -63,10 +63,33 @@ export class MediaController {
     return { w: Math.max(2, targetW & ~1), h: Math.max(2, targetH & ~1) };
   }
 
+  public showVideoLoading(statusText: string, metaText: string): void {
+    const overlay = document.getElementById('video-loading-overlay');
+    const status = document.getElementById('video-loading-status');
+    const meta = document.getElementById('video-loading-meta');
+    if (status) status.textContent = statusText;
+    if (meta) meta.textContent = metaText;
+    overlay?.classList.remove('hidden');
+  }
+
+  public updateVideoLoading(statusText: string, metaText?: string): void {
+    const status = document.getElementById('video-loading-status');
+    const meta = document.getElementById('video-loading-meta');
+    if (status) status.textContent = statusText;
+    if (meta && metaText !== undefined) meta.textContent = metaText;
+  }
+
+  public hideVideoLoading(): void {
+    const overlay = document.getElementById('video-loading-overlay');
+    overlay?.classList.add('hidden');
+  }
+
   public stopVideoFile(): void {
     this.opts.stopFrameLoop();
+    this.hideVideoLoading();
     if (this.loadedVideoElement) {
       this.loadedVideoElement.pause();
+      this.loadedVideoElement.remove();
       URL.revokeObjectURL(this.loadedVideoElement.src);
       this.loadedVideoElement.src = '';
       this.loadedVideoElement = null;
@@ -80,18 +103,65 @@ export class MediaController {
     this.stopVideoFile();
     this.loadedImageElement = null;
 
+    this.showVideoLoading('Opening video stream...', file.name);
+
     const video = document.createElement('video');
     video.src = URL.createObjectURL(file);
+    video.preload = 'auto';
     video.autoplay = true;
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
 
-    video.onloadedmetadata = () => {
-      video.play();
-      this.loadedVideoElement = video;
+    // Keep video element attached to DOM host so Chromium compositor keeps it active
+    const host = document.getElementById('video-hidden-host') || document.body;
+    host.appendChild(video);
+
+    this.loadedVideoElement = video;
+
+    let isStarted = false;
+    const startPlayback = () => {
+      if (isStarted || this.loadedVideoElement !== video) return;
+      isStarted = true;
+      this.hideVideoLoading();
+      video.play().catch((err) => {
+        console.warn('Video auto-playback deferred:', err);
+      });
       this.startVideoFileLoop();
     };
+
+    video.onloadedmetadata = () => {
+      if (this.loadedVideoElement !== video) return;
+      const dims = this.getTargetDimensions(video.videoWidth || 640, video.videoHeight || 480);
+      const dur = !isNaN(video.duration) && video.duration > 0 ? `${video.duration.toFixed(1)}s` : '';
+      this.updateVideoLoading(
+        'Buffering frames into decoder...',
+        `${video.videoWidth || 640}×${video.videoHeight || 480} → ${dims.w}×${dims.h} ${dur}`.trim()
+      );
+
+      if (video.readyState >= 3) {
+        startPlayback();
+      }
+    };
+
+    video.oncanplay = () => {
+      startPlayback();
+    };
+
+    video.onerror = () => {
+      this.hideVideoLoading();
+      console.error('Video decode error:', video.error);
+      alert('Could not decode video file: ' + (video.error?.message || 'Unsupported format or codec'));
+    };
+
+    // Safety timeout: if canplay doesn't fire within 2.5s but readyState >= 2, begin
+    setTimeout(() => {
+      if (!isStarted && this.loadedVideoElement === video && video.readyState >= 2) {
+        startPlayback();
+      }
+    }, 2500);
   }
 
   public startVideoFileLoop(): void {
@@ -103,8 +173,14 @@ export class MediaController {
     this.lastVideoTime = -1;
 
     const onFrame = () => {
-      if (generation !== this.opts.getLoopGeneration() || this.loadedVideoElement !== v || v.paused) return;
+      if (generation !== this.opts.getLoopGeneration() || this.loadedVideoElement !== v) return;
       const cur = this.loadedVideoElement;
+
+      // If temporarily paused or rebuffering, do not abandon the loop
+      if (cur.paused && !cur.ended) {
+        this.opts.scheduleFrame(cur, onFrame);
+        return;
+      }
 
       if (cur.readyState >= 2 && cur.currentTime !== this.lastVideoTime) {
         this.lastVideoTime = cur.currentTime;

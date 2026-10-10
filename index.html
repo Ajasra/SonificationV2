@@ -361,6 +361,23 @@
               </div>
             </div>
 
+            <!-- Video Loading & Decoder Buffering HUD Overlay -->
+            <div id="video-loading-overlay" class="video-loading-overlay hidden" aria-live="polite">
+              <div class="video-loading-card">
+                <div class="video-loading-header">
+                  <span class="video-loading-pip"></span>
+                  <span class="video-loading-title">DECODING VIDEO STREAM</span>
+                </div>
+                <div class="video-loading-body">
+                  <div class="video-loading-spinner-bar">
+                    <div class="video-loading-bar-scan"></div>
+                  </div>
+                  <div class="video-loading-status" id="video-loading-status">Buffering video frames into client memory...</div>
+                  <div class="video-loading-meta" id="video-loading-meta">-- × --</div>
+                </div>
+              </div>
+            </div>
+
             <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
             <div id="mobile-camera-hud" class="mobile-camera-hud">
               <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->
@@ -777,6 +794,7 @@
     </div>
   </div>
 
+  <div id="video-hidden-host" class="video-hidden-host" aria-hidden="true"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 
