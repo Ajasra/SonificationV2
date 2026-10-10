@@ -645,6 +645,12 @@ class SonificationApp {
           closeAboutModal();
         }
       }
+      if (e.code === 'Space' && (e.target === document.body || (e.target as HTMLElement).tagName === 'BUTTON')) {
+        if (this.mediaController.getLoadedVideo()) {
+          e.preventDefault();
+          this.mediaController.toggleVideoPlayPause();
+        }
+      }
     });
 
     document.getElementById('btn-qr-modal')?.addEventListener('click', () => {

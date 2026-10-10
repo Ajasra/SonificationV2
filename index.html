@@ -378,6 +378,72 @@
               </div>
             </div>
 
+            <!-- Video File Hardware Timeline Dock (Active in video file mode) -->
+            <div id="video-timeline-dock" class="video-timeline-dock hidden" aria-label="Video Loop Timeline">
+              <div class="timeline-header-strip">
+                <div class="timeline-transport-group">
+                  <button id="timeline-btn-play" class="timeline-btn" title="Play / Pause Video (Space)">
+                    <span id="timeline-play-icon" class="transport-icon">⏸</span>
+                  </button>
+                  <button id="timeline-btn-reset-loop" class="timeline-btn timeline-btn-text" title="Reset Loop to Full Duration">
+                    <span class="loop-reset-icon">⟲</span>
+                    <span>ALL</span>
+                  </button>
+                  <div class="timeline-loop-indicator">
+                    <span id="timeline-loop-led" class="timeline-loop-led"></span>
+                    <span id="timeline-loop-label" class="timeline-loop-label">LOOP ALL</span>
+                  </div>
+                </div>
+
+                <div class="timeline-readout-group">
+                  <div class="time-readout-item">
+                    <span class="time-readout-tag">POS</span>
+                    <span id="timeline-pos-readout" class="time-readout-val">00:00.00</span>
+                  </div>
+                  <span class="time-readout-sep">/</span>
+                  <div class="time-readout-item">
+                    <span class="time-readout-tag">DUR</span>
+                    <span id="timeline-dur-readout" class="time-readout-val">00:00.00</span>
+                  </div>
+                  <div class="time-range-pill">
+                    <span class="range-tag">A</span>
+                    <span id="timeline-in-readout" class="range-val">00:00.00</span>
+                    <span class="range-sep">↔</span>
+                    <span class="range-tag">B</span>
+                    <span id="timeline-out-readout" class="range-val">00:00.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive Track with Loop Window, In/Out Brackets & Needle Playhead -->
+              <div class="timeline-track-wrap" id="timeline-track-wrap">
+                <div class="timeline-graduations" id="timeline-graduations"></div>
+                <div class="timeline-rail" id="timeline-rail">
+                  <!-- Dimmed Region Before In-Point -->
+                  <div class="timeline-dimmed timeline-dimmed-left" id="timeline-dimmed-left"></div>
+                  <!-- Active Loop Region (Window between Start and End) -->
+                  <div class="timeline-loop-window" id="timeline-loop-window"></div>
+                  <!-- Dimmed Region After Out-Point -->
+                  <div class="timeline-dimmed timeline-dimmed-right" id="timeline-dimmed-right"></div>
+                  <!-- Left Edge Marker (In-Point A) -->
+                  <div class="timeline-handle timeline-handle-in" id="timeline-handle-in" title="Drag to adjust Start (A)" tabindex="0" role="slider" aria-label="Loop Start">
+                    <div class="handle-grip"></div>
+                    <span class="handle-flag">A</span>
+                  </div>
+                  <!-- Right Edge Marker (Out-Point B) -->
+                  <div class="timeline-handle timeline-handle-out" id="timeline-handle-out" title="Drag to adjust End (B)" tabindex="0" role="slider" aria-label="Loop End">
+                    <div class="handle-grip"></div>
+                    <span class="handle-flag">B</span>
+                  </div>
+                  <!-- Current Playhead Needle -->
+                  <div class="timeline-playhead" id="timeline-playhead" title="Current Playhead">
+                    <div class="playhead-diamond"></div>
+                    <div class="playhead-line"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Mobile Minimal Camera HUD (Active in mobile / fullscreen view) -->
             <div id="mobile-camera-hud" class="mobile-camera-hud">
               <!-- Top Bar: Burger Menu, Active Preset Pill, Live Cam Badge, Status/REC Timer -->

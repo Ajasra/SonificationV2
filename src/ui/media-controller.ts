@@ -1,10 +1,10 @@
-// Media I/O, File Loading, Image Snapshot & Video Recording Controller
 import type { SonificationPipeline } from '../engine/pipeline.ts';
 import type { VideoRecorder } from '../record/video-recorder.ts';
 import type { OfflineVideoRecorder } from '../record/offline-video-recorder.ts';
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import type { CameraManager } from '../camera/camera-manager.ts';
 import type { SonificationPreset } from '../types/index.ts';
+import { VideoTimeline } from './video-timeline.ts';
 
 export interface MediaControllerOptions {
   canvas: HTMLCanvasElement;
@@ -35,7 +35,57 @@ export class MediaController {
   private recTimerInterval: number | null = null;
   private recStartTime = 0;
 
-  constructor(private opts: MediaControllerOptions) {}
+  private videoTimeline: VideoTimeline;
+
+  constructor(private opts: MediaControllerOptions) {
+    this.videoTimeline = new VideoTimeline({
+      onSeek: (time) => {
+        if (this.loadedVideoElement) {
+          this.loadedVideoElement.currentTime = time;
+          this.lastVideoTime = -1;
+          this.requestVideoFrameRender();
+        }
+      },
+      onRangeChange: () => {},
+      onTogglePlayPause: () => {
+        this.toggleVideoPlayPause();
+      },
+    });
+  }
+
+  public getVideoTimeline(): VideoTimeline {
+    return this.videoTimeline;
+  }
+
+  public toggleVideoPlayPause(): void {
+    const v = this.loadedVideoElement;
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(console.warn);
+      this.videoTimeline.setPlaying(true);
+      this.startVideoFileLoop();
+    } else {
+      v.pause();
+      this.videoTimeline.setPlaying(false);
+    }
+  }
+
+  private requestVideoFrameRender(): void {
+    const cur = this.loadedVideoElement;
+    if (!cur || cur.readyState < 2) return;
+    const dims = this.getTargetDimensions(cur.videoWidth || 640, cur.videoHeight || 480);
+    if (this.opts.offscreenCanvas.width !== dims.w || this.opts.offscreenCanvas.height !== dims.h) {
+      this.opts.offscreenCanvas.width = dims.w;
+      this.opts.offscreenCanvas.height = dims.h;
+    }
+    if (this.opts.canvas.width !== dims.w || this.opts.canvas.height !== dims.h) {
+      this.opts.canvas.width = dims.w;
+      this.opts.canvas.height = dims.h;
+    }
+    this.opts.offscreenCtx.drawImage(cur, 0, 0, dims.w, dims.h);
+    const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
+    this.opts.onFrameProcessed(inputBuffer);
+  }
 
   public getLoadedVideo(): HTMLVideoElement | null {
     return this.loadedVideoElement;
@@ -87,6 +137,7 @@ export class MediaController {
   public stopVideoFile(): void {
     this.opts.stopFrameLoop();
     this.hideVideoLoading();
+    this.videoTimeline.detachVideo();
     if (this.loadedVideoElement) {
       this.loadedVideoElement.pause();
       this.loadedVideoElement.remove();
@@ -126,6 +177,7 @@ export class MediaController {
       if (isStarted || this.loadedVideoElement !== video) return;
       isStarted = true;
       this.hideVideoLoading();
+      this.videoTimeline.setPlaying(true);
       video.play().catch((err) => {
         console.warn('Video auto-playback deferred:', err);
       });
@@ -134,6 +186,7 @@ export class MediaController {
 
     video.onloadedmetadata = () => {
       if (this.loadedVideoElement !== video) return;
+      this.videoTimeline.attachVideo(video);
       const dims = this.getTargetDimensions(video.videoWidth || 640, video.videoHeight || 480);
       const dur = !isNaN(video.duration) && video.duration > 0 ? `${video.duration.toFixed(1)}s` : '';
       this.updateVideoLoading(
@@ -181,6 +234,15 @@ export class MediaController {
         this.opts.scheduleFrame(cur, onFrame);
         return;
       }
+
+      // Check A-B loop boundaries and wrap to start if reached end
+      const wrapTime = this.videoTimeline.checkLoopBoundaries(cur.currentTime);
+      if (wrapTime !== null) {
+        cur.currentTime = wrapTime;
+        this.lastVideoTime = -1;
+      }
+
+      this.videoTimeline.updatePlayhead(cur.currentTime);
 
       if (cur.readyState >= 2 && cur.currentTime !== this.lastVideoTime) {
         this.lastVideoTime = cur.currentTime;
@@ -318,6 +380,8 @@ export class MediaController {
     if (progressCounter) progressCounter.textContent = '0 / 0 (0%)';
     if (progressFps) progressFps.textContent = 'STARTING OFFLINE RENDER • TARGET: 30 FPS';
 
+    const loop = this.videoTimeline.getLoopRange();
+
     try {
       const res = await this.opts.offlineVideoRecorder.render({
         video: v,
@@ -326,6 +390,8 @@ export class MediaController {
         activePreset: this.opts.getActivePreset(),
         targetFps: 30,
         audioSampleRate: this.opts.getBusRate(),
+        startTime: loop.start,
+        endTime: loop.end,
         onProgress: (prog) => {
           if (progressFill) progressFill.style.width = `${prog.percent}%`;
           if (progressCounter) {

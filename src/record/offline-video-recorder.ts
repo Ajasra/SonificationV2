@@ -16,6 +16,8 @@ export interface OfflineRenderOptions {
   activePreset: SonificationPreset;
   targetFps?: number;
   audioSampleRate?: number;
+  startTime?: number;
+  endTime?: number;
   onProgress?: (progress: OfflineRenderProgress) => void;
 }
 
@@ -57,11 +59,15 @@ export class OfflineVideoRecorder {
     video.pause();
 
     // Ensure video duration is valid
-    const duration = video.duration;
-    if (!duration || isNaN(duration) || duration <= 0) {
+    const rawDuration = video.duration;
+    if (!rawDuration || isNaN(rawDuration) || rawDuration <= 0) {
       this.isRunning = false;
       throw new Error('Invalid video duration');
     }
+
+    const startSec = Math.max(0, Math.min(rawDuration, options.startTime ?? 0));
+    const endSec = Math.max(startSec + 0.05, Math.min(rawDuration, options.endTime ?? rawDuration));
+    const duration = endSec - startSec;
 
     const totalFrames = Math.max(1, Math.floor(duration * targetFps));
 
@@ -171,7 +177,7 @@ export class OfflineVideoRecorder {
           break;
         }
 
-        const targetTime = frameIdx / targetFps;
+        const targetTime = startSec + (frameIdx / targetFps);
 
         // Deterministic seek to exact frame position
         await this.seekVideo(video, targetTime);
