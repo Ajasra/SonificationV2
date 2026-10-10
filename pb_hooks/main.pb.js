@@ -14,8 +14,13 @@ onRecordCreateRequest((e) => {
   if (payload.name !== e.record.getString('name') || (payload.description || '') !== e.record.getString('description')) {
     throw new BadRequestError('Preset metadata does not match its payload.');
   }
-  e.record.set('owner', e.auth.id);
-  e.record.set('authorName', e.auth.getString('username'));
+
+  // If superuser is creating the record on behalf of a user
+  const isSuperuser = e.auth.collection().name === '_superusers';
+  if (!isSuperuser) {
+    e.record.set('owner', e.auth.id);
+    e.record.set('authorName', e.auth.getString('username'));
+  }
   e.record.set('visibility', e.record.getString('visibility') === 'public' ? 'public' : 'private');
   e.record.set('schemaVersion', 1);
   e.next();
