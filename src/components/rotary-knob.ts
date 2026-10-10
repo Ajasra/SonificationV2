@@ -23,7 +23,7 @@ export class RotaryKnob {
   private startVal = 0;
 
   // DOM elements
-  private dialCap!: HTMLElement;
+  private needleElement!: SVGLineElement;
   private tickLines: SVGLineElement[] = [];
   private valueDisplay!: HTMLElement;
 
@@ -104,13 +104,13 @@ export class RotaryKnob {
     svg.setAttribute('class', 'knob-svg');
     svg.setAttribute('viewBox', '0 0 100 100');
 
-    // Minimal radial tick rays (matching Reference 1 tachometer styling)
+    // Ultra-minimal 11 hairline calibration notches
     this.tickLines = [];
-    const tickCount = 19;
+    const tickCount = 11;
     for (let i = 0; i < tickCount; i++) {
       const tickNorm = i / (tickCount - 1);
       const tickAngle = (RotaryKnob.START_ANGLE + tickNorm * RotaryKnob.TOTAL_ANGLE - 90) * (Math.PI / 180);
-      const rInner = 26;
+      const rInner = 36;
       const rOuter = (i === 0 || i === tickCount - 1 || i === Math.floor(tickCount / 2)) ? 46 : 41;
       const x1 = 50 + rInner * Math.cos(tickAngle);
       const y1 = 50 + rInner * Math.sin(tickAngle);
@@ -127,20 +127,18 @@ export class RotaryKnob {
       this.tickLines.push(tickLine);
     }
 
+    // Rotating needle pointer (zero background circle, pure single vector line)
+    const needleLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    needleLine.setAttribute('x1', '50');
+    needleLine.setAttribute('y1', '50');
+    needleLine.setAttribute('x2', '50');
+    needleLine.setAttribute('y2', '20');
+    needleLine.setAttribute('class', 'knob-needle-line');
+    needleLine.style.transformOrigin = '50px 50px';
+    svg.appendChild(needleLine);
+    this.needleElement = needleLine;
+
     assembly.appendChild(svg);
-
-    // Minimal center pivot ring (matching Reference 1 center hollow ring)
-    this.dialCap = document.createElement('div');
-    this.dialCap.className = 'knob-cap';
-    this.dialCap.style.width = '20px';
-    this.dialCap.style.height = '20px';
-
-    // Pointer indicator needle
-    const pointer = document.createElement('div');
-    pointer.className = 'knob-pointer';
-    this.dialCap.appendChild(pointer);
-
-    assembly.appendChild(this.dialCap);
     container.appendChild(assembly);
 
     // Numeric readout badge below
@@ -169,7 +167,7 @@ export class RotaryKnob {
 
   private updateVisuals(): void {
     const angle = this.getAngle();
-    this.dialCap.style.transform = `rotate(${angle}deg)`;
+    this.needleElement.setAttribute('transform', `rotate(${angle} 50 50)`);
 
     // Illuminate radial ticks up to current normalized value (Reference 1 tachometer)
     const norm = this.getNormalized();

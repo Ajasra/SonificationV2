@@ -1125,43 +1125,28 @@ body.studio-theme {
 }
 
 .knob-tick-line {
-  stroke: var(--border-bright);
-  stroke-width: 1.5;
+  stroke: #253323;
+  stroke-width: 1.2;
   stroke-linecap: square;
   transition: stroke 0.08s ease, filter 0.08s ease;
 }
 
 .knob-tick-line.is-active {
   stroke: var(--accent-phosphor);
-  filter: drop-shadow(0 0 2px var(--accent-phosphor-glow));
+  filter: drop-shadow(0 0 3px var(--accent-phosphor-glow));
 }
 
-.knob-cap {
-  border-radius: 50%;
-  background: var(--bg-darkest);
-  border: 1.5px solid var(--border-bright);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
-  transition: border-color 0.15s ease;
+.knob-needle-line {
+  stroke: var(--accent-phosphor);
+  stroke-width: 1.8;
+  stroke-linecap: square;
+  filter: drop-shadow(0 0 3px var(--accent-phosphor-glow));
 }
 
-.knob-active .knob-cap,
-.knob-cap:hover {
-  border-color: var(--accent-phosphor);
-}
-
-.knob-pointer {
-  position: absolute;
-  top: 1px;
-  width: 1.5px;
-  height: 5px;
-  background: var(--accent-phosphor);
-  border-radius: 0.5px;
-  box-shadow: 0 0 3px var(--accent-phosphor);
+.knob-assembly:hover .knob-needle-line,
+.knob-active .knob-needle-line {
+  stroke: #e4f07a;
+  filter: drop-shadow(0 0 5px var(--accent-phosphor));
 }
 
 .knob-readout {
