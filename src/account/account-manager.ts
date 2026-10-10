@@ -9,6 +9,7 @@ export interface StoredPreset extends RecordModel {
   payload?: unknown;
   visibility: 'private' | 'public';
   authorName: string;
+  isDefault?: boolean;
 }
 
 const API_URL = import.meta.env.VITE_POCKETBASE_URL || (typeof window !== 'undefined' && window.location ? window.location.origin : '');
@@ -82,7 +83,7 @@ export class AccountManager {
     const filter = q
       ? this.client.filter('owner = {:owner} && (name ~ {:query} || description ~ {:query})', { owner, query: q })
       : this.client.filter('owner = {:owner}', { owner });
-    const result = await this.client.collection('presets').getList<StoredPreset>(page, 24, { filter, sort: '-updated', fields: 'id,owner,name,description,visibility,authorName,created,updated' });
+    const result = await this.client.collection('presets').getList<StoredPreset>(page, 24, { filter, sort: '-updated', fields: 'id,owner,name,description,visibility,authorName,created,updated,isDefault' });
     return { items: result.items, totalPages: result.totalPages };
   }
 
@@ -91,7 +92,7 @@ export class AccountManager {
     const filter = q
       ? this.client.filter('visibility = "public" && (name ~ {:query} || description ~ {:query} || authorName ~ {:query})', { query: q })
       : 'visibility = "public"';
-    const result = await this.client.collection('presets').getList<StoredPreset>(page, 24, { filter, sort: '-updated', fields: 'id,name,description,authorName,updated' });
+    const result = await this.client.collection('presets').getList<StoredPreset>(page, 24, { filter, sort: '-updated', fields: 'id,name,description,authorName,updated,isDefault' });
     return { items: result.items, totalPages: result.totalPages };
   }
 

@@ -360,6 +360,7 @@ export class PresetController {
     // Preset library triggers
     const openLibraryMine = () => this.openPresetLibrary('mine');
     const openLibraryExplore = () => this.openPresetLibrary('explore');
+    document.getElementById('btn-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-preset-library')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-explore-presets')?.addEventListener('click', openLibraryExplore);
     document.getElementById('btn-drawer-presets')?.addEventListener('click', openLibraryMine);
@@ -615,13 +616,22 @@ export class PresetController {
     heading.textContent = record.name;
     const badge = document.createElement('span');
     const isMine = this.libraryMode === 'mine';
-    badge.className = isMine ? 'preset-card-badge is-mine' : 'preset-card-badge is-public';
-    badge.textContent = isMine ? (record.visibility === 'public' ? 'PUBLIC' : 'MINE') : 'SHARED';
+    if (record.isDefault) {
+      badge.className = 'preset-card-badge is-default';
+      badge.textContent = 'DEFAULT';
+    } else {
+      badge.className = isMine ? 'preset-card-badge is-mine' : 'preset-card-badge is-public';
+      badge.textContent = isMine ? (record.visibility === 'public' ? 'PUBLIC' : 'MINE') : 'SHARED';
+    }
     top.append(heading, badge);
     const description = document.createElement('p');
     description.textContent = record.description || 'No description.';
     const author = document.createElement('small');
-    author.textContent = isMine ? (record.visibility === 'public' ? 'Public in Explore' : 'Private · only you') : `by ${record.authorName}`;
+    author.textContent = record.isDefault
+      ? 'Curated Default'
+      : isMine
+        ? (record.visibility === 'public' ? 'Public in Explore' : 'Private · only you')
+        : `by ${record.authorName}`;
     const actions = document.createElement('div');
     actions.className = 'preset-card-actions';
     const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {
