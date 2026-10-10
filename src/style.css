@@ -1124,30 +1124,23 @@ body.studio-theme {
   pointer-events: none;
 }
 
-.knob-track-bg {
-  fill: none;
-  stroke: var(--border-mid);
-  stroke-width: 3;
-  stroke-linecap: round;
+.knob-tick-line {
+  stroke: var(--border-bright);
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  transition: stroke 0.08s ease, filter 0.08s ease;
 }
 
-.knob-track-active {
-  fill: none;
+.knob-tick-line.is-active {
   stroke: var(--accent-phosphor);
-  stroke-width: 3;
-  stroke-linecap: round;
   filter: drop-shadow(0 0 2px var(--accent-phosphor-glow));
-}
-
-.knob-tick-dot {
-  fill: var(--text-muted);
 }
 
 .knob-cap {
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #2c362a 0%, #151b14 70%, #0e120d 100%);
+  background: var(--bg-darkest);
   border: 1.5px solid var(--border-bright);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   position: relative;
   display: flex;
   align-items: center;
@@ -1163,11 +1156,11 @@ body.studio-theme {
 
 .knob-pointer {
   position: absolute;
-  top: 2px;
-  width: 2px;
-  height: 6px;
+  top: 1px;
+  width: 1.5px;
+  height: 5px;
   background: var(--accent-phosphor);
-  border-radius: 1px;
+  border-radius: 0.5px;
   box-shadow: 0 0 3px var(--accent-phosphor);
 }
 

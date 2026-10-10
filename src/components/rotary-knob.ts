@@ -24,11 +24,10 @@ export class RotaryKnob {
 
   // DOM elements
   private dialCap!: HTMLElement;
-  private arcPath!: SVGPathElement;
+  private tickLines: SVGLineElement[] = [];
   private valueDisplay!: HTMLElement;
 
   private static readonly START_ANGLE = -135; // degrees (7 o'clock)
-  private static readonly END_ANGLE = 135;   // degrees (5 o'clock)
   private static readonly TOTAL_ANGLE = 270;
 
   constructor(options: RotaryKnobOptions) {
@@ -105,43 +104,38 @@ export class RotaryKnob {
     svg.setAttribute('class', 'knob-svg');
     svg.setAttribute('viewBox', '0 0 100 100');
 
-    // Background track arc
-    const bgArc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    bgArc.setAttribute('class', 'knob-track-bg');
-    bgArc.setAttribute('d', this.describeArc(50, 50, 42, RotaryKnob.START_ANGLE, RotaryKnob.END_ANGLE));
-    svg.appendChild(bgArc);
-
-    // Active value arc
-    this.arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    this.arcPath.setAttribute('class', 'knob-track-active');
-    svg.appendChild(this.arcPath);
-
-    // Graduation tick dots around periphery
-    const tickCount = 9;
+    // Minimal radial tick rays (matching Reference 1 tachometer styling)
+    this.tickLines = [];
+    const tickCount = 19;
     for (let i = 0; i < tickCount; i++) {
       const tickNorm = i / (tickCount - 1);
       const tickAngle = (RotaryKnob.START_ANGLE + tickNorm * RotaryKnob.TOTAL_ANGLE - 90) * (Math.PI / 180);
-      const r = 47;
-      const tx = 50 + r * Math.cos(tickAngle);
-      const ty = 50 + r * Math.sin(tickAngle);
+      const rInner = 26;
+      const rOuter = (i === 0 || i === tickCount - 1 || i === Math.floor(tickCount / 2)) ? 46 : 41;
+      const x1 = 50 + rInner * Math.cos(tickAngle);
+      const y1 = 50 + rInner * Math.sin(tickAngle);
+      const x2 = 50 + rOuter * Math.cos(tickAngle);
+      const y2 = 50 + rOuter * Math.sin(tickAngle);
 
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', tx.toFixed(1));
-      dot.setAttribute('cy', ty.toFixed(1));
-      dot.setAttribute('r', i === 0 || i === tickCount - 1 || i === Math.floor(tickCount / 2) ? '1.8' : '1.2');
-      dot.setAttribute('class', 'knob-tick-dot');
-      svg.appendChild(dot);
+      const tickLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tickLine.setAttribute('x1', x1.toFixed(1));
+      tickLine.setAttribute('y1', y1.toFixed(1));
+      tickLine.setAttribute('x2', x2.toFixed(1));
+      tickLine.setAttribute('y2', y2.toFixed(1));
+      tickLine.setAttribute('class', 'knob-tick-line');
+      svg.appendChild(tickLine);
+      this.tickLines.push(tickLine);
     }
 
     assembly.appendChild(svg);
 
-    // Rotary dial cap
+    // Minimal center pivot ring (matching Reference 1 center hollow ring)
     this.dialCap = document.createElement('div');
     this.dialCap.className = 'knob-cap';
-    this.dialCap.style.width = `${sz - 12}px`;
-    this.dialCap.style.height = `${sz - 12}px`;
+    this.dialCap.style.width = '20px';
+    this.dialCap.style.height = '20px';
 
-    // Pointer indicator line
+    // Pointer indicator needle
     const pointer = document.createElement('div');
     pointer.className = 'knob-pointer';
     this.dialCap.appendChild(pointer);
@@ -173,33 +167,20 @@ export class RotaryKnob {
     return container;
   }
 
-  private polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
-    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-    return {
-      x: centerX + radius * Math.cos(angleInRadians),
-      y: centerY + radius * Math.sin(angleInRadians),
-    };
-  }
-
-  private describeArc(x: number, y: number, radius: number, startAngle: number, endAngle: number): string {
-    const start = this.polarToCartesian(x, y, radius, endAngle);
-    const end = this.polarToCartesian(x, y, radius, startAngle);
-    const arcSweep = endAngle - startAngle <= 180 ? '0' : '1';
-    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${arcSweep} 0 ${end.x} ${end.y}`;
-  }
-
   private updateVisuals(): void {
     const angle = this.getAngle();
     this.dialCap.style.transform = `rotate(${angle}deg)`;
 
-    // Update active arc SVG path
-    if (this.currentValue <= this.options.min) {
-      this.arcPath.setAttribute('d', '');
-    } else {
-      this.arcPath.setAttribute(
-        'd',
-        this.describeArc(50, 50, 42, RotaryKnob.START_ANGLE, angle)
-      );
+    // Illuminate radial ticks up to current normalized value (Reference 1 tachometer)
+    const norm = this.getNormalized();
+    const count = this.tickLines.length;
+    for (let i = 0; i < count; i++) {
+      const lineNorm = i / (count - 1);
+      if (lineNorm <= norm + 0.001 && this.currentValue > this.options.min) {
+        this.tickLines[i].classList.add('is-active');
+      } else {
+        this.tickLines[i].classList.remove('is-active');
+      }
     }
 
     this.valueDisplay.textContent = this.formatValue(this.currentValue);
