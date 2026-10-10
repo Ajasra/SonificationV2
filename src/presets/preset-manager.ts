@@ -5,7 +5,7 @@ import { FACTORY_PRESETS } from './factory-presets.ts';
 
 const STORAGE_KEY = 'sonification_v2_presets';
 export const LEGACY_PRESETS_STORAGE_KEY = STORAGE_KEY;
-export const DEFAULT_PRESETS = FACTORY_PRESETS.slice(0, 5);
+export const DEFAULT_PRESETS = FACTORY_PRESETS;
 
 export class PresetManager {
   private presets: SonificationPreset[] = [];
