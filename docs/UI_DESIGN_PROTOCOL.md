@@ -204,8 +204,11 @@ Rotary knobs feature:
 To preserve video clarity over high-energy glitch and databent imagery, the viewport implements a dual-bay instrument console on desktop:
 - **Primary Video Bay (`.canvas-frame`):** Dedicated unobstructed screen for the active databending artwork, framed by clean hairline corner reticles (`┌ ┐ └ ┘`).
 - **Side CRT Telemetry Bay (`#telemetry-hud-bay`):** Dedicated deep-void cathode ray monitor chassis (`#060906`) housing:
-  - **CRT Radar Reticle & Concentric Rings (Ref 1):** Optical calibration rings, millimeter graduation ticks, center crosshair, and live playhead sweep.
-  - **Vector Oscilloscope & Particle Lattice (Ref 5):** Sharp 1px electron beam trace with authentic CRT phosphor persistence decay across 2–3 frames.
+  - **Functional Oscilloscope Graticule:** Laboratory amplitude reference grid lines (`+1.0`, `+0.5`, `0.0`, `-0.5`, `-1.0` matching exact signal scale), vertical time divisions, and center datum graduation ticks. All non-functional decorative circles are eliminated.
+  - **Dual-Beam Real-Time Oscilloscope:** 
+    - `╌╌ [ RAW IN ]`: Raw optical sound stream directly transduced from input pixels before DSP filtering (bone-white dashed hairline).
+    - `── [ POST DSP ]`: Filtered output stream (vivid phosphor chartreuse beam with CRT persistence decay across 2–3 frames).
+  - **Dynamic Tracking Playhead:** Center zero crosshair reticle and live vertical playhead tracking the sample scan position (`SMP: 24938`).
   - **Monospace Telemetry Matrix (Ref 2 & 4):** Live readouts for `SAMPLE BUS`, `PEAK LEVEL`, `SIGNAL RMS`, and `SCAN SEED`.
   - **Discrete Segmented LED VU Meters (Ref 2):** 20-segment discrete LED ladders for channels L and R with phosphor/amber/red step thresholds.
 - **Dynamic Toggle:** When toggled off or on compact screens, the side bay collapses cleanly and the video monitor smoothly spans 100% width.

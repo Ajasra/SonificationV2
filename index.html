@@ -31,8 +31,7 @@
         <span class="status-label">DIRECT DSP TRANSDUCTION</span>
       </div>
       <div class="topbar-actions">
-        <button id="btn-my-presets" class="btn-ghost" disabled>My presets</button>
-        <button id="btn-explore-presets" class="btn-ghost">Explore</button>
+        <button id="btn-presets" class="btn-ghost" title="Open Presets Library">Presets</button>
         <button id="btn-account" class="btn-ghost">Log in</button>
         <button id="btn-qr-modal" class="btn-ghost" title="Share Preset via QR Code to Phone">
           Send to phone ↗
@@ -148,7 +147,16 @@
           </div>
           <div class="card-collapse-body">
             <div class="preset-selector-row">
-              <select id="select-preset" class="select-hw select-block"></select>
+              <div class="preset-display-panel" id="preset-display-trigger" role="button" tabindex="0" title="Click to browse presets in Preset Matrix">
+                <div class="preset-display-top">
+                  <span class="preset-badge" id="preset-active-badge">FACTORY STUDY</span>
+                  <span class="preset-open-hint">BROWSE MATRIX ⊞</span>
+                </div>
+                <div class="preset-display-main">
+                  <span class="preset-display-name" id="preset-active-name">01 — Acid 303 Decay</span>
+                </div>
+              </div>
+              <select id="select-preset" class="select-hw select-block" style="display: none;"></select>
             </div>
 
             <!-- Editable Preset Description -->
@@ -513,8 +521,7 @@
         </button>
         <div id="mobile-preset-list" class="mobile-preset-list"></div>
         <div class="drawer-account-actions">
-          <button id="btn-drawer-my-presets" class="btn-hw btn-hw-secondary btn-block" disabled>My presets</button>
-          <button id="btn-drawer-explore" class="btn-hw btn-hw-secondary btn-block">Explore shared presets</button>
+          <button id="btn-drawer-presets" class="btn-hw btn-hw-secondary btn-block">Presets Library</button>
           <button id="btn-drawer-account" class="btn-hw btn-hw-secondary btn-block">Log in</button>
         </div>
 
@@ -640,14 +647,23 @@
       <div class="modal-card modal-wide preset-library-modal">
         <div class="modal-header">
           <div>
-            <h3 id="preset-library-title" class="modal-title">Explore shared presets</h3>
-            <span class="modal-sub">Public presets are browsable without an account.</span>
+            <h3 id="preset-library-title" class="modal-title">My presets</h3>
+            <span id="preset-library-sub" class="modal-sub">Your privately saved and shared preset studies.</span>
           </div>
           <button id="btn-close-preset-library" class="btn-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="preset-library-tabs" id="preset-library-tabs">
+          <button class="preset-lib-tab active" data-mode="mine" id="tab-presets-mine">MY PRESETS</button>
+          <button class="preset-lib-tab" data-mode="explore" id="tab-presets-explore">EXPLORE</button>
         </div>
         <div class="preset-library-toolbar">
           <input id="preset-library-search" class="input-hw" type="search" maxlength="128"
             placeholder="Search names, descriptions, or creators" />
+          <div class="preset-sub-filter" id="preset-sub-filter">
+            <button class="preset-sub-btn active" data-sub="all">ALL</button>
+            <button class="preset-sub-btn" data-sub="mine">MINE</button>
+            <button class="preset-sub-btn" data-sub="defaults">DEFAULTS</button>
+          </div>
           <button id="btn-import-legacy-library" class="btn-hw btn-hw-secondary hidden">Import browser presets</button>
         </div>
         <div id="preset-library-status" class="modal-desc" role="status" aria-live="polite"></div>

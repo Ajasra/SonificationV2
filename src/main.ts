@@ -66,7 +66,8 @@ class SonificationApp {
   private customMobileHost = '';
   private savedPresetId: string | null = null;
   private savedPresetOwnerId: string | null = null;
-  private libraryMode: 'mine' | 'explore' = 'explore';
+  private libraryMode: 'mine' | 'explore' = 'mine';
+  private presetSubFilter: 'all' | 'mine' | 'defaults' = 'all';
   private libraryPage = 1;
   private libraryTotalPages = 1;
   private libraryQuery = '';
@@ -425,16 +426,46 @@ class SonificationApp {
   }
 
   private renderPresetDropdown(): void {
-    this.selectPreset.innerHTML = '';
-    const presets = this.presetManager.getDefaultPresets();
-    for (let i = 0; i < presets.length; i++) {
-      const p = presets[i];
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = `${String(i + 1).padStart(2, '0')} — ${p.name}`;
-      opt.selected = p.id === this.activePreset.id;
-      this.selectPreset.appendChild(opt);
+    if (this.selectPreset) {
+      this.selectPreset.innerHTML = '';
+      const presets = this.presetManager.getDefaultPresets();
+      for (let i = 0; i < presets.length; i++) {
+        const p = presets[i];
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${String(i + 1).padStart(2, '0')} — ${p.name}`;
+        opt.selected = p.id === this.activePreset.id;
+        this.selectPreset.appendChild(opt);
+      }
+      if (!presets.some(p => p.id === this.activePreset.id)) {
+        const customOpt = document.createElement('option');
+        customOpt.value = this.activePreset.id;
+        customOpt.textContent = `★ — ${this.activePreset.name}`;
+        customOpt.selected = true;
+        this.selectPreset.insertBefore(customOpt, this.selectPreset.firstChild);
+      }
     }
+
+    const nameEl = document.getElementById('preset-active-name');
+    const badgeEl = document.getElementById('preset-active-badge');
+    if (nameEl) {
+      nameEl.textContent = this.activePreset.name;
+    }
+    if (badgeEl) {
+      const isUser = !!this.savedPresetId && this.savedPresetOwnerId === this.accountManager.userId;
+      const isFactory = this.presetManager.isFactoryPreset(this.activePreset.id);
+      if (isUser) {
+        badgeEl.textContent = 'MY PRESET';
+        badgeEl.className = 'preset-badge is-user';
+      } else if (isFactory) {
+        badgeEl.textContent = 'FACTORY STUDY';
+        badgeEl.className = 'preset-badge';
+      } else {
+        badgeEl.textContent = 'CUSTOM STUDY';
+        badgeEl.className = 'preset-badge is-user';
+      }
+    }
+
     this.updatePresetButtonsState();
     this.renderMobilePresetDrawer();
     this.updateMobilePresetBadge();
@@ -638,10 +669,38 @@ class SonificationApp {
     const openAccount = () => this.openAccountModal();
     document.getElementById('btn-account')?.addEventListener('click', openAccount);
     document.getElementById('btn-drawer-account')?.addEventListener('click', () => { openAccount(); this.closeMobileDrawer(); });
-    document.getElementById('btn-my-presets')?.addEventListener('click', () => this.openPresetLibrary('mine'));
-    document.getElementById('btn-drawer-my-presets')?.addEventListener('click', () => { this.openPresetLibrary('mine'); this.closeMobileDrawer(); });
+    const openPresets = () => this.openPresetLibrary('mine');
+    document.getElementById('btn-presets')?.addEventListener('click', openPresets);
+    document.getElementById('btn-my-presets')?.addEventListener('click', openPresets);
     document.getElementById('btn-explore-presets')?.addEventListener('click', () => this.openPresetLibrary('explore'));
+    document.getElementById('btn-drawer-presets')?.addEventListener('click', () => { openPresets(); this.closeMobileDrawer(); });
+    document.getElementById('btn-drawer-my-presets')?.addEventListener('click', () => { openPresets(); this.closeMobileDrawer(); });
     document.getElementById('btn-drawer-explore')?.addEventListener('click', () => { this.openPresetLibrary('explore'); this.closeMobileDrawer(); });
+
+    document.getElementById('preset-library-tabs')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.preset-lib-tab') as HTMLElement | null;
+      if (!btn) return;
+      const targetMode = btn.dataset.mode as 'mine' | 'explore';
+      if (!targetMode) return;
+      this.libraryMode = targetMode;
+      this.libraryPage = 1;
+      this.libraryQuery = '';
+      const search = document.getElementById('preset-library-search') as HTMLInputElement | null;
+      if (search) search.value = '';
+      this.updatePresetLibraryTabUI();
+      void this.loadPresetLibrary();
+    });
+
+    document.getElementById('preset-sub-filter')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.preset-sub-btn') as HTMLElement | null;
+      if (!btn) return;
+      const sub = btn.dataset.sub as 'all' | 'mine' | 'defaults';
+      if (!sub) return;
+      this.presetSubFilter = sub;
+      this.libraryPage = 1;
+      this.updatePresetLibraryTabUI();
+      void this.loadPresetLibrary();
+    });
     document.getElementById('btn-close-account')?.addEventListener('click', () => document.getElementById('account-modal')?.classList.add('hidden'));
     document.getElementById('btn-account-mode')?.addEventListener('click', () => {
       this.accountMode = this.accountMode === 'login' ? 'register' : 'login';
@@ -740,11 +799,36 @@ class SonificationApp {
     this.qrModal.classList.remove('hidden');
   }
 
-  private openPresetLibrary(mode: 'mine' | 'explore'): void {
-    if (mode === 'mine' && !this.accountManager.userId) {
-      this.openAccountModal();
-      return;
+  private updatePresetLibraryTabUI(): void {
+    const tabs = document.querySelectorAll('.preset-lib-tab');
+    tabs.forEach(tab => {
+      const mode = (tab as HTMLElement).dataset.mode;
+      tab.classList.toggle('active', mode === this.libraryMode);
+    });
+
+    const subFilter = document.getElementById('preset-sub-filter');
+    if (subFilter) {
+      subFilter.classList.toggle('hidden', this.libraryMode !== 'mine');
+      const subBtns = subFilter.querySelectorAll('.preset-sub-btn');
+      subBtns.forEach(btn => {
+        const sub = (btn as HTMLElement).dataset.sub;
+        btn.classList.toggle('active', sub === this.presetSubFilter);
+      });
     }
+
+    const title = document.getElementById('preset-library-title');
+    const sub = document.getElementById('preset-library-sub');
+    if (this.libraryMode === 'mine') {
+      if (title) title.textContent = 'Presets Library';
+      if (sub) sub.textContent = 'Your saved studies and curated built-in defaults.';
+    } else {
+      if (title) title.textContent = 'Explore Shared Presets';
+      if (sub) sub.textContent = 'Public community presets browsable without an account.';
+    }
+    document.getElementById('btn-import-legacy-library')?.classList.toggle('hidden', this.libraryMode !== 'mine');
+  }
+
+  private openPresetLibrary(mode: 'mine' | 'explore' = 'mine'): void {
     this.libraryMode = mode;
     this.libraryPage = 1;
     this.libraryQuery = '';
@@ -752,9 +836,7 @@ class SonificationApp {
     if (search) search.value = '';
     const modal = document.getElementById('preset-library-modal');
     modal?.classList.remove('hidden');
-    const title = document.getElementById('preset-library-title');
-    if (title) title.textContent = mode === 'mine' ? 'My presets' : 'Explore shared presets';
-    document.getElementById('btn-import-legacy-library')?.classList.toggle('hidden', mode !== 'mine');
+    this.updatePresetLibraryTabUI();
     this.refreshLegacyImportButtons();
     void this.loadPresetLibrary();
   }
@@ -763,38 +845,163 @@ class SonificationApp {
     const request = ++this.libraryRequest;
     const list = document.getElementById('preset-library-list');
     const status = document.getElementById('preset-library-status');
+    const pagination = document.getElementById('preset-library-pagination');
     if (!list || !status) return;
     list.replaceChildren();
-    status.textContent = 'Loading presets…';
     delete status.dataset.error;
-    try {
-      const result = this.libraryMode === 'mine'
-        ? await this.accountManager.listMine(this.libraryPage, this.libraryQuery)
-        : await this.accountManager.searchPublic(this.libraryPage, this.libraryQuery);
-      if (request !== this.libraryRequest || document.getElementById('preset-library-modal')?.classList.contains('hidden')) return;
-      this.libraryTotalPages = Math.max(1, result.totalPages);
-      status.textContent = result.items.length ? '' : 'No presets found.';
-      for (const preset of result.items) this.renderStoredPresetCard(preset, list);
-    } catch (error) {
-      if (request !== this.libraryRequest) return;
-      status.textContent = `Could not load presets: ${(error as Error).message}`;
-      status.dataset.error = 'true';
+
+    if (this.libraryMode === 'explore') {
+      status.textContent = 'Loading presets…';
+      if (pagination) pagination.classList.remove('hidden');
+      try {
+        const result = await this.accountManager.searchPublic(this.libraryPage, this.libraryQuery);
+        if (request !== this.libraryRequest || document.getElementById('preset-library-modal')?.classList.contains('hidden')) return;
+        this.libraryTotalPages = Math.max(1, result.totalPages);
+        status.textContent = result.items.length ? '' : 'No public presets found.';
+        for (const preset of result.items) this.renderStoredPresetCard(preset, list);
+      } catch (error) {
+        if (request !== this.libraryRequest) return;
+        status.textContent = `Could not load presets: ${(error as Error).message}`;
+        status.dataset.error = 'true';
+      }
+    } else {
+      // 'mine' mode with subFilter: 'all' | 'mine' | 'defaults'
+      const allDefaults = this.presetManager.getDefaultPresets();
+      const q = this.libraryQuery.toLowerCase().trim();
+      const matchedDefaults = q
+        ? allDefaults.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)))
+        : allDefaults;
+
+      if (this.presetSubFilter === 'defaults') {
+        if (pagination) pagination.classList.remove('hidden');
+        this.libraryTotalPages = Math.max(1, Math.ceil(matchedDefaults.length / 24));
+        const pageIndex = Math.max(1, Math.min(this.libraryPage, this.libraryTotalPages));
+        const start = (pageIndex - 1) * 24;
+        const pageItems = matchedDefaults.slice(start, start + 24);
+        status.textContent = pageItems.length ? '' : 'No default presets found.';
+        for (const preset of pageItems) this.renderDefaultPresetCard(preset, list);
+      } else if (this.presetSubFilter === 'mine') {
+        if (!this.accountManager.userId) {
+          if (pagination) pagination.classList.add('hidden');
+          status.textContent = 'Sign in to access your personal preset library.';
+          const loginCard = document.createElement('div');
+          loginCard.style.gridColumn = '1 / -1';
+          loginCard.style.textAlign = 'center';
+          loginCard.style.padding = '20px';
+          const loginBtn = document.createElement('button');
+          loginBtn.className = 'btn-hw btn-hw-primary';
+          loginBtn.textContent = 'Log in / Create Account';
+          loginBtn.onclick = () => { this.openAccountModal('login'); };
+          loginCard.appendChild(loginBtn);
+          list.appendChild(loginCard);
+        } else {
+          status.textContent = 'Loading presets…';
+          if (pagination) pagination.classList.remove('hidden');
+          try {
+            const result = await this.accountManager.listMine(this.libraryPage, this.libraryQuery);
+            if (request !== this.libraryRequest || document.getElementById('preset-library-modal')?.classList.contains('hidden')) return;
+            this.libraryTotalPages = Math.max(1, result.totalPages);
+            status.textContent = result.items.length ? '' : 'No saved presets found.';
+            for (const preset of result.items) this.renderStoredPresetCard(preset, list);
+          } catch (error) {
+            if (request !== this.libraryRequest) return;
+            status.textContent = `Could not load presets: ${(error as Error).message}`;
+            status.dataset.error = 'true';
+          }
+        }
+      } else {
+        // 'all': Mine on top (newest first), then Defaults
+        if (pagination) pagination.classList.add('hidden');
+        if (this.accountManager.userId) {
+          try {
+            const result = await this.accountManager.listMine(1, this.libraryQuery);
+            if (request !== this.libraryRequest || document.getElementById('preset-library-modal')?.classList.contains('hidden')) return;
+            for (const preset of result.items) this.renderStoredPresetCard(preset, list);
+          } catch (err) {
+            console.warn('Could not fetch user presets in all view', err);
+          }
+        }
+        for (const preset of matchedDefaults) this.renderDefaultPresetCard(preset, list);
+        status.textContent = list.children.length ? '' : 'No presets found matching search.';
+      }
     }
+
     const pageLabel = document.getElementById('preset-library-page');
     if (pageLabel) pageLabel.textContent = `${this.libraryPage} / ${this.libraryTotalPages}`;
-    (document.getElementById('btn-library-previous') as HTMLButtonElement | null)!.disabled = this.libraryPage <= 1;
-    (document.getElementById('btn-library-next') as HTMLButtonElement | null)!.disabled = this.libraryPage >= this.libraryTotalPages;
+    const prevBtn = document.getElementById('btn-library-previous') as HTMLButtonElement | null;
+    const nextBtn = document.getElementById('btn-library-next') as HTMLButtonElement | null;
+    if (prevBtn) prevBtn.disabled = this.libraryPage <= 1;
+    if (nextBtn) nextBtn.disabled = this.libraryPage >= this.libraryTotalPages;
+  }
+
+  private renderDefaultPresetCard(preset: SonificationPreset, list: HTMLElement): void {
+    const card = document.createElement('article');
+    card.className = 'preset-library-card';
+    const top = document.createElement('div');
+    top.className = 'preset-card-header';
+    const heading = document.createElement('h4');
+    heading.textContent = preset.name;
+    const badge = document.createElement('span');
+    badge.className = 'preset-card-badge is-default';
+    badge.textContent = 'DEFAULT';
+    top.append(heading, badge);
+    const description = document.createElement('p');
+    description.textContent = preset.description || 'Curated factory preset.';
+    const author = document.createElement('small');
+    author.textContent = 'Factory Built-in';
+    const actions = document.createElement('div');
+    actions.className = 'preset-card-actions';
+    const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {
+      const control = document.createElement('button');
+      control.className = `btn-hw ${style} btn-sm`;
+      control.textContent = label;
+      control.onclick = () => { void callback(); };
+      actions.appendChild(control);
+    };
+    button('Apply', () => {
+      this.applyPreset(preset);
+      document.getElementById('preset-library-modal')?.classList.add('hidden');
+      this.showPresetNotice(`Factory preset "${preset.name}" applied.`);
+    }, 'btn-hw-primary');
+    if (this.accountManager.userId) {
+      button('Save copy', async () => {
+        try {
+          const copy = JSON.parse(JSON.stringify(preset)) as SonificationPreset;
+          copy.id = `user_${this.newId()}`;
+          const name = prompt('Name your copy:', `${copy.name} (Copy)`);
+          if (!name?.trim()) return;
+          copy.name = name.trim().slice(0, 128);
+          const saved = await this.accountManager.save(copy);
+          this.showPresetNotice('Private copy saved to My presets.');
+          this.applyPreset(copy, saved);
+        } catch (error) { this.showPresetNotice((error as Error).message, true); }
+      });
+    }
+    button('QR link', async () => {
+      const hash = this.presetManager.encodePresetToHash(preset);
+      await this.showQrForHash(hash);
+      document.getElementById('preset-library-modal')?.classList.add('hidden');
+    });
+    card.append(top, description, author, actions);
+    list.appendChild(card);
   }
 
   private renderStoredPresetCard(record: StoredPreset, list: HTMLElement): void {
     const card = document.createElement('article');
     card.className = 'preset-library-card';
+    const top = document.createElement('div');
+    top.className = 'preset-card-header';
     const heading = document.createElement('h4');
     heading.textContent = record.name;
+    const badge = document.createElement('span');
+    const isMine = this.libraryMode === 'mine';
+    badge.className = isMine ? 'preset-card-badge is-mine' : 'preset-card-badge is-public';
+    badge.textContent = isMine ? (record.visibility === 'public' ? 'PUBLIC' : 'MINE') : 'SHARED';
+    top.append(heading, badge);
     const description = document.createElement('p');
     description.textContent = record.description || 'No description.';
     const author = document.createElement('small');
-    author.textContent = this.libraryMode === 'mine' ? record.visibility === 'public' ? 'Public · visible in Explore' : 'Private · only you can see this' : `by ${record.authorName}`;
+    author.textContent = isMine ? (record.visibility === 'public' ? 'Public in Explore' : 'Private · only you') : `by ${record.authorName}`;
     const actions = document.createElement('div');
     actions.className = 'preset-card-actions';
     const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {
@@ -806,14 +1013,14 @@ class SonificationApp {
     };
     button('Apply', async () => {
       try {
-        const preset = this.libraryMode === 'mine' ? await this.accountManager.getOwned(record.id) : await this.accountManager.getPublic(record.id);
-        const applied = this.libraryMode === 'mine' ? record : undefined;
+        const preset = isMine ? await this.accountManager.getOwned(record.id) : await this.accountManager.getPublic(record.id);
+        const applied = isMine ? record : undefined;
         this.applyPreset(preset, applied);
         document.getElementById('preset-library-modal')?.classList.add('hidden');
       } catch (error) { this.showPresetNotice((error as Error).message, true); }
     }, 'btn-hw-primary');
-    if (this.libraryMode === 'explore') {
-      if (this.accountManager.userId) button('Save a copy', async () => {
+    if (!isMine) {
+      if (this.accountManager.userId) button('Save copy', async () => {
         try {
           const preset = await this.accountManager.getPublic(record.id);
           preset.id = `user_${this.newId()}`;
@@ -822,7 +1029,7 @@ class SonificationApp {
           preset.name = name.trim().slice(0, 128);
           const saved = await this.accountManager.save(preset);
           this.showPresetNotice('Private copy saved to My presets.');
-          if (this.libraryMode === 'mine') this.applyPreset(preset, saved);
+          this.applyPreset(preset, saved);
         } catch (error) { this.showPresetNotice((error as Error).message, true); }
       });
     } else {
@@ -845,7 +1052,7 @@ class SonificationApp {
         } catch (error) { this.showPresetNotice((error as Error).message, true); }
       });
     }
-    card.append(heading, description, author, actions);
+    card.append(top, description, author, actions);
     list.appendChild(card);
   }
 
@@ -1118,12 +1325,28 @@ class SonificationApp {
     }
 
     // Preset dropdown selection
-    this.selectPreset.onchange = () => {
-      const found = this.presetManager.getPresetById(this.selectPreset.value);
-      if (found) {
-        this.applyPreset(found);
-      }
-    };
+    if (this.selectPreset) {
+      this.selectPreset.onchange = () => {
+        const found = this.presetManager.getPresetById(this.selectPreset.value);
+        if (found) {
+          this.applyPreset(found);
+        }
+      };
+    }
+
+    // Interactive Preset Display Trigger (02 / PRESET MATRIX)
+    const presetTrigger = document.getElementById('preset-display-trigger');
+    if (presetTrigger) {
+      presetTrigger.addEventListener('click', () => {
+        this.openPresetLibrary('mine');
+      });
+      presetTrigger.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+          e.preventDefault();
+          this.openPresetLibrary('mine');
+        }
+      });
+    }
 
     // Preset description editing
     if (this.inputPresetDesc) {

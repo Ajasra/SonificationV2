@@ -1290,6 +1290,81 @@ body.studio-theme {
   margin-top: 4px;
 }
 
+.preset-display-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  border-radius: 3px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.preset-display-panel:hover {
+  border-color: var(--accent-phosphor);
+  background: var(--bg-dark);
+  box-shadow: 0 0 12px rgba(78, 201, 176, 0.15);
+}
+
+.preset-display-panel:focus-visible {
+  outline: 2px solid var(--accent-phosphor);
+}
+
+.preset-display-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preset-badge {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  text-transform: uppercase;
+}
+
+.preset-badge.is-user {
+  color: var(--accent-phosphor);
+  background: rgba(78, 201, 176, 0.12);
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+.preset-open-hint {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.preset-display-panel:hover .preset-open-hint {
+  color: var(--accent-phosphor);
+}
+
+.preset-display-main {
+  display: flex;
+  align-items: center;
+}
+
+.preset-display-name {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .generator-controls {
   display: flex;
   flex-direction: column;
@@ -2604,15 +2679,181 @@ body.is-fullscreen .mobile-start-overlay {
   .account-user-label { margin: 12px 0; color: var(--accent-phosphor); font-weight: 700; }
   .account-message { min-height: 1.5em; margin-top: 12px; color: var(--accent-amber); }
   .preset-library-modal { max-height: min(82vh, 760px); display: flex; flex-direction: column; }
-  .preset-library-toolbar { display: flex; gap: 8px; margin: 14px 0; }
-  .preset-library-toolbar input { flex: 1; min-width: 0; }
-  .preset-library-list { min-height: 150px; overflow: auto; display: grid; gap: 8px; }
-  .preset-library-card { border: 1px solid var(--border-mid); padding: 12px; background: var(--bg-surface); }
-  .preset-library-card h4 { color: var(--text-primary); margin-bottom: 5px; }
-  .preset-library-card p { color: var(--text-secondary); margin: 5px 0; }
-  .preset-library-card small { color: var(--text-muted); }
-  .preset-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .preset-library-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .preset-library-tabs { display: flex; gap: 6px; margin: 12px 0 6px; flex-wrap: wrap; }
+  .preset-lib-tab {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-mid);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    transition: all 0.12s ease;
+  }
+  .preset-lib-tab:hover {
+    color: var(--text-primary);
+    border-color: var(--border-bright);
+  }
+  .preset-lib-tab.active {
+    background: var(--accent-phosphor);
+    color: var(--bg-darkest);
+    border-color: var(--accent-phosphor);
+    font-weight: 700;
+  }
+  .preset-library-toolbar { display: flex; gap: 8px; margin: 8px 0 12px; flex-wrap: wrap; align-items: center; }
+  .preset-library-toolbar input { flex: 1; min-width: 180px; }
+  .preset-sub-filter { display: flex; gap: 4px; align-items: center; }
+  .preset-sub-btn {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-mid);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    padding: 4px 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    transition: all 0.12s ease;
+  }
+  .preset-sub-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-bright);
+  }
+  .preset-sub-btn.active {
+    background: rgba(78, 201, 176, 0.18);
+    color: var(--accent-phosphor);
+    border-color: var(--accent-phosphor);
+    font-weight: 700;
+  }
+
+  .preset-library-list {
+    min-height: 160px;
+    max-height: 58vh;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #253323 #070907;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+    padding-right: 4px;
+    align-content: start;
+  }
+
+  /* Custom Hardware / Darkroom PCB Scrollbar for Preset Library */
+  .preset-library-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .preset-library-list::-webkit-scrollbar-track {
+    background: #070907;
+    border-left: 1px solid var(--border-subtle);
+    border-radius: 2px;
+  }
+  .preset-library-list::-webkit-scrollbar-thumb {
+    background: #253323;
+    border-radius: 2px;
+    border: 1px solid #131b12;
+  }
+  .preset-library-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-phosphor);
+    box-shadow: 0 0 6px var(--accent-phosphor);
+  }
+
+  @media (min-width: 920px) {
+    .preset-library-list {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 600px) and (max-width: 919px) {
+    .preset-library-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .preset-library-card {
+    border: 1px solid var(--border-mid);
+    padding: 8px 10px;
+    background: var(--bg-surface);
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .preset-library-card:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-dark);
+  }
+  .preset-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .preset-library-card h4 {
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+  .preset-card-badge {
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 1px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .preset-card-badge.is-mine {
+    color: var(--accent-phosphor);
+    background: rgba(78, 201, 176, 0.12);
+    border: 1px solid rgba(78, 201, 176, 0.3);
+  }
+  .preset-card-badge.is-default {
+    color: var(--accent-cyan);
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+  }
+  .preset-library-card p {
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    line-height: 1.3;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .preset-library-card small {
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    letter-spacing: 0.03em;
+  }
+  .preset-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .preset-card-actions .btn-hw {
+    padding: 2px 7px;
+    font-size: 0.64rem;
+  }
+  .preset-library-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
   .account-message[data-error="true"], #preset-library-status[data-error="true"] { color: var(--accent-red); }
 
   .drawer-volume-row {

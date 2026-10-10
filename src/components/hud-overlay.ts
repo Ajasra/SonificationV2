@@ -218,11 +218,9 @@ export class HudOverlay {
 
     const cx = x + w / 2;
     const cy = y + h / 2;
-    const minDim = Math.min(w, h);
 
     // Colors from Design Protocol
     const phosphorWhite = 'rgba(236, 232, 220, 0.75)';
-    const dimHairline = 'rgba(158, 167, 150, 0.22)';
     const sageTick = 'rgba(158, 167, 150, 0.55)';
     const accentPhosphor = '#c8d665';
 
@@ -262,44 +260,63 @@ export class HudOverlay {
     ctx.stroke();
 
     // -------------------------------------------------------------
-    // B. Concentric Calibration Rings & Geometric Optics (Ref 1)
+    // B. Functional Oscilloscope Amplitude & Time Division Graticule
     // -------------------------------------------------------------
-    const r1 = minDim * 0.18;
-    const r2 = minDim * 0.32;
-    const r3 = minDim * 0.46;
+    const ampScale = h * 0.38; // Matches exact waveform vertical scale
+    const gridDim = 'rgba(158, 167, 150, 0.14)';
+    const gridZero = 'rgba(158, 167, 150, 0.35)';
 
-    ctx.strokeStyle = dimHairline;
     ctx.lineWidth = 1 * this.dpr;
 
-    for (const r of [r1, r2, r3]) {
+    // Amplitude Horizontal Reference Grid Lines (+1.0, +0.5, 0.0, -0.5, -1.0)
+    const levels = [
+      { yPos: cy - ampScale, label: '+1.0', dashed: false },
+      { yPos: cy - ampScale * 0.5, label: '+0.5', dashed: true },
+      { yPos: cy, label: ' 0.0', dashed: false },
+      { yPos: cy + ampScale * 0.5, label: '-0.5', dashed: true },
+      { yPos: cy + ampScale, label: '-1.0', dashed: false },
+    ];
+
+    ctx.font = `${Math.round(7.5 * this.dpr)}px "JetBrains Mono", monospace`;
+    ctx.textBaseline = 'middle';
+
+    for (const lvl of levels) {
+      ctx.strokeStyle = lvl.dashed ? gridDim : gridZero;
+      if (lvl.dashed) {
+        ctx.setLineDash([2 * this.dpr, 4 * this.dpr]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.moveTo(x + 4 * this.dpr, lvl.yPos);
+      ctx.lineTo(x + w - 4 * this.dpr, lvl.yPos);
+      ctx.stroke();
+
+      // Amplitude level tag on right margin
+      ctx.fillStyle = 'rgba(158, 167, 150, 0.45)';
+      ctx.textAlign = 'right';
+      ctx.fillText(lvl.label, x + w - 6 * this.dpr, lvl.yPos - 6 * this.dpr);
+    }
+    ctx.setLineDash([]);
+
+    // Vertical Time Division Lines (4 divisions across the buffer)
+    const divisions = 4;
+    ctx.strokeStyle = gridDim;
+    ctx.setLineDash([2 * this.dpr, 4 * this.dpr]);
+    for (let d = 1; d < divisions; d++) {
+      const divX = x + (w * d) / divisions;
+      ctx.beginPath();
+      ctx.moveTo(divX, y + 4 * this.dpr);
+      ctx.lineTo(divX, y + h - 4 * this.dpr);
       ctx.stroke();
     }
+    ctx.setLineDash([]);
 
-    // Secondary Offset Calibration Rings (Ref 1)
-    ctx.beginPath();
-    ctx.arc(cx - r2 * 0.65, cy, r2 * 0.75, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx + r2 * 0.65, cy, r2 * 0.75, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // -------------------------------------------------------------
-    // C. Cardinal Axes with Millimeter / Sample Graduation Ticks
-    // -------------------------------------------------------------
-    ctx.strokeStyle = dimHairline;
-    ctx.beginPath();
-    ctx.moveTo(x + 6 * this.dpr, cy);
-    ctx.lineTo(x + w - 6 * this.dpr, cy);
-    ctx.moveTo(cx, y + 6 * this.dpr);
-    ctx.lineTo(cx, y + h - 6 * this.dpr);
-    ctx.stroke();
-
-    // Millimeter Axis Graduation Ticks along horizontal axis (Ref 5)
+    // Time ticks along the zero datum axis (cy)
     ctx.strokeStyle = sageTick;
     const tickStep = 20 * this.dpr;
-    const tickCount = Math.floor((w * 0.44) / tickStep);
+    const tickCount = Math.floor((w * 0.46) / tickStep);
     const tickSize = 3 * this.dpr;
 
     for (let i = -tickCount; i <= tickCount; i++) {
@@ -313,8 +330,8 @@ export class HudOverlay {
       }
     }
 
-    // Center Crosshair +
-    const crossSize = 7 * this.dpr;
+    // Center Zero Crosshair Reticle +
+    const crossSize = 6 * this.dpr;
     ctx.strokeStyle = accentPhosphor;
     ctx.lineWidth = 1.2 * this.dpr;
     ctx.beginPath();
