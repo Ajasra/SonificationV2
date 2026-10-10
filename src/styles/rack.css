@@ -593,3 +593,4 @@
   justify-items: center;
   padding-top: 2px;
 }
+.module-grip{cursor:grab;opacity:.6;margin-right:6px;user-select:none}.module-grip:hover{opacity:1}.rack-module.is-dragging{opacity:.4}.rack-module.drag-over{outline:2px dashed var(--accent,#f90);outline-offset:-2px} 

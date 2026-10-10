@@ -10,6 +10,7 @@ export interface RackControllerOptions {
 
 export class RackController {
   private container = document.getElementById('filter-rack-container') as HTMLDivElement;
+  private dragIdx: number | null = null;
 
   public static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
     dynamics: 'DYN',
@@ -35,6 +36,43 @@ export class RackController {
       const card = document.createElement('div');
       card.className = 'rack-module';
 
+      // Drag-to-reorder: only the grip handle initiates a drag so knobs keep working.
+      const grip = document.createElement('span');
+      grip.className = 'module-grip';
+      grip.textContent = '⠿';
+      grip.title = 'Drag to reorder';
+      grip.draggable = true;
+      grip.addEventListener('dragstart', (e) => {
+        this.dragIdx = idx;
+        e.dataTransfer?.setData('text/plain', String(idx));
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setDragImage(card, 20, 20);
+        }
+        card.classList.add('is-dragging');
+      });
+      grip.addEventListener('dragend', () => {
+        this.dragIdx = null;
+        card.classList.remove('is-dragging');
+        this.container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+      });
+      card.addEventListener('dragover', (e) => {
+        if (this.dragIdx === null) return;
+        e.preventDefault();
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const from = this.dragIdx;
+        this.dragIdx = null;
+        if (from === null || from === idx) return;
+        const [moved] = activePreset.filters.splice(from, 1);
+        activePreset.filters.splice(idx, 0, moved);
+        this.render();
+        this.opts.onRequestRender();
+      });
+
       const header = document.createElement('div');
       header.className = 'module-header';
 
@@ -51,6 +89,7 @@ export class RackController {
       title.className = 'module-title-text';
       title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : filterConfig.type}`;
 
+      titleGroup.appendChild(grip);
       titleGroup.appendChild(catBadge);
       titleGroup.appendChild(title);
 
