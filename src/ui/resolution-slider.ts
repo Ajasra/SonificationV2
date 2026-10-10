@@ -1,4 +1,4 @@
-import { StepSlider } from '../components/step-slider';
+import { StepSlider } from '../components/step-slider.ts';
 
 export type PreviewResolution = '360p' | '480p' | '720p' | 'native';
 

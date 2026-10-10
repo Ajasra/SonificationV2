@@ -7,3 +7,4 @@ pocketbase.exe
 .DS_Store
 *.local
 .env
+scratch_pb/

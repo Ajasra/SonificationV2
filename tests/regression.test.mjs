@@ -132,9 +132,9 @@ test('cancel both video callbacks and animation callbacks', () => {
   app.stopFrameLoop();
   assert.equal(cancelledAnimation, 3); assert.equal(cancelledVideo, 7); assert.equal(app.loopGeneration, 1);
 });
-for (const name of ['CompressorFilter', 'NoiseGateFilter']) {
+for (const [name, file] of [['CompressorFilter', 'src/engine/filters/dynamics/compressor.ts'], ['NoiseGateFilter', 'src/engine/filters/dynamics/noisegate.ts']]) {
   test(`${name} preserves history across unchanged parameter updates`, () => {
-    const Class = load('src/engine/filters/dynamics.ts')[name];
+    const Class = load(file)[name];
     const reference = new Class(), updated = new Class();
     const params = reference.getParams();
     reference.setParams(params); updated.setParams(params);

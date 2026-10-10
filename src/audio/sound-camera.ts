@@ -81,6 +81,11 @@ export class SoundCameraAudio {
     }
   }
 
+  getVolume(): number {
+    return this.volume;
+  }
+
+
   playFrameSamples(samples: Float32Array): void {
     // Only synthesize audio if speaker monitor is unmuted OR active video recording is occurring
     if (!this.ctx || (!this.isRecording && this.isMuted) || samples.length === 0 || !this.playbackBuffer) return;

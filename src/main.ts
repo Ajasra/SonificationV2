@@ -381,7 +381,7 @@ class SonificationApp {
   }
 
   private initMasterKnob(): void {
-    const slot = document.getElementById('master-knob-slot');
+    const slot = document.getElementById('master-knob-slot') || document.getElementById('master-gain-knob-slot');
     if (!slot) return;
     this.masterGainKnob = new RotaryKnob({
       min: 0,
@@ -389,7 +389,7 @@ class SonificationApp {
       step: 0.01,
       value: 0.8,
       defaultValue: 0.8,
-      label: 'OUTPUT GAIN',
+      label: 'GAIN',
       tooltip: 'Master Audio Volume Level [Range: 0.0 to 1.0]',
       size: 38,
       onChange: (val) => {
@@ -398,9 +398,14 @@ class SonificationApp {
         if (mobileVol) {
           mobileVol.value = String(val);
         }
+        const desktopVol = document.getElementById('slider-volume') as HTMLInputElement | null;
+        if (desktopVol) {
+          desktopVol.value = String(val);
+        }
       },
     });
     slot.appendChild(this.masterGainKnob.element);
+    this.audioEngine.setVolume(0.8);
   }
 
   private syncFormWithPreset(): void {
@@ -746,6 +751,17 @@ class SonificationApp {
         }
         btnAudio.classList.toggle('active', !isMuted);
       };
+    }
+
+    const sliderVol = document.getElementById('slider-volume') as HTMLInputElement | null;
+    if (sliderVol) {
+      sliderVol.addEventListener('input', (e) => {
+        const val = parseFloat((e.target as HTMLInputElement).value);
+        this.audioEngine.setVolume(val);
+        if (this.masterGainKnob) this.masterGainKnob.setValue(val);
+        const mobileVol = document.getElementById('mobile-slider-volume') as HTMLInputElement | null;
+        if (mobileVol) mobileVol.value = String(val);
+      });
     }
 
     // Shutter Trigger Button
