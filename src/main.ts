@@ -19,6 +19,7 @@ import { QrModalController } from './ui/qr-modal.ts';
 import { FilterLibraryModalController } from './ui/filter-library-modal.ts';
 import { AccountModalController } from './ui/account-modal.ts';
 import { RackController } from './ui/rack-controller.ts';
+import { VideoRackController } from './ui/video-rack-controller.ts';
 import { MobileController } from './ui/mobile-controller.ts';
 import { MediaController } from './ui/media-controller.ts';
 import { PresetController } from './ui/preset-controller.ts';
@@ -91,6 +92,7 @@ class SonificationApp {
   public filterLibraryModalController!: FilterLibraryModalController;
   private accountModalController!: AccountModalController;
   private rackController!: RackController;
+  private videoRackController!: VideoRackController;
   private mobileController!: MobileController;
   private mediaController!: MediaController;
   private presetController!: PresetController;
@@ -159,8 +161,14 @@ class SonificationApp {
       onRequestRender: () => this.requestRender(),
     });
 
+    this.videoRackController = new VideoRackController({
+      getActivePreset: () => this.activePreset,
+      onRequestRender: () => this.requestRender(),
+    });
+
     this.filterLibraryModalController = new FilterLibraryModalController({
-      onAddFilter: (type) => this.rackController.addFilter(type),
+      onAddAudioFilter: (type) => this.rackController.addFilter(type),
+      onAddVideoFilter: (type) => this.videoRackController.addFilter(type),
     });
 
     this.qrModalController = new QrModalController({
@@ -227,7 +235,9 @@ class SonificationApp {
       onPresetChanged: () => {
         this.syncFormWithPreset();
         this.rackController?.render();
+        this.videoRackController?.render();
         this.mobileController?.renderPresetDrawer();
+        this.mobileController?.updatePresetBadge();
       },
       onOpenAccountModal: (mode) => this.accountModalController.open(mode),
       onShowQrForHash: (hash) => this.qrModalController.showQrForHash(hash),
@@ -292,6 +302,13 @@ class SonificationApp {
       },
       onVolumeChange: (vol) => {
         if (this.masterGainKnob) this.masterGainKnob.setValue(vol);
+      },
+      onModeChanged: (mode) => {
+        if (mode === 'scope') {
+          this.hudOverlay?.setEnabled(true);
+          this.hudOverlay?.resize();
+          this.requestRender();
+        }
       },
     });
   }
@@ -442,7 +459,9 @@ class SonificationApp {
     this.presetController.setSavedPresetMeta(saved?.id || null, saved?.owner || null);
     this.syncFormWithPreset();
     this.rackController.render();
+    this.videoRackController?.render();
     this.presetController.renderPresetDropdown();
+    this.mobileController?.updatePresetBadge();
     this.requestRender();
   }
 

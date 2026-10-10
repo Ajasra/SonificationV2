@@ -184,6 +184,12 @@
 .cat-synth      { color: #d97585 !important; border-color: rgba(217, 117, 133, 0.45) !important; background: rgba(217, 117, 133, 0.10) !important; }
 .cat-distortion { color: #d94b4b !important; border-color: rgba(217, 75, 75, 0.45) !important; background: rgba(217, 75, 75, 0.10) !important; }
 .cat-lofi       { color: #c8d665 !important; border-color: rgba(200, 214, 101, 0.45) !important; background: rgba(200, 214, 101, 0.10) !important; }
+/* Analog Video Module Categories */
+.cat-raster     { color: #5ec2c6 !important; border-color: rgba(94, 194, 198, 0.45) !important; background: rgba(94, 194, 198, 0.10) !important; }
+.cat-color      { color: #e0a96d !important; border-color: rgba(224, 169, 109, 0.45) !important; background: rgba(224, 169, 109, 0.10) !important; }
+.cat-sync       { color: #e27d60 !important; border-color: rgba(226, 125, 96, 0.45) !important; background: rgba(226, 125, 96, 0.10) !important; }
+.cat-tape       { color: #c38d9e !important; border-color: rgba(195, 141, 158, 0.45) !important; background: rgba(195, 141, 158, 0.10) !important; }
+.cat-optic      { color: #a8d5ba !important; border-color: rgba(168, 213, 186, 0.45) !important; background: rgba(168, 213, 186, 0.10) !important; }
 
 /* Filter Library Toolbar */
 .filter-library-toolbar {
@@ -231,6 +237,39 @@
 
 .btn-search-clear:hover {
   color: var(--text-primary);
+}
+
+/* Hardware Domain Switcher (AUDIO DSP vs ANALOG VIDEO) */
+.filter-domain-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.domain-tab-btn {
+  background: var(--bg-darkest);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.12s ease;
+}
+
+.domain-tab-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-bright);
+}
+
+.domain-tab-btn.active {
+  background: rgba(200, 214, 101, 0.12);
+  border-color: var(--accent-phosphor);
+  color: var(--accent-phosphor);
+  box-shadow: 0 0 6px var(--accent-phosphor-glow);
 }
 
 /* Category Filter Tabs */

@@ -1,38 +1,56 @@
-// Eurorack Modular DSP Rack Controller
+// Unified Modular Hardware Rack Controller
+// Serves as the base component for both Eurorack DSP and Analog Video module racks
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
 import { RotaryKnob } from '../components/rotary-knob.ts';
-import type { FilterId, SonificationPreset } from '../types/index.ts';
+import type { FilterId, FilterNodeConfig, FilterParam, SonificationPreset } from '../types/index.ts';
 
-export interface RackControllerOptions {
-  getActivePreset: () => SonificationPreset;
+export interface BaseModuleConfig {
+  id: string;
+  type: string;
+  enabled: boolean;
+  params: Record<string, number>;
+}
+
+export interface ModularRackOptions<TConfig extends BaseModuleConfig, TId extends string> {
+  container: HTMLDivElement | null;
+  emptyHint?: string;
+  getModules: () => TConfig[];
+  setModules: (modules: TConfig[]) => void;
+  getDescriptor: (type: TId) => {
+    name: string;
+    category: string;
+    params: FilterParam[];
+  } | undefined;
+  categoryShortNames: Record<string, string>;
+  createDefaultModule: (type: TId) => TConfig;
   onRequestRender: () => void;
 }
 
-export class RackController {
-  private container = document.getElementById('filter-rack-container') as HTMLDivElement;
-  private dragIdx: number | null = null;
+export class ModularRackController<TConfig extends BaseModuleConfig, TId extends string> {
+  protected container: HTMLDivElement | null;
+  protected dragIdx: number | null = null;
 
-  public static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
-    dynamics: 'DYN',
-    eq: 'EQ',
-    delay: 'DLY',
-    modulation: 'MOD',
-    synth: 'SYN',
-    distortion: 'DIST',
-    lofi: 'LO-FI',
-  };
-
-  constructor(private opts: RackControllerOptions) {
+  constructor(protected opts: ModularRackOptions<TConfig, TId>) {
+    this.container = opts.container;
     this.render();
   }
 
   public render(): void {
-    if (!this.container) return;
-    this.container.innerHTML = '';
-    const activePreset = this.opts.getActivePreset();
+    const container = this.container;
+    if (!container) return;
+    container.innerHTML = '';
+    const modules = this.opts.getModules();
 
-    activePreset.filters.forEach((filterConfig, idx) => {
-      const desc = FILTER_DESCRIPTORS[filterConfig.type];
+    if (modules.length === 0) {
+      const emptyHint = document.createElement('div');
+      emptyHint.className = 'rack-empty-hint';
+      emptyHint.textContent = this.opts.emptyHint || '// NO MODULES ENGAGED • TAP [+] TO ADD';
+      container.appendChild(emptyHint);
+      return;
+    }
+
+    modules.forEach((config, idx) => {
+      const desc = this.opts.getDescriptor(config.type as TId);
       const card = document.createElement('div');
       card.className = 'rack-module';
 
@@ -54,7 +72,7 @@ export class RackController {
       grip.addEventListener('dragend', () => {
         this.dragIdx = null;
         card.classList.remove('is-dragging');
-        this.container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+        this.container?.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
       });
       card.addEventListener('dragover', (e) => {
         if (this.dragIdx === null) return;
@@ -67,8 +85,10 @@ export class RackController {
         const from = this.dragIdx;
         this.dragIdx = null;
         if (from === null || from === idx) return;
-        const [moved] = activePreset.filters.splice(from, 1);
-        activePreset.filters.splice(idx, 0, moved);
+        const currentList = this.opts.getModules();
+        const [moved] = currentList.splice(from, 1);
+        currentList.splice(idx, 0, moved);
+        this.opts.setModules(currentList);
         this.render();
         this.opts.onRequestRender();
       });
@@ -82,12 +102,12 @@ export class RackController {
       const catBadge = document.createElement('span');
       const catKey = desc ? desc.category : 'distortion';
       catBadge.className = `module-cat-pill cat-${catKey}`;
-      catBadge.textContent = RackController.CATEGORY_SHORT_NAMES[catKey] || catKey.toUpperCase();
+      catBadge.textContent = this.opts.categoryShortNames[catKey] || catKey.toUpperCase();
       catBadge.title = `Category: ${catKey.toUpperCase()}`;
 
       const title = document.createElement('span');
       title.className = 'module-title-text';
-      title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : filterConfig.type}`;
+      title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : config.type}`;
 
       titleGroup.appendChild(grip);
       titleGroup.appendChild(catBadge);
@@ -97,11 +117,11 @@ export class RackController {
       headerBtns.className = 'module-actions';
 
       const toggleBtn = document.createElement('button');
-      toggleBtn.className = `btn-module-toggle ${filterConfig.enabled ? 'is-active' : 'is-bypassed'}`;
-      toggleBtn.textContent = filterConfig.enabled ? 'ON' : 'BYP';
+      toggleBtn.className = `btn-module-toggle ${config.enabled ? 'is-active' : 'is-bypassed'}`;
+      toggleBtn.textContent = config.enabled ? 'ON' : 'BYP';
       toggleBtn.title = 'Bypass or engage module';
       toggleBtn.onclick = () => {
-        filterConfig.enabled = !filterConfig.enabled;
+        config.enabled = !config.enabled;
         this.render();
         this.opts.onRequestRender();
       };
@@ -111,7 +131,9 @@ export class RackController {
       removeBtn.textContent = '✕';
       removeBtn.title = 'Remove module from rack';
       removeBtn.onclick = () => {
-        activePreset.filters.splice(idx, 1);
+        const currentList = this.opts.getModules();
+        currentList.splice(idx, 1);
+        this.opts.setModules(currentList);
         this.render();
         this.opts.onRequestRender();
       };
@@ -127,7 +149,7 @@ export class RackController {
         paramsGrid.className = 'module-params-grid';
 
         for (const p of desc.params) {
-          const val = filterConfig.params[p.name] !== undefined ? filterConfig.params[p.name] : p.value;
+          const val = config.params[p.name] !== undefined ? config.params[p.name] : p.value;
 
           const knobTooltip = p.tooltip
             ? `${p.label}: ${p.tooltip} [Range: ${p.min} to ${p.max}]`
@@ -143,7 +165,7 @@ export class RackController {
             tooltip: knobTooltip,
             size: 34,
             onChange: (newVal) => {
-              filterConfig.params[p.name] = newVal;
+              config.params[p.name] = newVal;
               this.opts.onRequestRender();
             },
           });
@@ -154,27 +176,62 @@ export class RackController {
         card.appendChild(paramsGrid);
       }
 
-      this.container.appendChild(card);
+      container.appendChild(card);
     });
   }
 
-  public addFilter(type: FilterId): void {
-    const desc = FILTER_DESCRIPTORS[type];
-    if (!desc) return;
-    const defaultParams: Record<string, number> = {};
-    for (const p of desc.params) {
-      defaultParams[p.name] = p.value;
-    }
-
-    const activePreset = this.opts.getActivePreset();
-    activePreset.filters.push({
-      id: 'f_' + Math.random().toString(36).substring(2, 7),
-      type,
-      enabled: true,
-      sampleRate: 44100,
-      params: defaultParams,
-    });
+  public addFilter(type: TId): void {
+    const newModule = this.opts.createDefaultModule(type);
+    const list = this.opts.getModules();
+    list.push(newModule);
+    this.opts.setModules(list);
     this.render();
     this.opts.onRequestRender();
+  }
+}
+
+export interface RackControllerOptions {
+  getActivePreset: () => SonificationPreset;
+  onRequestRender: () => void;
+}
+
+// Concrete Eurorack DSP Rack Controller
+export class RackController extends ModularRackController<FilterNodeConfig, FilterId> {
+  public static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
+    dynamics: 'DYN',
+    eq: 'EQ',
+    delay: 'DLY',
+    modulation: 'MOD',
+    synth: 'SYN',
+    distortion: 'DIST',
+    lofi: 'LO-FI',
+  };
+
+  constructor(opts: RackControllerOptions) {
+    super({
+      container: document.getElementById('filter-rack-container') as HTMLDivElement,
+      emptyHint: '// NO DSP MODULES ENGAGED • TAP [+] TO ADD',
+      getModules: () => opts.getActivePreset().filters,
+      setModules: (m) => {
+        opts.getActivePreset().filters = m;
+      },
+      getDescriptor: (type) => FILTER_DESCRIPTORS[type],
+      categoryShortNames: RackController.CATEGORY_SHORT_NAMES,
+      createDefaultModule: (type) => {
+        const desc = FILTER_DESCRIPTORS[type];
+        const defaultParams: Record<string, number> = {};
+        if (desc) {
+          for (const p of desc.params) defaultParams[p.name] = p.value;
+        }
+        return {
+          id: 'f_' + Math.random().toString(36).substring(2, 7),
+          type,
+          enabled: true,
+          sampleRate: 44100,
+          params: defaultParams,
+        };
+      },
+      onRequestRender: opts.onRequestRender,
+    });
   }
 }

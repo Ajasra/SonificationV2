@@ -1,24 +1,33 @@
-// Filter Library Browser & Add Filter Modal Controller
+// Unified Hardware Module Library Browser & Selection Modal Controller
+// Supports both Eurorack Audio DSP and Analog Video Processing modules in a unified UI
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
-import type { FilterId } from '../types/index.ts';
+import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
+import type { FilterId, VideoFilterId } from '../types/index.ts';
+
+export type ModuleDomain = 'audio' | 'video';
 
 export interface FilterLibraryModalOptions {
-  onAddFilter: (type: FilterId) => void;
+  onAddAudioFilter: (type: FilterId) => void;
+  onAddVideoFilter: (type: VideoFilterId) => void;
 }
 
 export class FilterLibraryModalController {
   private modal = document.getElementById('add-filter-modal') as HTMLDivElement;
+  private modalTitle = document.getElementById('library-modal-title') as HTMLElement | null;
+  private modalSub = document.getElementById('library-modal-sub') as HTMLElement | null;
   private filterLibraryList = document.getElementById('filter-library-list') as HTMLDivElement;
   private filterSearchInput = document.getElementById('filter-search-input') as HTMLInputElement | null;
   private filterSearchClear = document.getElementById('filter-search-clear') as HTMLButtonElement | null;
   private filterCategoryTabs = document.getElementById('filter-category-tabs') as HTMLDivElement | null;
   private btnClose = document.getElementById('btn-close-filter-modal') as HTMLButtonElement | null;
-  private btnAddFilter = document.getElementById('btn-add-filter') as HTMLButtonElement | null;
+  private btnAddAudioFilter = document.getElementById('btn-add-filter') as HTMLButtonElement | null;
+  private btnAddVideoFilter = document.getElementById('btn-add-video-filter') as HTMLButtonElement | null;
 
+  private activeDomain: ModuleDomain = 'audio';
   private activeLibraryCategory: string = 'all';
   private librarySearchQuery: string = '';
 
-  public static readonly CATEGORY_SECTIONS: { id: string; label: string }[] = [
+  public static readonly AUDIO_CATEGORIES: { id: string; label: string }[] = [
     { id: 'dynamics', label: 'DYNAMICS & LEVEL' },
     { id: 'eq', label: 'EQ & SPECTRAL' },
     { id: 'delay', label: 'DELAY & SPACE' },
@@ -28,18 +37,32 @@ export class FilterLibraryModalController {
     { id: 'lofi', label: 'LO-FI' },
   ];
 
+  public static readonly VIDEO_CATEGORIES: { id: string; label: string }[] = [
+    { id: 'raster', label: 'RASTER & DEFLECTION' },
+    { id: 'color', label: 'COLOR & VOLTAGE SLICE' },
+    { id: 'sync', label: 'SYNC & TIMEBASE ERROR' },
+    { id: 'tape', label: 'TAPE & SUBCARRIER' },
+    { id: 'optic', label: 'OPTIC & PHOSPHOR' },
+  ];
+
   constructor(private opts: FilterLibraryModalOptions) {
     this.bindEvents();
-    this.render();
+    this.renderCategoryTabs();
+    this.renderList();
   }
 
   private bindEvents(): void {
-    if (this.btnAddFilter) {
-      this.btnAddFilter.onclick = () => {
-        this.show();
-        if (this.filterSearchInput) {
-          setTimeout(() => this.filterSearchInput?.focus(), 100);
-        }
+    // Open for Audio DSP
+    if (this.btnAddAudioFilter) {
+      this.btnAddAudioFilter.onclick = () => {
+        this.open('audio');
+      };
+    }
+
+    // Open for Analog Video
+    if (this.btnAddVideoFilter) {
+      this.btnAddVideoFilter.onclick = () => {
+        this.open('video');
       };
     }
 
@@ -47,13 +70,21 @@ export class FilterLibraryModalController {
       this.btnClose.onclick = () => this.hide();
     }
 
+    // Domain switcher tabs inside modal
+    document.querySelectorAll<HTMLButtonElement>('.domain-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const domain = (btn.dataset.domain || 'audio') as ModuleDomain;
+        this.setDomain(domain);
+      });
+    });
+
     if (this.filterSearchInput) {
       this.filterSearchInput.oninput = () => {
         this.librarySearchQuery = this.filterSearchInput?.value.trim().toLowerCase() || '';
         if (this.filterSearchClear) {
           this.filterSearchClear.classList.toggle('hidden', !this.librarySearchQuery);
         }
-        this.render();
+        this.renderList();
       };
     }
 
@@ -64,41 +95,115 @@ export class FilterLibraryModalController {
         }
         this.librarySearchQuery = '';
         this.filterSearchClear?.classList.add('hidden');
-        this.render();
+        this.renderList();
         this.filterSearchInput?.focus();
       };
     }
+  }
 
-    if (this.filterCategoryTabs) {
-      const catBtns = this.filterCategoryTabs.querySelectorAll<HTMLButtonElement>('.filter-cat-btn');
-      catBtns.forEach((btn) => {
-        btn.onclick = () => {
-          catBtns.forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          this.activeLibraryCategory = btn.dataset.cat || 'all';
-          this.render();
-        };
-      });
+  public open(domain: ModuleDomain = 'audio'): void {
+    this.setDomain(domain);
+    this.show();
+    if (this.filterSearchInput) {
+      setTimeout(() => this.filterSearchInput?.focus(), 100);
     }
   }
 
+  public setDomain(domain: ModuleDomain): void {
+    this.activeDomain = domain;
+    this.activeLibraryCategory = 'all';
+    this.librarySearchQuery = '';
+    if (this.filterSearchInput) {
+      this.filterSearchInput.value = '';
+      this.filterSearchInput.placeholder =
+        domain === 'audio'
+          ? 'Search DSP modules by name, category, or characteristics...'
+          : 'Search analog video modules by name, category, or characteristics...';
+    }
+    if (this.filterSearchClear) {
+      this.filterSearchClear.classList.add('hidden');
+    }
+
+    // Update modal header typography
+    if (this.modalTitle) {
+      this.modalTitle.textContent =
+        domain === 'audio' ? 'Select DSP Hardware Module' : 'Select Analog Video Module';
+    }
+    if (this.modalSub) {
+      this.modalSub.textContent =
+        domain === 'audio'
+          ? 'Eurorack Filters, Delays, Resonators & Modulation'
+          : 'CRT Deflection, TBC Skew, Colorizers & Video Synthesis';
+    }
+
+    // Update active domain switcher buttons
+    document.querySelectorAll<HTMLButtonElement>('.domain-tab-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.domain === domain);
+    });
+
+    this.renderCategoryTabs();
+    this.renderList();
+  }
+
   public show(): void {
-    this.modal.classList.remove('hidden');
+    this.modal?.classList.remove('hidden');
   }
 
   public hide(): void {
-    this.modal.classList.add('hidden');
+    this.modal?.classList.add('hidden');
   }
 
-  public render(): void {
+  private renderCategoryTabs(): void {
+    if (!this.filterCategoryTabs) return;
+    this.filterCategoryTabs.innerHTML = '';
+
+    const categories =
+      this.activeDomain === 'audio'
+        ? FilterLibraryModalController.AUDIO_CATEGORIES
+        : FilterLibraryModalController.VIDEO_CATEGORIES;
+
+    // ALL tab
+    const allBtn = document.createElement('button');
+    allBtn.className = `filter-cat-btn ${this.activeLibraryCategory === 'all' ? 'active' : ''}`;
+    allBtn.dataset.cat = 'all';
+    allBtn.textContent = 'ALL';
+    allBtn.onclick = () => {
+      this.filterCategoryTabs?.querySelectorAll('.filter-cat-btn').forEach((b) => b.classList.remove('active'));
+      allBtn.classList.add('active');
+      this.activeLibraryCategory = 'all';
+      this.renderList();
+    };
+    this.filterCategoryTabs.appendChild(allBtn);
+
+    // Specific category tabs
+    for (const cat of categories) {
+      const btn = document.createElement('button');
+      btn.className = `filter-cat-btn ${this.activeLibraryCategory === cat.id ? 'active' : ''}`;
+      btn.dataset.cat = cat.id;
+      btn.textContent = cat.id.toUpperCase();
+      btn.onclick = () => {
+        this.filterCategoryTabs?.querySelectorAll('.filter-cat-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeLibraryCategory = cat.id;
+        this.renderList();
+      };
+      this.filterCategoryTabs.appendChild(btn);
+    }
+  }
+
+  public renderList(): void {
+    if (!this.filterLibraryList) return;
     this.filterLibraryList.innerHTML = '';
-    const keys = Object.keys(FILTER_DESCRIPTORS) as FilterId[];
+
+    const isAudio = this.activeDomain === 'audio';
+    const descriptorsList = isAudio
+      ? Object.values(FILTER_DESCRIPTORS)
+      : Object.values(VIDEO_FILTER_DESCRIPTORS);
     const query = this.librarySearchQuery.toLowerCase().trim();
     const activeCat = this.activeLibraryCategory;
 
     // Filter by search query and category
-    const filteredKeys = keys.filter((key) => {
-      const desc = FILTER_DESCRIPTORS[key];
+    const filteredItems = descriptorsList.filter((desc) => {
       if (activeCat !== 'all' && desc.category !== activeCat) {
         return false;
       }
@@ -112,17 +217,17 @@ export class FilterLibraryModalController {
       return true;
     });
 
-    if (filteredKeys.length === 0) {
+    if (filteredItems.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'library-empty-state';
       empty.innerHTML = `
         <div style="font-size: 1.6rem; margin-bottom: 8px;">🔍</div>
-        <div style="color: var(--text-primary); font-weight: 600;">No DSP modules found</div>
+        <div style="color: var(--text-primary); font-weight: 600;">No ${isAudio ? 'DSP' : 'analog video'} modules found</div>
         <div style="margin-top: 4px; font-size: 0.68rem; color: var(--text-muted);">No modules matched "${query || activeCat}"</div>
-        <button class="btn-hw btn-hw-secondary btn-sm" style="margin-top: 12px;" id="btn-reset-library-search">Reset Filters</button>
+        <button class="btn-hw btn-hw-secondary btn-sm" style="margin-top: 12px;" id="btn-reset-unified-library">Reset Filters</button>
       `;
       this.filterLibraryList.appendChild(empty);
-      empty.querySelector('#btn-reset-library-search')?.addEventListener('click', () => {
+      empty.querySelector('#btn-reset-unified-library')?.addEventListener('click', () => {
         if (this.filterSearchInput) this.filterSearchInput.value = '';
         this.librarySearchQuery = '';
         this.activeLibraryCategory = 'all';
@@ -132,31 +237,34 @@ export class FilterLibraryModalController {
             b.classList.toggle('active', (b as HTMLElement).dataset.cat === 'all');
           });
         }
-        this.render();
+        this.renderList();
       });
       return;
     }
 
-    // Group items by category if displaying 'all' or if multiple categories match query
+    // Group items by category
+    const categorySections = isAudio
+      ? FilterLibraryModalController.AUDIO_CATEGORIES
+      : FilterLibraryModalController.VIDEO_CATEGORIES;
+
     const categoriesToRender = activeCat === 'all'
-      ? FilterLibraryModalController.CATEGORY_SECTIONS
-      : FilterLibraryModalController.CATEGORY_SECTIONS.filter((s) => s.id === activeCat);
+      ? categorySections
+      : categorySections.filter((s) => s.id === activeCat);
 
     for (const catSection of categoriesToRender) {
-      const catKeys = filteredKeys.filter((k) => FILTER_DESCRIPTORS[k].category === catSection.id);
-      if (catKeys.length === 0) continue;
+      const catItems = filteredItems.filter((item) => item.category === catSection.id);
+      if (catItems.length === 0) continue;
 
       // Render group header
       const groupHeader = document.createElement('div');
       groupHeader.className = 'library-group-section';
       groupHeader.innerHTML = `
         <span class="library-group-title cat-${catSection.id}">[ ${catSection.label} ]</span>
-        <span class="library-group-count">(${catKeys.length})</span>
+        <span class="library-group-count">(${catItems.length})</span>
       `;
       this.filterLibraryList.appendChild(groupHeader);
 
-      for (const key of catKeys) {
-        const desc = FILTER_DESCRIPTORS[key];
+      for (const desc of catItems) {
         const item = document.createElement('div');
         item.className = 'library-item';
         item.innerHTML = `
@@ -169,11 +277,15 @@ export class FilterLibraryModalController {
           </div>
           <div class="library-item-footer">
             <span class="library-item-meta">${desc.params.length} control${desc.params.length === 1 ? '' : 's'}</span>
-            <button class="btn-library-add" title="Add ${desc.name} to rack">+</button>
+            <button class="btn-library-add" title="Add ${desc.name} to ${isAudio ? 'DSP' : 'video'} rack">+</button>
           </div>
         `;
         item.onclick = () => {
-          this.opts.onAddFilter(desc.id as FilterId);
+          if (isAudio) {
+            this.opts.onAddAudioFilter(desc.id as FilterId);
+          } else {
+            this.opts.onAddVideoFilter(desc.id as VideoFilterId);
+          }
           this.hide();
         };
         this.filterLibraryList.appendChild(item);

@@ -111,11 +111,16 @@ export class HudOverlay {
     this.enabled = val;
     localStorage.setItem('sonification_hud_enabled', String(val));
     if (this.enabled) {
+      this.handleResize();
       this.startLoop();
     } else {
       this.stopLoop();
       this.clear();
     }
+  }
+
+  public resize(): void {
+    this.handleResize();
   }
 
   public setTelemetryData(data: Partial<HudTelemetryData>): void {

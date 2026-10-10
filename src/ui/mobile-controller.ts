@@ -17,10 +17,12 @@ export interface MobileControllerOptions {
   onToggleRecording: () => void;
   onSetResolution: (res: '360p' | '480p' | '720p' | 'native') => void;
   onVolumeChange: (vol: number) => void;
+  onModeChanged?: (mode: 'cam' | 'scope' | 'rack') => void;
 }
 
 export class MobileController {
   private isFullscreenMode = false;
+  private currentMode: 'cam' | 'scope' | 'rack' = 'cam';
 
   constructor(private opts: MobileControllerOptions) {
     this.init();
@@ -60,7 +62,52 @@ export class MobileController {
     return this.isFullscreenMode;
   }
 
+  public getMode(): 'cam' | 'scope' | 'rack' {
+    return this.currentMode;
+  }
+
+  public setMode(mode: 'cam' | 'scope' | 'rack'): void {
+    this.currentMode = mode;
+    const appEl = document.getElementById('app');
+    const hudBay = document.getElementById('telemetry-hud-bay');
+    const bottomBar = document.getElementById('mobile-bottom-bar');
+    const modeLabel = document.getElementById('mobile-mode-label');
+
+    if (modeLabel) {
+      modeLabel.textContent = `[ ${mode.toUpperCase()} ▾ ]`;
+    }
+
+    // Update active class on mode buttons
+    document.querySelectorAll('.btn-mode-seg').forEach((btn) => {
+      const segMode = btn.getAttribute('data-mode');
+      btn.classList.toggle('active', segMode === mode);
+    });
+
+    // Close mode menu dropdown if open
+    document.getElementById('mobile-mode-bar')?.classList.remove('open');
+
+    if (mode === 'cam') {
+      appEl?.classList.remove('mobile-scope-mode', 'show-desktop-rack');
+      hudBay?.classList.remove('mobile-active-scope');
+      bottomBar?.classList.remove('hidden');
+    } else if (mode === 'scope') {
+      appEl?.classList.add('mobile-scope-mode');
+      appEl?.classList.remove('show-desktop-rack');
+      hudBay?.classList.add('mobile-active-scope');
+      hudBay?.classList.remove('is-hidden');
+      bottomBar?.classList.add('hidden');
+    } else if (mode === 'rack') {
+      appEl?.classList.remove('mobile-scope-mode');
+      appEl?.classList.add('show-desktop-rack');
+      hudBay?.classList.remove('mobile-active-scope');
+      bottomBar?.classList.add('hidden');
+    }
+
+    this.opts.onModeChanged?.(mode);
+  }
+
   public openDrawer(): void {
+    this.renderPresetDrawer();
     document.getElementById('mobile-preset-drawer')?.classList.add('open');
     document.getElementById('mobile-drawer-backdrop')?.classList.remove('hidden');
     document.getElementById('mobile-drawer-backdrop')?.classList.add('open');
@@ -95,6 +142,7 @@ export class MobileController {
       item.onclick = () => {
         this.opts.setActivePreset(JSON.parse(JSON.stringify(p)));
         this.opts.onPresetChanged();
+        this.updatePresetBadge();
         this.closeDrawer();
       };
       list.appendChild(item);
@@ -224,8 +272,42 @@ export class MobileController {
       (res) => this.opts.onSetResolution(res),
     );
 
+    const modeMenuBtn = document.getElementById('btn-mobile-mode-menu');
+    const modeBar = document.getElementById('mobile-mode-bar');
+    modeMenuBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      modeBar?.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (modeBar?.classList.contains('open') && !modeBar.contains(e.target as Node) && !modeMenuBtn?.contains(e.target as Node)) {
+        modeBar.classList.remove('open');
+      }
+    });
+
+    document.getElementById('btn-mode-cam')?.addEventListener('click', () => {
+      this.setMode('cam');
+    });
+
+    document.getElementById('btn-mode-scope')?.addEventListener('click', () => {
+      this.setMode('scope');
+    });
+
+    document.getElementById('btn-mode-rack')?.addEventListener('click', () => {
+      this.setMode('rack');
+    });
+
+    document.getElementById('btn-rack-return-cam')?.addEventListener('click', () => {
+      this.setMode('cam');
+    });
+
+    document.getElementById('btn-scope-return-cam')?.addEventListener('click', () => {
+      this.setMode('cam');
+    });
+
     document.getElementById('btn-mobile-desktop-toggle')?.addEventListener('click', () => {
-      document.getElementById('app')?.classList.toggle('show-desktop-rack');
+      const isShowing = document.getElementById('app')?.classList.contains('show-desktop-rack');
+      this.setMode(isShowing ? 'cam' : 'rack');
       this.closeDrawer();
     });
 

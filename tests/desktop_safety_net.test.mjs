@@ -45,6 +45,7 @@ test('Desktop safety net: Eurorack modular cards must exist', () => {
   assert.ok(htmlContent.includes('id="card-preset"'), '02 / PRESET module must exist');
   assert.ok(htmlContent.includes('id="card-topology"'), '03 / TOPOLOGY module must exist');
   assert.ok(htmlContent.includes('id="card-dsp"'), '04 / DSP RACK module must exist');
+  assert.ok(htmlContent.includes('id="card-video"'), '05 / VIDEO RACK module must exist');
 });
 
 test('Desktop safety net: Core design tokens must remain defined', () => {
@@ -60,4 +61,23 @@ test('Desktop safety net: Desktop grid specifications in layout.css remain intac
   assert.ok(layoutCss.includes('.workspace-grid'), '.workspace-grid rule must exist in layout.css');
   assert.ok(layoutCss.includes('.sidebar-rack-panel'), '.sidebar-rack-panel rule must exist in layout.css');
   assert.ok(layoutCss.includes('.studio-footer'), '.studio-footer rule must exist in layout.css');
+});
+
+test('Mobile view safety net: Mode switcher and thumb controls exist', () => {
+  assert.ok(htmlContent.includes('id="mobile-mode-bar"'), 'Mobile mode bar must exist');
+  assert.ok(htmlContent.includes('id="btn-mode-cam"'), 'CAM mode button must exist');
+  assert.ok(htmlContent.includes('id="btn-mode-scope"'), 'SCOPE mode button must exist');
+  assert.ok(htmlContent.includes('id="btn-mode-rack"'), 'RACK mode button must exist');
+  assert.ok(htmlContent.includes('id="mobile-bottom-bar"'), 'Mobile thumb action bar must exist');
+  assert.ok(htmlContent.includes('id="btn-mobile-shutter"'), 'Mobile shutter button must exist');
+  assert.ok(htmlContent.includes('id="btn-mobile-rec"'), 'Mobile REC button must exist');
+  assert.ok(htmlContent.includes('id="btn-mobile-flip"'), 'Mobile flip button must exist');
+  assert.ok(htmlContent.includes('id="btn-mobile-audio"'), 'Mobile audio button must exist');
+});
+
+test('Mobile view safety net: Image and video upload hidden on mobile screens', () => {
+  const mobileCss = fs.readFileSync(path.join(rootDir, 'src/styles/mobile.css'), 'utf8');
+  assert.ok(mobileCss.includes('#input-file'), 'mobile.css must target #input-file for mobile hiding');
+  assert.ok(mobileCss.includes('#input-video-file'), 'mobile.css must target #input-video-file for mobile hiding');
+  assert.ok(mobileCss.includes('.file-label'), 'mobile.css must target .file-label for mobile hiding');
 });

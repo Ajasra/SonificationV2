@@ -93,6 +93,33 @@ export interface FilterNodeConfig {
   params: Record<string, number>;
 }
 
+export type VideoFilterCategory = 'raster' | 'color' | 'sync' | 'tape' | 'optic';
+
+export type VideoFilterId =
+  | 'syncglitch'
+  | 'colorizer'
+  | 'solarizer'
+  | 'differentiator'
+  | 'ruttetra'
+  | 'chromasmear'
+  | 'crtbloom'
+  | 'vidicon';
+
+export interface VideoFilterNodeConfig {
+  id: string; // unique instance id
+  type: VideoFilterId;
+  enabled: boolean;
+  params: Record<string, number>;
+}
+
+export interface VideoFrameContext {
+  width: number;
+  height: number;
+  timeMs: number;
+  audioRms?: number;
+  audioPeak?: number;
+}
+
 export interface SonificationPreset {
   id: string;
   name: string;
@@ -103,6 +130,8 @@ export interface SonificationPreset {
   blendMode: BlendMode;
   blendAmount: number; // 0 to 1
   filters: FilterNodeConfig[];
+  videoFilters?: VideoFilterNodeConfig[];
 }
 
 export type InputSourceMode = 'image' | 'camera' | 'video_file';
+

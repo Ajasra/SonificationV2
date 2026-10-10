@@ -594,3 +594,16 @@
   padding-top: 2px;
 }
 .module-grip{cursor:grab;opacity:.6;margin-right:6px;user-select:none}.module-grip:hover{opacity:1}.rack-module.is-dragging{opacity:.4}.rack-module.drag-over{outline:2px dashed var(--accent,#f90);outline-offset:-2px} 
+
+.rack-empty-hint {
+  padding: 14px 10px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.10em;
+  border: 1px dashed var(--border-subtle);
+  background: rgba(14, 18, 14, 0.4);
+  border-radius: 1px;
+}
+

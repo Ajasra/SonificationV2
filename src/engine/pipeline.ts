@@ -1,10 +1,12 @@
 // Unified Pipeline Runner: Coordinates Color Transform -> Stream Encode -> DSP Chain -> Stream Decode -> Color Revert -> Equalize -> Blend
-import type { SonificationPreset, BlendMode } from '../types/index.ts';
+import type { SonificationPreset, BlendMode, VideoFrameContext } from '../types/index.ts';
 import { convertToColorSpace, convertFromColorSpace } from './colorspaces.ts';
 import { imageToAudioStream, audioStreamToImage } from './streams.ts';
 import { equalizeHistogram } from './equalizer.ts';
 import { createFilterInstance } from './filters/factory.ts';
 import type { IDspFilter } from './filters/base.ts';
+import { createVideoFilterInstance } from './video-filters/factory.ts';
+import type { IVideoFilter } from './video-filters/base.ts';
 
 export interface PipelineResult {
   outputRgba: Uint8ClampedArray;
@@ -16,6 +18,9 @@ export interface PipelineResult {
 export class SonificationPipeline {
   private activeFilters: IDspFilter[] = [];
   private currentFilterStateKey = '';
+
+  private activeVideoFilters: IVideoFilter[] = [];
+  private currentVideoFilterStateKey = '';
 
   // Preallocated working buffers and zero-allocation chunk views
   private workRgbaBuffer = new Uint8ClampedArray(0);
@@ -68,6 +73,33 @@ export class SonificationPipeline {
       for (const f of preset.filters) {
         if (f.enabled && this.activeFilters[activeIdx]) {
           this.activeFilters[activeIdx].setParams(f.params);
+          activeIdx++;
+        }
+      }
+    }
+  }
+
+  private syncVideoFilterInstances(preset: SonificationPreset, width: number, height: number): void {
+    const list = preset.videoFilters || [];
+    const key = list
+      .map((f) => `${f.id}:${f.type}:${f.enabled}`)
+      .join('|');
+
+    if (this.currentVideoFilterStateKey !== key) {
+      this.activeVideoFilters = list
+        .filter((f) => f.enabled)
+        .map((f) => {
+          const instance = createVideoFilterInstance(f.type);
+          instance.init(width, height);
+          instance.setParams(f.params);
+          return instance;
+        });
+      this.currentVideoFilterStateKey = key;
+    } else {
+      let activeIdx = 0;
+      for (const f of list) {
+        if (f.enabled && this.activeVideoFilters[activeIdx]) {
+          this.activeVideoFilters[activeIdx].setParams(f.params);
           activeIdx++;
         }
       }
@@ -139,6 +171,38 @@ export class SonificationPipeline {
     // 8. Blend with original input if configured
     if (preset.blendMode !== 'NONE' && preset.blendAmount > 0) {
       this.blend(inputRgba, outRgba, preset.blendMode, preset.blendAmount);
+    }
+
+    // 9. Run analog video processing rack in-place (with audio CV metrics)
+    if (preset.videoFilters && preset.videoFilters.length > 0) {
+      this.syncVideoFilterInstances(preset, width, height);
+      if (this.activeVideoFilters.length > 0) {
+        // Fast subsampled audio RMS and peak calculation for cross-modulation
+        let sumSq = 0;
+        let peak = 0;
+        const sLen = audioStream.length;
+        const stride = Math.max(1, Math.floor(sLen / 1024));
+        let count = 0;
+        for (let i = 0; i < sLen; i += stride) {
+          const s = Math.abs(audioStream[i]);
+          if (s > peak) peak = s;
+          sumSq += s * s;
+          count++;
+        }
+        const audioRms = count > 0 ? Math.sqrt(sumSq / count) : 0;
+
+        const videoCtx: VideoFrameContext = {
+          width,
+          height,
+          timeMs: t0,
+          audioRms,
+          audioPeak: peak,
+        };
+
+        for (const vFilter of this.activeVideoFilters) {
+          vFilter.processFrame(outRgba, videoCtx);
+        }
+      }
     }
 
     const t1 = performance.now();

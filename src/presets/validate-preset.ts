@@ -1,4 +1,5 @@
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
+import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
 import type { SonificationPreset } from '../types/index.ts';
 
 const COLOR_SPACES = new Set(['RGB', 'OHTA', 'CMY', 'XYZ', 'YXY', 'HCL', 'LUV', 'LAB']);
@@ -52,6 +53,32 @@ export function validatePreset(value: unknown): SonificationPreset {
       if (typeof param !== 'number' || !Number.isFinite(param) || param < range.min || param > range.max) fail(`filter ${id} parameter ${name} is out of range`);
     }
     for (const name of allowed) if (params[name] === undefined) fail(`filter ${id} is missing parameter ${name}`);
+  }
+  if (preset.videoFilters !== undefined) {
+    if (!Array.isArray(preset.videoFilters) || preset.videoFilters.length > 32) fail('video filter list is invalid');
+    const vIds = new Set<string>();
+    for (const raw of preset.videoFilters as unknown[]) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('video filter entry is invalid');
+      const vFilter = raw as Record<string, unknown>;
+      const id = stringField(vFilter.id, 'video filter id', 128);
+      if (vIds.has(id)) fail('video filter ids must be unique');
+      vIds.add(id);
+      if (typeof vFilter.enabled !== 'boolean') fail(`video filter ${id} enabled flag is invalid`);
+      const descriptor = VIDEO_FILTER_DESCRIPTORS[String(vFilter.type) as keyof typeof VIDEO_FILTER_DESCRIPTORS];
+      if (!descriptor) fail(`video filter ${id} type is unknown`);
+      if (!vFilter.params || typeof vFilter.params !== 'object' || Array.isArray(vFilter.params)) fail(`video filter ${id} params are invalid`);
+      const params = vFilter.params as Record<string, unknown>;
+      const allowed = new Set(descriptor.params.map(p => p.name));
+      for (const [name, param] of Object.entries(params)) {
+        const desc = descriptor.params.find(p => p.name === name);
+        if (!desc) fail(`video filter ${id} has unknown parameter ${name}`);
+        const range = desc!;
+        if (typeof param !== 'number' || !Number.isFinite(param) || param < range.min || param > range.max) fail(`video filter ${id} parameter ${name} is out of range`);
+      }
+      for (const name of allowed) if (params[name] === undefined) fail(`video filter ${id} is missing parameter ${name}`);
+    }
+  } else {
+    preset.videoFilters = [];
   }
   return JSON.parse(JSON.stringify(preset)) as SonificationPreset;
 }

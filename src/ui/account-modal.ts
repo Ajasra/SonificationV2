@@ -47,9 +47,15 @@ export class AccountModalController {
   }
 
   private bindEvents(): void {
-    const openAccount = () => this.open();
+    const openAccount = () => {
+      document.getElementById('mobile-preset-drawer')?.classList.remove('open');
+      document.getElementById('mobile-drawer-backdrop')?.classList.remove('open');
+      document.getElementById('mobile-drawer-backdrop')?.classList.add('hidden');
+      this.open();
+    };
     document.getElementById('btn-account')?.addEventListener('click', openAccount);
     document.getElementById('btn-account-mobile')?.addEventListener('click', openAccount);
+    document.getElementById('btn-drawer-account')?.addEventListener('click', openAccount);
     document.getElementById('btn-preset-login')?.addEventListener('click', openAccount);
     document.getElementById('btn-library-account')?.addEventListener('click', openAccount);
 
@@ -122,8 +128,8 @@ export class AccountModalController {
 
     const accountBtn = document.getElementById('btn-account');
     if (accountBtn) accountBtn.textContent = user ? user.username : 'Account';
-    const mobileBtn = document.getElementById('btn-account-mobile');
-    if (mobileBtn) mobileBtn.textContent = user ? user.username : 'Account';
+    const mobileBtn = document.getElementById('btn-account-mobile') || document.getElementById('btn-drawer-account');
+    if (mobileBtn) mobileBtn.textContent = user ? user.username : 'Log in';
     const libBtn = document.getElementById('btn-library-account');
     if (libBtn) libBtn.textContent = user ? `Signed in as ${user.username}` : 'Log in to sync';
 
