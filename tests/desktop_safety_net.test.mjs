@@ -44,8 +44,8 @@ test('Desktop safety net: Eurorack modular cards must exist', () => {
   assert.ok(htmlContent.includes('id="card-sound"'), '01 / SOUND module must exist');
   assert.ok(htmlContent.includes('id="card-preset"'), '02 / PRESET module must exist');
   assert.ok(htmlContent.includes('id="card-topology"'), '03 / TOPOLOGY module must exist');
-  assert.ok(htmlContent.includes('id="card-dsp"'), '04 / DSP RACK module must exist');
-  assert.ok(htmlContent.includes('id="card-video"'), '05 / VIDEO RACK module must exist');
+  assert.ok(htmlContent.includes('id="card-dsp"'), '04 / CHAIN module must exist');
+  assert.ok(htmlContent.includes('id="btn-add-filter"'), 'module add button must exist in the chain');
 });
 
 test('Desktop safety net: Core design tokens must remain defined', () => {

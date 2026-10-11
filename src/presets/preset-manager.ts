@@ -65,15 +65,19 @@ function compactPreset(p: SonificationPreset): unknown[] {
       f.sampleRate,
       f.params,
     ]),
+    (p.videoFilters || []).map((f) => [f.id, f.type, f.enabled ? 1 : 0, f.params]),
+    (p.chain || []).map((c) => [c.kind === 'video' ? 1 : 0, c.id]),
   ];
 }
 
 function uncompactPreset(arr: unknown): SonificationPreset | null {
-  if (!Array.isArray(arr) || arr.length !== 9) return null;
+  if (!Array.isArray(arr) || (arr.length !== 9 && arr.length !== 11)) return null;
   const readerArr = arr[3];
   const writerArr = arr[4];
   const filtersArr = arr[8];
   if (!Array.isArray(readerArr) || !Array.isArray(writerArr) || !Array.isArray(filtersArr)) return null;
+  const videoArr = Array.isArray(arr[9]) ? (arr[9] as unknown[][]) : [];
+  const chainArr = Array.isArray(arr[10]) ? (arr[10] as unknown[][]) : null;
 
   return {
     id: String(arr[0]),
@@ -105,6 +109,15 @@ function uncompactPreset(arr: unknown): SonificationPreset | null {
       sampleRate: Number(f[3]),
       params: (f[4] as Record<string, number>) || {},
     })),
+    videoFilters: videoArr.map((f) => ({
+      id: String(f[0]),
+      type: f[1] as any,
+      enabled: Boolean(f[2]),
+      params: (f[3] as Record<string, number>) || {},
+    })),
+    ...(chainArr && chainArr.length > 0
+      ? { chain: chainArr.map((c) => ({ kind: c[0] ? ('video' as const) : ('audio' as const), id: String(c[1]) })) }
+      : {}),
   };
 }
 

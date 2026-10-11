@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 7. CRT Phosphor Bloom & Aperture Grille (P22 Trinitron Display Emulation)
 // Simulates electron beam spot defocusing on high-luminance peaks (bloom/halation)
@@ -59,6 +59,7 @@ export class CrtBloomFilter extends BaseVideoFilter {
     const bloomBuf = this.bloomRowBuf;
 
     const scanlineDarkFactor = 1.0 - (sStrength * 0.4);
+    const dim = 1.0 - gStrength * 0.45;
 
     for (let y = 0; y < height; y++) {
       const rowOffset = y * width * 4;
@@ -66,6 +67,7 @@ export class CrtBloomFilter extends BaseVideoFilter {
 
       // 1. Extract highlight energy for bloom
       if (bIntensity > 0) {
+        const inv255Intensity = bIntensity / 255.0;
         for (let x = 0; x < width; x++) {
           const idx = rowOffset + x * 4;
           const r = rgba[idx];
@@ -74,10 +76,10 @@ export class CrtBloomFilter extends BaseVideoFilter {
           const luma = (r * 77 + g * 150 + b * 29) >> 8;
 
           if (luma > thresh) {
-            const excess = (luma - thresh) * bIntensity;
-            bloomBuf[x * 3] = r * (excess / 255.0);
-            bloomBuf[x * 3 + 1] = g * (excess / 255.0);
-            bloomBuf[x * 3 + 2] = b * (excess / 255.0);
+            const excess = (luma - thresh) * inv255Intensity;
+            bloomBuf[x * 3] = r * excess;
+            bloomBuf[x * 3 + 1] = g * excess;
+            bloomBuf[x * 3 + 2] = b * excess;
           } else {
             bloomBuf[x * 3] = 0;
             bloomBuf[x * 3 + 1] = 0;
@@ -108,7 +110,6 @@ export class CrtBloomFilter extends BaseVideoFilter {
         // CRT Aperture Grille (repeating RGB triad columns)
         if (gStrength > 0) {
           const colMod = x % 3;
-          const dim = 1.0 - gStrength * 0.45;
           if (colMod === 0) {
             g *= dim;
             b *= dim;
@@ -128,9 +129,9 @@ export class CrtBloomFilter extends BaseVideoFilter {
           b *= scanlineDarkFactor;
         }
 
-        rgba[idx] = clampByte(r);
-        rgba[idx + 1] = clampByte(g);
-        rgba[idx + 2] = clampByte(b);
+        rgba[idx] = r < 0 ? 0 : r > 255 ? 255 : (r | 0);
+        rgba[idx + 1] = g < 0 ? 0 : g > 255 ? 255 : (g | 0);
+        rgba[idx + 2] = b < 0 ? 0 : b > 255 ? 255 : (b | 0);
       }
     }
   }

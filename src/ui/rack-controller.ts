@@ -1,8 +1,7 @@
 // Unified Modular Hardware Rack Controller
-// Serves as the base component for both Eurorack DSP and Analog Video module racks
-import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
+// Base component for the unified audio/video chain rack
 import { RotaryKnob } from '../components/rotary-knob.ts';
-import type { FilterId, FilterNodeConfig, FilterParam, SonificationPreset } from '../types/index.ts';
+import type { FilterParam } from '../types/index.ts';
 
 export interface BaseModuleConfig {
   id: string;
@@ -16,11 +15,13 @@ export interface ModularRackOptions<TConfig extends BaseModuleConfig, TId extend
   emptyHint?: string;
   getModules: () => TConfig[];
   setModules: (modules: TConfig[]) => void;
-  getDescriptor: (type: TId) => {
+  getDescriptor: (type: TId, config?: TConfig) => {
     name: string;
     category: string;
     params: FilterParam[];
   } | undefined;
+  /** Optional module kind tag (e.g. 'audio' | 'video') for mixed racks; shown as a badge. */
+  getKind?: (config: TConfig) => string;
   categoryShortNames: Record<string, string>;
   createDefaultModule: (type: TId) => TConfig;
   onRequestRender: () => void;
@@ -50,9 +51,10 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
     }
 
     modules.forEach((config, idx) => {
-      const desc = this.opts.getDescriptor(config.type as TId);
+      const desc = this.opts.getDescriptor(config.type as TId, config);
       const card = document.createElement('div');
-      card.className = 'rack-module';
+      const kind = this.opts.getKind ? this.opts.getKind(config) : '';
+      card.className = kind ? `rack-module rack-module-${kind}` : 'rack-module';
 
       // Drag-to-reorder: only the grip handle initiates a drag so knobs keep working.
       const grip = document.createElement('span');
@@ -110,6 +112,13 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
       title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : config.type}`;
 
       titleGroup.appendChild(grip);
+      if (kind) {
+        const kindBadge = document.createElement('span');
+        kindBadge.className = `module-kind-pill kind-${kind}`;
+        kindBadge.textContent = kind === 'audio' ? 'AUD' : kind === 'video' ? 'VID' : kind.toUpperCase();
+        kindBadge.title = kind === 'audio' ? 'Audio DSP module' : kind === 'video' ? 'Video module' : kind;
+        titleGroup.appendChild(kindBadge);
+      }
       titleGroup.appendChild(catBadge);
       titleGroup.appendChild(title);
 
@@ -187,51 +196,5 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
     this.opts.setModules(list);
     this.render();
     this.opts.onRequestRender();
-  }
-}
-
-export interface RackControllerOptions {
-  getActivePreset: () => SonificationPreset;
-  onRequestRender: () => void;
-}
-
-// Concrete Eurorack DSP Rack Controller
-export class RackController extends ModularRackController<FilterNodeConfig, FilterId> {
-  public static readonly CATEGORY_SHORT_NAMES: Record<string, string> = {
-    dynamics: 'DYN',
-    eq: 'EQ',
-    delay: 'DLY',
-    modulation: 'MOD',
-    synth: 'SYN',
-    distortion: 'DIST',
-    lofi: 'LO-FI',
-  };
-
-  constructor(opts: RackControllerOptions) {
-    super({
-      container: document.getElementById('filter-rack-container') as HTMLDivElement,
-      emptyHint: '// NO DSP MODULES ENGAGED • TAP [+] TO ADD',
-      getModules: () => opts.getActivePreset().filters,
-      setModules: (m) => {
-        opts.getActivePreset().filters = m;
-      },
-      getDescriptor: (type) => FILTER_DESCRIPTORS[type],
-      categoryShortNames: RackController.CATEGORY_SHORT_NAMES,
-      createDefaultModule: (type) => {
-        const desc = FILTER_DESCRIPTORS[type];
-        const defaultParams: Record<string, number> = {};
-        if (desc) {
-          for (const p of desc.params) defaultParams[p.name] = p.value;
-        }
-        return {
-          id: 'f_' + Math.random().toString(36).substring(2, 7),
-          type,
-          enabled: true,
-          sampleRate: 44100,
-          params: defaultParams,
-        };
-      },
-      onRequestRender: opts.onRequestRender,
-    });
   }
 }

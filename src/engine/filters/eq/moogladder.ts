@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp, fastTanh } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 1. Moog 24dB/oct 4-Pole Transistor Ladder Filter (Stilson-Smith / Houvilainen model)
 // In audio: legendary fat analog warmth, liquid resonant squelch, non-linear tanh overdrive.
@@ -79,13 +79,24 @@ export class MoogLadderFilter extends BaseDspFilter {
     for (let i = 0; i < len; i++) {
       const inSample = samples[i] * drv;
 
-      // 4-pole non-linear ladder loop with tanh feedback saturation
-      const u = fastTanh(inSample - res * s4 * scale);
+      const x0 = inSample - res * s4 * scale;
+      const u = x0 < -3.0 ? -1.0 : x0 > 3.0 ? 1.0 : (x0 * (27.0 + x0 * x0)) / (27.0 + 9.0 * x0 * x0);
 
-      s1 = s1 + g * (fastTanh(u) - fastTanh(s1));
-      s2 = s2 + g * (fastTanh(s1) - fastTanh(s2));
-      s3 = s3 + g * (fastTanh(s2) - fastTanh(s3));
-      s4 = s4 + g * (fastTanh(s3) - fastTanh(s4));
+      const tu = u < -3.0 ? -1.0 : u > 3.0 ? 1.0 : (u * (27.0 + u * u)) / (27.0 + 9.0 * u * u);
+      const ts1 = s1 < -3.0 ? -1.0 : s1 > 3.0 ? 1.0 : (s1 * (27.0 + s1 * s1)) / (27.0 + 9.0 * s1 * s1);
+      s1 += g * (tu - ts1);
+
+      const n_ts1 = s1 < -3.0 ? -1.0 : s1 > 3.0 ? 1.0 : (s1 * (27.0 + s1 * s1)) / (27.0 + 9.0 * s1 * s1);
+      const ts2 = s2 < -3.0 ? -1.0 : s2 > 3.0 ? 1.0 : (s2 * (27.0 + s2 * s2)) / (27.0 + 9.0 * s2 * s2);
+      s2 += g * (n_ts1 - ts2);
+
+      const n_ts2 = s2 < -3.0 ? -1.0 : s2 > 3.0 ? 1.0 : (s2 * (27.0 + s2 * s2)) / (27.0 + 9.0 * s2 * s2);
+      const ts3 = s3 < -3.0 ? -1.0 : s3 > 3.0 ? 1.0 : (s3 * (27.0 + s3 * s3)) / (27.0 + 9.0 * s3 * s3);
+      s3 += g * (n_ts2 - ts3);
+
+      const n_ts3 = s3 < -3.0 ? -1.0 : s3 > 3.0 ? 1.0 : (s3 * (27.0 + s3 * s3)) / (27.0 + 9.0 * s3 * s3);
+      const ts4 = s4 < -3.0 ? -1.0 : s4 > 3.0 ? 1.0 : (s4 * (27.0 + s4 * s4)) / (27.0 + 9.0 * s4 * s4);
+      s4 += g * (n_ts3 - ts4);
 
       // Prevent NaN/Inf
       const out = s4 !== s4 ? 0 : s4;

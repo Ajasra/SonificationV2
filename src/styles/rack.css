@@ -514,6 +514,23 @@
   border: 1px solid currentColor;
 }
 
+.module-kind-pill {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  color: #0b0d10;
+}
+
+.module-kind-pill.kind-audio { background: #6fd3c4; }
+.module-kind-pill.kind-video { background: #e8a85c; }
+
+.rack-module-audio { border-left: 2px solid #6fd3c4; }
+.rack-module-video { border-left: 2px solid #e8a85c; }
+
 .module-title-text {
   font-size: 0.68rem;
   font-weight: 700;

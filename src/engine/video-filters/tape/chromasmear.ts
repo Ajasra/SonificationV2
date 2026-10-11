@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 6. VHS / U-Matic Chroma Smear & Delay (Color-Under Subcarrier Low-Pass)
 // Delays and low-passes the chrominance (Cb/Cr) channel horizontally relative to luminance (Y),
@@ -64,8 +64,12 @@ export class ChromaSmearFilter extends BaseVideoFilter {
     const nse = this.noise;
     const invBld = 1.0 / bld;
 
+    const hasNoise = nse > 0;
+    const nseScale = nse * 20;
+
     for (let y = 0; y < height; y++) {
       const rowOffset = y * width * 4;
+      let noiseSeed = (timeMs | 0) ^ (y * 31337);
 
       // 1. Extract Chrominance Cb and Cr per line
       for (let x = 0; x < width; x++) {
@@ -114,8 +118,9 @@ export class ChromaSmearFilter extends BaseVideoFilter {
           delayedCr = crBuf[delayedX];
         }
 
-        if (nse > 0) {
-          const noiseSample = ((Math.sin(x * 9.1 + y * 13.7 + timeMs * 0.01) * 43758.5453) % 1) * nse * 20;
+        if (hasNoise) {
+          noiseSeed = (noiseSeed * 1664525 + 1013904223) | 0;
+          const noiseSample = (((noiseSeed >>> 16) - 32768) * (1.0 / 32768.0)) * nseScale;
           delayedCb += noiseSample;
           delayedCr += noiseSample * 0.5;
         }
@@ -128,9 +133,9 @@ export class ChromaSmearFilter extends BaseVideoFilter {
         const newG = yLuma - 0.344136 * delayedCb - 0.714136 * delayedCr;
         const newB = yLuma + 1.772 * delayedCb;
 
-        rgba[idx] = clampByte(newR);
-        rgba[idx + 1] = clampByte(newG);
-        rgba[idx + 2] = clampByte(newB);
+        rgba[idx] = newR < 0 ? 0 : newR > 255 ? 255 : (newR | 0);
+        rgba[idx + 1] = newG < 0 ? 0 : newG > 255 ? 255 : (newG | 0);
+        rgba[idx + 2] = newB < 0 ? 0 : newB > 255 ? 255 : (newB | 0);
       }
     }
   }

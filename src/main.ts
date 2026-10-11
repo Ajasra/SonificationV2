@@ -18,8 +18,7 @@ import { createResolutionSlider } from './ui/resolution-slider.ts';
 import { QrModalController } from './ui/qr-modal.ts';
 import { FilterLibraryModalController } from './ui/filter-library-modal.ts';
 import { AccountModalController } from './ui/account-modal.ts';
-import { RackController } from './ui/rack-controller.ts';
-import { VideoRackController } from './ui/video-rack-controller.ts';
+import { ChainRackController } from './ui/chain-rack-controller.ts';
 import { MobileController } from './ui/mobile-controller.ts';
 import { MediaController } from './ui/media-controller.ts';
 import { PresetController } from './ui/preset-controller.ts';
@@ -90,8 +89,7 @@ class SonificationApp {
   private qrModalController!: QrModalController;
   public filterLibraryModalController!: FilterLibraryModalController;
   private accountModalController!: AccountModalController;
-  private rackController!: RackController;
-  private videoRackController!: VideoRackController;
+  private rackController!: ChainRackController;
   private mobileController!: MobileController;
   private mediaController!: MediaController;
   private presetController!: PresetController;
@@ -155,19 +153,14 @@ class SonificationApp {
   }
 
   private initControllers(): void {
-    this.rackController = new RackController({
-      getActivePreset: () => this.activePreset,
-      onRequestRender: () => this.requestRender(),
-    });
-
-    this.videoRackController = new VideoRackController({
+    this.rackController = new ChainRackController({
       getActivePreset: () => this.activePreset,
       onRequestRender: () => this.requestRender(),
     });
 
     this.filterLibraryModalController = new FilterLibraryModalController({
-      onAddAudioFilter: (type) => this.rackController.addFilter(type),
-      onAddVideoFilter: (type) => this.videoRackController.addFilter(type),
+      onAddAudioFilter: (type) => this.rackController.addAudioFilter(type),
+      onAddVideoFilter: (type) => this.rackController.addVideoFilter(type),
     });
 
     this.qrModalController = new QrModalController({
@@ -234,7 +227,6 @@ class SonificationApp {
       onPresetChanged: () => {
         this.syncFormWithPreset();
         this.rackController?.render();
-        this.videoRackController?.render();
         this.mobileController?.renderPresetDrawer();
         this.mobileController?.updatePresetBadge();
       },
@@ -449,7 +441,6 @@ class SonificationApp {
     this.presetController.setSavedPresetMeta(saved?.id || null, saved?.owner || null);
     this.syncFormWithPreset();
     this.rackController.render();
-    this.videoRackController?.render();
     this.presetController.renderPresetDropdown();
     this.mobileController?.updatePresetBadge();
     this.requestRender();

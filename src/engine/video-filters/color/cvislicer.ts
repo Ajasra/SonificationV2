@@ -82,20 +82,59 @@ export class CviSlicerFilter extends BaseVideoFilter {
     }
   }
 
+  private cachedNumLevels = -1;
+  private cachedContourMix = -1;
+  private quantLutR = new Uint8Array(256);
+  private quantLutG = new Uint8Array(256);
+  private quantLutB = new Uint8Array(256);
+  private edgeLutR = new Uint8Array(256);
+  private edgeLutG = new Uint8Array(256);
+  private edgeLutB = new Uint8Array(256);
+
+  private updateQuantLut(numLevels: number, contour: number): void {
+    if (this.cachedNumLevels === numLevels && this.cachedContourMix === contour) return;
+    this.cachedNumLevels = numLevels;
+    this.cachedContourMix = contour;
+    const step = 255 / (numLevels - 1);
+    const lut = this.lut;
+    const invContour = 1.0 - contour;
+    const contour255 = 255 * contour;
+
+    for (let luma = 0; luma < 256; luma++) {
+      const quantIdx = clampByte(Math.round(Math.round(luma / step) * step));
+      const lutIdx = quantIdx * 3;
+      const r = lut[lutIdx];
+      const g = lut[lutIdx + 1];
+      const b = lut[lutIdx + 2];
+      this.quantLutR[luma] = r;
+      this.quantLutG[luma] = g;
+      this.quantLutB[luma] = b;
+
+      this.edgeLutR[luma] = (r * invContour + contour255 + 0.5) | 0;
+      this.edgeLutG[luma] = g * invContour + contour255 + 0.5 | 0;
+      this.edgeLutB[luma] = b * invContour + contour255 + 0.5 | 0;
+    }
+  }
+
   randomize(): void {
     this.levels = Math.floor(3 + Math.random() * 10);
     this.palette = Math.floor(Math.random() * 5);
     this.edgeThresh = Math.round(10 + Math.random() * 50);
     this.contourMix = +(0.3 + Math.random() * 0.7).toFixed(2);
     this.mix = +(0.7 + Math.random() * 0.3).toFixed(2);
+    this.cachedNumLevels = -1;
     this.updatePaletteLut();
   }
 
   setParams(p: Record<string, number>): void {
     if (p.levels !== undefined) this.levels = clamp(Math.round(p.levels), 2, 16);
     if (p.palette !== undefined) {
-      this.palette = clamp(Math.round(p.palette), 0, 4);
-      this.updatePaletteLut();
+      const newPal = clamp(Math.round(p.palette), 0, 4);
+      if (newPal !== this.palette) {
+        this.palette = newPal;
+        this.cachedNumLevels = -1;
+        this.updatePaletteLut();
+      }
     }
     if (p.edgeThresh !== undefined) this.edgeThresh = clamp(p.edgeThresh, 4, 80);
     if (p.contourMix !== undefined) this.contourMix = clamp(p.contourMix, 0.0, 1.0);
@@ -121,12 +160,18 @@ export class CviSlicerFilter extends BaseVideoFilter {
       numLevels = clamp(Math.round(numLevels - ctx.audioRms * 3), 2, 16);
     }
 
-    const step = 255 / (numLevels - 1);
+    const contour = this.contourMix;
+    this.updateQuantLut(numLevels, contour);
+
     const wet = this.mix;
     const dry = 1.0 - wet;
-    const contour = this.contourMix;
     const ethresh = this.edgeThresh;
-    const lut = this.lut;
+    const qR = this.quantLutR;
+    const qG = this.quantLutG;
+    const qB = this.quantLutB;
+    const eR = this.edgeLutR;
+    const eG = this.edgeLutG;
+    const eB = this.edgeLutB;
 
     // In-place scanline processing with previous-pixel edge test
     for (let y = 0; y < height; y++) {
@@ -141,28 +186,17 @@ export class CviSlicerFilter extends BaseVideoFilter {
 
         const luma = (origR * 77 + origG * 150 + origB * 29) >> 8;
 
-        // Voltage quantization step
-        const quantIdx = clampByte(Math.round(Math.round(luma / step) * step));
-        const lutIdx = quantIdx * 3;
+        const delta = luma > prevLuma ? luma - prevLuma : prevLuma - luma;
+        const palR = delta > ethresh ? eR[luma] : qR[luma];
+        const palG = delta > ethresh ? eG[luma] : qG[luma];
+        const palB = delta > ethresh ? eB[luma] : qB[luma];
 
-        let palR = lut[lutIdx];
-        let palG = lut[lutIdx + 1];
-        let palB = lut[lutIdx + 2];
-
-        // Contour edge detection
-        const delta = Math.abs(luma - prevLuma);
-        if (delta > ethresh) {
-          const invContour = 1.0 - contour;
-          palR = clampByte(palR * invContour + 255 * contour);
-          palG = clampByte(palG * invContour + 255 * contour);
-          palB = clampByte(palB * invContour + 255 * contour);
-        }
         prevLuma = luma;
 
         // Wet/dry mix
-        rgba[i] = clampByte(origR * dry + palR * wet);
-        rgba[i + 1] = clampByte(origG * dry + palG * wet);
-        rgba[i + 2] = clampByte(origB * dry + palB * wet);
+        rgba[i] = (origR * dry + palR * wet + 0.5) | 0;
+        rgba[i + 1] = (origG * dry + palG * wet + 0.5) | 0;
+        rgba[i + 2] = (origB * dry + palB * wet + 0.5) | 0;
       }
     }
   }

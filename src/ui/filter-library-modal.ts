@@ -52,14 +52,13 @@ export class FilterLibraryModalController {
   }
 
   private bindEvents(): void {
-    // Open for Audio DSP
+    // Open module library modal
     if (this.btnAddAudioFilter) {
       this.btnAddAudioFilter.onclick = () => {
-        this.open('audio');
+        this.open(this.activeDomain);
       };
     }
 
-    // Open for Analog Video
     if (this.btnAddVideoFilter) {
       this.btnAddVideoFilter.onclick = () => {
         this.open('video');

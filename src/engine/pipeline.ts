@@ -1,4 +1,8 @@
-// Unified Pipeline Runner: Coordinates Color Transform -> Stream Encode -> DSP Chain -> Stream Decode -> Color Revert -> Equalize -> Blend
+// Unified Pipeline Runner. The processing chain interleaves audio and video nodes in any order.
+// Consecutive same-kind nodes form a segment:
+//   audio segment: Color Transform -> Stream Encode -> fused DSP chain -> Stream Decode -> Color Revert
+//   video segment: in-place RGBA filters
+// Equalize and Blend run once, right after the last audio segment.
 import type { SonificationPreset, BlendMode, VideoFrameContext } from '../types/index.ts';
 import { convertToColorSpace, convertFromColorSpace } from './colorspaces.ts';
 import { imageToAudioStream, audioStreamToImage } from './streams.ts';
@@ -7,6 +11,7 @@ import { createFilterInstance } from './filters/factory.ts';
 import type { IDspFilter } from './filters/base.ts';
 import { createVideoFilterInstance } from './video-filters/factory.ts';
 import type { IVideoFilter } from './video-filters/base.ts';
+import { resolveChain } from './chain.ts';
 
 export interface PipelineResult {
   outputRgba: Uint8ClampedArray;
@@ -15,12 +20,22 @@ export interface PipelineResult {
   executionTimeMs: number;
 }
 
-export class SonificationPipeline {
-  private activeFilters: IDspFilter[] = [];
-  private currentFilterStateKey = '';
+type Segment =
+  | { kind: 'audio'; filters: IDspFilter[]; isLast: boolean }
+  | { kind: 'video'; filters: IVideoFilter[] };
 
-  private activeVideoFilters: IVideoFilter[] = [];
-  private currentVideoFilterStateKey = '';
+export class SonificationPipeline {
+  // Compiled chain, rebuilt only when structure (order / type / enabled / size) changes
+  private segments: Segment[] = [];
+  private nodes: { inst: IDspFilter | IVideoFilter; cfgRef: { params: Record<string, number> } }[] = [];
+  private chainKey = '';
+  private hasVideo = false;
+  // Instance cache keyed by node id: reordering or toggling keeps filter state alive
+  private instanceCache = new Map<string, { sig: string; inst: IDspFilter | IVideoFilter }>();
+
+  // Audio levels for video cross-modulation (previous frame if no audio ran yet)
+  private lastAudioRms = 0;
+  private lastAudioPeak = 0;
 
   // Preallocated working buffers and zero-allocation chunk views
   private workRgbaBuffer = new Uint8ClampedArray(0);
@@ -29,6 +44,13 @@ export class SonificationPipeline {
   private chunkViews: Float32Array[] = [];
   private lastChunkSamples = 0;
   private static readonly CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
+
+  // Fast chain memoization
+  private cachedOrdered: ReturnType<typeof resolveChain> | null = null;
+  private lastPresetRef: SonificationPreset | null = null;
+  private lastChainRef: SonificationPreset['chain'] | null = null;
+  private lastFiltersRef: SonificationPreset['filters'] | null = null;
+  private lastVideoFiltersRef: SonificationPreset['videoFilters'] | null = null;
 
   private ensureBuffers(numPixels: number, numSamples: number): void {
     const rgbaBytes = numPixels * 4;
@@ -53,57 +75,100 @@ export class SonificationPipeline {
     }
   }
 
-  private syncFilterInstances(preset: SonificationPreset): void {
-    const key = preset.filters
-      .map((f) => `${f.id}:${f.type}:${f.enabled}:${f.sampleRate}`)
-      .join('|');
+  /** Rebuild segments if the chain structure changed; otherwise push params in place. */
+  private syncChain(preset: SonificationPreset, width: number, height: number): void {
+    let ordered = this.cachedOrdered;
+    if (
+      !ordered ||
+      preset !== this.lastPresetRef ||
+      preset.chain !== this.lastChainRef ||
+      preset.filters !== this.lastFiltersRef ||
+      preset.videoFilters !== this.lastVideoFiltersRef
+    ) {
+      ordered = resolveChain(preset);
+      this.cachedOrdered = ordered;
+      this.lastPresetRef = preset;
+      this.lastChainRef = preset.chain;
+      this.lastFiltersRef = preset.filters;
+      this.lastVideoFiltersRef = preset.videoFilters;
+    }
 
-    if (this.currentFilterStateKey !== key) {
-      this.activeFilters = preset.filters
-        .filter((f) => f.enabled)
-        .map((f) => {
-          const instance = createFilterInstance(f.type, f.sampleRate);
-          instance.setParams(f.params);
-          return instance;
-        });
-      this.currentFilterStateKey = key;
-    } else {
-      // Update parameters in-place
-      let activeIdx = 0;
-      for (const f of preset.filters) {
-        if (f.enabled && this.activeFilters[activeIdx]) {
-          this.activeFilters[activeIdx].setParams(f.params);
-          activeIdx++;
+    let key = `${width}x${height}`;
+    for (let i = 0; i < ordered.length; i++) {
+      const e = ordered[i];
+      key += `|${e.kind}:${e.cfg.id}:${e.cfg.type}:${e.cfg.enabled}${e.kind === 'audio' ? ':' + e.cfg.sampleRate : ''}`;
+    }
+
+    if (key !== this.chainKey) {
+      const nextCache = new Map<string, { sig: string; inst: IDspFilter | IVideoFilter }>();
+      const segments: Segment[] = [];
+      const nodes: { inst: IDspFilter | IVideoFilter; cfgRef: { params: Record<string, number> } }[] = [];
+      let hasVideo = false;
+
+      for (const e of ordered) {
+        if (!e.cfg.enabled) continue;
+        const sig = e.kind === 'audio' ? `a:${e.cfg.type}:${e.cfg.sampleRate}` : `v:${e.cfg.type}:${width}x${height}`;
+        const cacheKey = `${e.kind}:${e.cfg.id}`;
+        let entry = this.instanceCache.get(cacheKey);
+        if (!entry || entry.sig !== sig) {
+          let inst: IDspFilter | IVideoFilter;
+          if (e.kind === 'audio') {
+            inst = createFilterInstance(e.cfg.type, e.cfg.sampleRate);
+          } else {
+            const v = createVideoFilterInstance(e.cfg.type);
+            v.init(width, height);
+            inst = v;
+          }
+          entry = { sig, inst };
+        }
+        nextCache.set(cacheKey, entry);
+        nodes.push({ inst: entry.inst, cfgRef: e.cfg });
+
+        const last = segments[segments.length - 1];
+        if (e.kind === 'audio') {
+          if (last && last.kind === 'audio') last.filters.push(entry.inst as IDspFilter);
+          else segments.push({ kind: 'audio', filters: [entry.inst as IDspFilter], isLast: false });
+        } else {
+          hasVideo = true;
+          if (last && last.kind === 'video') last.filters.push(entry.inst as IVideoFilter);
+          else segments.push({ kind: 'video', filters: [entry.inst as IVideoFilter] });
         }
       }
+
+      // The stream stage always runs at least once (reader/writer reinterpretation + audio monitor)
+      if (!segments.some((s) => s.kind === 'audio')) {
+        segments.unshift({ kind: 'audio', filters: [], isLast: false });
+      }
+      for (let i = segments.length - 1; i >= 0; i--) {
+        const s = segments[i];
+        if (s.kind === 'audio') { s.isLast = true; break; }
+      }
+
+      this.segments = segments;
+      this.nodes = nodes;
+      this.hasVideo = hasVideo;
+      this.instanceCache = nextCache;
+      this.chainKey = key;
     }
+
+    for (const n of this.nodes) n.inst.setParams(n.cfgRef.params);
   }
 
-  private syncVideoFilterInstances(preset: SonificationPreset, width: number, height: number): void {
-    const list = preset.videoFilters || [];
-    const key = list
-      .map((f) => `${f.id}:${f.type}:${f.enabled}`)
-      .join('|');
-
-    if (this.currentVideoFilterStateKey !== key) {
-      this.activeVideoFilters = list
-        .filter((f) => f.enabled)
-        .map((f) => {
-          const instance = createVideoFilterInstance(f.type);
-          instance.init(width, height);
-          instance.setParams(f.params);
-          return instance;
-        });
-      this.currentVideoFilterStateKey = key;
-    } else {
-      let activeIdx = 0;
-      for (const f of list) {
-        if (f.enabled && this.activeVideoFilters[activeIdx]) {
-          this.activeVideoFilters[activeIdx].setParams(f.params);
-          activeIdx++;
-        }
-      }
+  /** Fast subsampled RMS / peak of the audio stream for video cross-modulation. */
+  private measureAudio(stream: Float32Array): void {
+    let sumSq = 0;
+    let peak = 0;
+    const sLen = stream.length;
+    const stride = Math.max(1, Math.floor(sLen / 1024));
+    let count = 0;
+    for (let i = 0; i < sLen; i += stride) {
+      const s = Math.abs(stream[i]);
+      if (s > peak) peak = s;
+      sumSq += s * s;
+      count++;
     }
+    this.lastAudioRms = count > 0 ? Math.sqrt(sumSq / count) : 0;
+    this.lastAudioPeak = peak;
   }
 
   processFrame(
@@ -117,90 +182,85 @@ export class SonificationPipeline {
     const numPixels = width * height;
     const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
     this.ensureBuffers(numPixels, numSamples);
+    this.syncChain(preset, width, height);
 
     const outRgba = outputTargetRgba || new Uint8ClampedArray(numPixels * 4);
 
-    // 1 & 2. Color space transform: if RGB, bypass 8MB memcpy completely!
-    let srcRgba: Uint8ClampedArray;
-    if (preset.reader.colorSpace === 'RGB') {
-      srcRgba = inputRgba;
-    } else {
-      this.workRgbaBuffer.set(inputRgba.subarray(0, numPixels * 4));
-      convertToColorSpace(this.workRgbaBuffer.subarray(0, numPixels * 4), preset.reader.colorSpace);
-      srcRgba = this.workRgbaBuffer;
-    }
+    // `cur` is the current image. It starts as the read-only input and moves to outRgba
+    // the first time a stage writes.
+    let cur: Uint8ClampedArray = inputRgba;
+    let audioStream: Float32Array = this.workAudioBuffer.subarray(0, numSamples);
+    let firstAudio = true;
+    let copyLen = 0;
 
-    // 3. Encode image pixels into 1D audio sample stream [-1.0, 1.0]
-    const audioStream = imageToAudioStream(
-      srcRgba.subarray(0, numPixels * 4),
-      preset.reader,
-      this.workAudioBuffer.subarray(0, numSamples)
-    );
-
-    // Snapshot preview of unmodulated raw audio stream before DSP filter chain
-    const copyLen = Math.min(audioStream.length, this.rawAudioPreviewBuffer.length);
-    this.rawAudioPreviewBuffer.set(audioStream.subarray(0, copyLen));
-
-    // 4. Run audio DSP chain in-place with preallocated L1 cache chunk fusion
-    this.syncFilterInstances(preset);
-    const numFilters = this.activeFilters.length;
-    if (numFilters === 1) {
-      this.activeFilters[0].processBlock(audioStream);
-    } else if (numFilters > 1) {
-      const chunks = this.chunkViews;
-      const numChunks = chunks.length;
-      for (let c = 0; c < numChunks; c++) {
-        const chunk = chunks[c];
-        for (let f = 0; f < numFilters; f++) {
-          this.activeFilters[f].processBlock(chunk);
+    for (const seg of this.segments) {
+      if (seg.kind === 'video') {
+        if (cur === inputRgba) {
+          outRgba.set(inputRgba.subarray(0, numPixels * 4));
+          cur = outRgba;
         }
-      }
-    }
-
-    // 5. Decode 1D audio sample stream back into image pixels
-    audioStreamToImage(audioStream, preset.writer, outRgba);
-
-    // 6. Post-process color space transform revert
-    convertFromColorSpace(outRgba, preset.writer.colorSpace);
-
-    // 7. Histogram equalization & dynamic range normalization
-    if (preset.equalize) {
-      equalizeHistogram(outRgba);
-    }
-
-    // 8. Blend with original input if configured
-    if (preset.blendMode !== 'NONE' && preset.blendAmount > 0) {
-      this.blend(inputRgba, outRgba, preset.blendMode, preset.blendAmount);
-    }
-
-    // 9. Run analog video processing rack in-place (with audio CV metrics)
-    if (preset.videoFilters && preset.videoFilters.length > 0) {
-      this.syncVideoFilterInstances(preset, width, height);
-      if (this.activeVideoFilters.length > 0) {
-        // Fast subsampled audio RMS and peak calculation for cross-modulation
-        let sumSq = 0;
-        let peak = 0;
-        const sLen = audioStream.length;
-        const stride = Math.max(1, Math.floor(sLen / 1024));
-        let count = 0;
-        for (let i = 0; i < sLen; i += stride) {
-          const s = Math.abs(audioStream[i]);
-          if (s > peak) peak = s;
-          sumSq += s * s;
-          count++;
-        }
-        const audioRms = count > 0 ? Math.sqrt(sumSq / count) : 0;
-
         const videoCtx: VideoFrameContext = {
           width,
           height,
           timeMs: t0,
-          audioRms,
-          audioPeak: peak,
+          audioRms: this.lastAudioRms,
+          audioPeak: this.lastAudioPeak,
         };
+        const fl = seg.filters;
+        for (let i = 0; i < fl.length; i++) fl[i].processFrame(outRgba, videoCtx);
+        continue;
+      }
 
-        for (const vFilter of this.activeVideoFilters) {
-          vFilter.processFrame(outRgba, videoCtx);
+      // Audio segment. Color space transform: if RGB, bypass the 8MB memcpy completely!
+      let srcRgba: Uint8ClampedArray;
+      if (preset.reader.colorSpace === 'RGB') {
+        srcRgba = cur;
+      } else {
+        this.workRgbaBuffer.set(cur.subarray(0, numPixels * 4));
+        convertToColorSpace(this.workRgbaBuffer.subarray(0, numPixels * 4), preset.reader.colorSpace);
+        srcRgba = this.workRgbaBuffer;
+      }
+
+      // Encode image pixels into 1D audio sample stream [-1.0, 1.0]
+      audioStream = imageToAudioStream(
+        srcRgba.subarray(0, numPixels * 4),
+        preset.reader,
+        this.workAudioBuffer.subarray(0, numSamples)
+      );
+
+      // Snapshot preview of the unmodulated stream before the first DSP segment
+      if (firstAudio) {
+        copyLen = Math.min(audioStream.length, this.rawAudioPreviewBuffer.length);
+        this.rawAudioPreviewBuffer.set(audioStream.subarray(0, copyLen));
+        firstAudio = false;
+      }
+
+      // Run audio DSP chain in-place with preallocated L1 cache chunk fusion
+      const fl = seg.filters;
+      const numFilters = fl.length;
+      if (numFilters === 1) {
+        fl[0].processBlock(audioStream);
+      } else if (numFilters > 1) {
+        const chunks = this.chunkViews;
+        const numChunks = chunks.length;
+        for (let c = 0; c < numChunks; c++) {
+          const chunk = chunks[c];
+          for (let f = 0; f < numFilters; f++) fl[f].processBlock(chunk);
+        }
+      }
+
+      if (this.hasVideo) this.measureAudio(audioStream);
+
+      // Decode the stream back into image pixels, then revert the color space
+      audioStreamToImage(audioStream, preset.writer, outRgba);
+      convertFromColorSpace(outRgba, preset.writer.colorSpace);
+      cur = outRgba;
+
+      // Equalize & blend belong to the final audio stage
+      if (seg.isLast) {
+        if (preset.equalize) equalizeHistogram(outRgba);
+        if (preset.blendMode !== 'NONE' && preset.blendAmount > 0) {
+          this.blend(inputRgba, outRgba, preset.blendMode, preset.blendAmount);
         }
       }
     }

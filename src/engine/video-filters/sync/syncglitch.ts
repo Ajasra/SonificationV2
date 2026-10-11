@@ -14,11 +14,15 @@ export class SyncGlitchFilter extends BaseVideoFilter {
   headSwitch = 10;   // 0 to 40 (bottom head switching noise lines)
 
   private lineBuffer = new Uint32Array(1920);
+  private rollBuffer = new Uint32Array(0);
 
   init(width: number, height: number): void {
     super.init(width, height);
     if (this.lineBuffer.length < width) {
       this.lineBuffer = new Uint32Array(width);
+    }
+    if (this.rollBuffer.length < width * height) {
+      this.rollBuffer = new Uint32Array(width * height);
     }
   }
 
@@ -69,14 +73,14 @@ export class SyncGlitchFilter extends BaseVideoFilter {
     if (this.vRoll > 0.001) {
       const rollLines = Math.floor(this.vRoll * height) % height;
       if (rollLines > 0) {
-        const tempFull = new Uint32Array(pixels);
+        if (this.rollBuffer.length < pixels.length) {
+          this.rollBuffer = new Uint32Array(pixels.length);
+        }
+        this.rollBuffer.set(pixels);
+        const tempFull = this.rollBuffer;
         for (let y = 0; y < height; y++) {
           const srcY = (y + rollLines) % height;
-          const srcOffset = srcY * width;
-          const dstOffset = y * width;
-          for (let x = 0; x < width; x++) {
-            pixels[dstOffset + x] = tempFull[srcOffset + x];
-          }
+          pixels.set(tempFull.subarray(srcY * width, (srcY + 1) * width), y * width);
         }
       }
     }

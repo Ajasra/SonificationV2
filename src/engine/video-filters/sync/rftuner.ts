@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 13. RF Multipath Tuner & Antenna Ghosting
 // Simulates analog VHF/UHF broadcast television demodulation: antenna multipath
@@ -41,13 +41,7 @@ export class RfTunerFilter extends BaseVideoFilter {
     };
   }
 
-  private nextNoise(): number {
-    // Fast 32-bit xorshift PRNG
-    this.seed ^= this.seed << 13;
-    this.seed ^= this.seed >> 17;
-    this.seed ^= this.seed << 5;
-    return ((this.seed >>> 0) % 256) - 128;
-  }
+
 
   processFrame(rgba: Uint8ClampedArray, ctx: VideoFrameContext): void {
     const { width, height, timeMs } = ctx;
@@ -68,11 +62,16 @@ export class RfTunerFilter extends BaseVideoFilter {
     const humTimeOffset = timeMs * humSpeed;
 
     const noiseScale = noiseAmt * 1.5;
+    let seed = this.seed;
+    const hasHum = hum > 0.01;
+    const hasNoise = noiseAmt > 0.01;
+    const hasDrift = drift !== 0;
+    const driftOffset = drift * 20;
 
     for (let y = 0; y < height; y++) {
       const rowOffset = y * width * 4;
       // Rolling AC ground hum ripple
-      const humVal = Math.sin(y * humFreq - humTimeOffset) * hum * 45;
+      const humVal = hasHum ? Math.sin(y * humFreq - humTimeOffset) * hum * 45 : 0;
 
       for (let x = 0; x < width; x++) {
         const i = rowOffset + x * 4;
@@ -89,32 +88,35 @@ export class RfTunerFilter extends BaseVideoFilter {
         }
 
         // Apply ground hum modulation
-        if (hum > 0.01) {
+        if (hasHum) {
           r += humVal;
           g += humVal;
           b += humVal;
         }
 
         // Apply snowy RF static
-        if (noiseAmt > 0.01) {
-          const n = this.nextNoise() * noiseScale;
+        if (hasNoise) {
+          seed ^= seed << 13;
+          seed ^= seed >> 17;
+          seed ^= seed << 5;
+          const n = (((seed >>> 0) & 0xff) - 128) * noiseScale;
           r += n;
           g += n;
           b += n;
         }
 
         // Carrier frequency drift chroma distortion
-        if (drift !== 0) {
-          const driftOffset = drift * 20;
+        if (hasDrift) {
           r += driftOffset;
           b -= driftOffset;
         }
 
-        rgba[i] = clampByte(r);
-        rgba[i + 1] = clampByte(g);
-        rgba[i + 2] = clampByte(b);
+        rgba[i] = r < 0 ? 0 : r > 255 ? 255 : (r | 0);
+        rgba[i + 1] = g < 0 ? 0 : g > 255 ? 255 : (g | 0);
+        rgba[i + 2] = b < 0 ? 0 : b > 255 ? 255 : (b | 0);
       }
     }
+    this.seed = seed;
   }
 }
 

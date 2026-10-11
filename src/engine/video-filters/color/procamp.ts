@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 9. Sony BVP-4 / Harris Broadcast Proc Amp & Pedestal Calibrator
 // Hardware analog processing amplifier providing studio-grade black pedestal setup,
@@ -55,29 +55,50 @@ export class ProcAmpFilter extends BaseVideoFilter {
     const cosPhase = Math.cos(rad) * sat;
     const sinPhase = Math.sin(rad) * sat;
 
+    // Fused BT.601 matrix * chroma phase rotation * inverse BT.601
+    const u_r = -0.14713, u_g = -0.28886, u_b = 0.436;
+    const v_r = 0.615, v_g = -0.51499, v_b = -0.10001;
+
+    const newU_r = u_r * cosPhase - v_r * sinPhase;
+    const newU_g = u_g * cosPhase - v_g * sinPhase;
+    const newU_b = u_b * cosPhase - v_b * sinPhase;
+
+    const newV_r = u_r * sinPhase + v_r * cosPhase;
+    const newV_g = u_g * sinPhase + v_r * cosPhase;
+    const newV_b = u_b * sinPhase + v_r * cosPhase;
+
+    const dR_r = 1.13983 * newV_r;
+    const dR_g = 1.13983 * newV_g;
+    const dR_b = 1.13983 * newV_b;
+
+    const dG_r = -0.39465 * newU_r - 0.58060 * newV_r;
+    const dG_g = -0.39465 * newU_g - 0.58060 * newV_g;
+    const dG_b = -0.39465 * newU_b - 0.58060 * newV_b;
+
+    const dB_r = 2.03211 * newU_r;
+    const dB_g = 2.03211 * newU_g;
+    const dB_b = 2.03211 * newU_b;
+
     for (let i = 0; i < len; i += 4) {
       const r = rgba[i];
       const g = rgba[i + 1];
       const b = rgba[i + 2];
 
-      // Convert RGB to YUV (BT.601)
+      // Convert RGB to YUV (BT.601) luminance
       const y = 0.299 * r + 0.587 * g + 0.114 * b;
-      const u = -0.14713 * r - 0.28886 * g + 0.436 * b;
-      const v = 0.615 * r - 0.51499 * g - 0.10001 * b;
 
       // Apply video gain and pedestal to luminance
       let newY = (y - 16) * gain + 16 + ped;
       if (newY > clip) newY = clip;
-      if (newY < 0) newY = 0;
+      else if (newY < 0) newY = 0;
 
-      // Apply subcarrier chroma phase rotation and saturation
-      const newU = u * cosPhase - v * sinPhase;
-      const newV = u * sinPhase + v * cosPhase;
+      const outR = (newY + r * dR_r + g * dR_g + b * dR_b + 0.5) | 0;
+      const outG = (newY + r * dG_r + g * dG_g + b * dG_b + 0.5) | 0;
+      const outB = (newY + r * dB_r + g * dB_g + b * dB_b + 0.5) | 0;
 
-      // Convert YUV back to RGB
-      rgba[i] = clampByte(newY + 1.13983 * newV);
-      rgba[i + 1] = clampByte(newY - 0.39465 * newU - 0.58060 * newV);
-      rgba[i + 2] = clampByte(newY + 2.03211 * newU);
+      rgba[i] = outR < 0 ? 0 : outR > 255 ? 255 : outR;
+      rgba[i + 1] = outG < 0 ? 0 : outG > 255 ? 255 : outG;
+      rgba[i + 2] = outB < 0 ? 0 : outB > 255 ? 255 : outB;
     }
   }
 }

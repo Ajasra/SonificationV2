@@ -175,3 +175,40 @@ test('modified factory studies retain parameters when shared', () => {
   const legacyHash = `#p=${btoa(encodeURIComponent(JSON.stringify(modified)))}`;
   assert.equal(manager.decodePresetFromHash(legacyHash).blendAmount, 0.12345);
 });
+test('chain order decides whether video runs before or after the audio stage', () => {
+  const { SonificationPipeline } = load('src/engine/pipeline.ts');
+  const { resolveChain } = load('src/engine/chain.ts');
+  const { FILTER_DESCRIPTORS } = load('src/engine/filters/factory.ts');
+  const { VIDEO_FILTER_DESCRIPTORS } = load('src/engine/video-filters/factory.ts');
+  const defaults = (d) => Object.fromEntries(d.params.map(p => [p.name, p.value]));
+  const audio = { id: 'a1', type: 'wavefolder', enabled: true, sampleRate: 44100, params: defaults(FILTER_DESCRIPTORS.wavefolder) };
+  const video = { id: 'v1', type: 'solarizer', enabled: true, params: defaults(VIDEO_FILTER_DESCRIPTORS.solarizer) };
+  const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' };
+  const base = { id: 't', name: 't', reader: stream, writer: stream, equalize: false, blendMode: 'NONE', blendAmount: 0 };
+  const pixels = new Uint8ClampedArray(32 * 24 * 4);
+  for (let i = 0; i < pixels.length; i++) pixels[i] = (i * 53) % 256;
+  const run = (chain) => {
+    const preset = JSON.parse(JSON.stringify({ ...base, filters: [audio], videoFilters: [video], chain }));
+    return Array.from(new SonificationPipeline().processFrame(pixels, 32, 24, preset).outputRgba);
+  };
+
+  const legacy = JSON.parse(JSON.stringify({ ...base, filters: [audio], videoFilters: [video] }));
+  assert.deepEqual(JSON.parse(JSON.stringify(resolveChain(legacy).map(e => e.kind))), ['audio', 'video']);
+
+  const audioThenVideo = run([{ kind: 'audio', id: 'a1' }, { kind: 'video', id: 'v1' }]);
+  const videoThenAudio = run([{ kind: 'video', id: 'v1' }, { kind: 'audio', id: 'a1' }]);
+  assert.notDeepEqual(audioThenVideo, videoThenAudio);
+  assert.deepEqual(run(undefined), audioThenVideo);
+  assert.ok(videoThenAudio.every(Number.isFinite));
+});
+test('chain order survives the share-link round trip, including video filters', () => {
+  const { PresetManager } = load('src/presets/preset-manager.ts', { localStorage: { getItem: () => null }, btoa, atob });
+  const manager = new PresetManager();
+  const preset = JSON.parse(JSON.stringify(manager.getAllPresets()[0]));
+  preset.videoFilters = [{ id: 'v1', type: 'solarizer', enabled: true, params: { threshold: 0.5 } }];
+  preset.chain = [{ kind: 'video', id: 'v1' }, ...preset.filters.map(f => ({ kind: 'audio', id: f.id }))];
+  const restored = manager.decodePresetFromHash(manager.encodePresetToHash(preset));
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.chain)), preset.chain);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.videoFilters)), preset.videoFilters);
+});
+

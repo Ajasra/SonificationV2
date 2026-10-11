@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 8. Vidicon Tube Camera Lag & Phosphor Comet Trails
 // Simulates photoconductive target plate charge decay in vintage vacuum tube television cameras.
@@ -75,6 +75,8 @@ export class VidiconFilter extends BaseVideoFilter {
       tintB = 0.45;
     }
 
+    const inv255Gain = gain / 255.0;
+
     for (let i = 0; i < numPixels; i++) {
       const rgbaIdx = i * 4;
       const trailIdx = i * 3;
@@ -92,10 +94,13 @@ export class VidiconFilter extends BaseVideoFilter {
 
       // Charge accumulation from highlights
       if (luma > thresh) {
-        const excess = (luma - thresh) / 255.0;
-        tR = Math.max(tR, r * excess * gain);
-        tG = Math.max(tG, g * excess * gain);
-        tB = Math.max(tB, b * excess * gain);
+        const excess = (luma - thresh) * inv255Gain;
+        const candR = r * excess;
+        const candG = g * excess;
+        const candB = b * excess;
+        if (candR > tR) tR = candR;
+        if (candG > tG) tG = candG;
+        if (candB > tB) tB = candB;
       }
 
       trail[trailIdx] = tR;
@@ -103,9 +108,12 @@ export class VidiconFilter extends BaseVideoFilter {
       trail[trailIdx + 2] = tB;
 
       // Additive phosphor trail overlay
-      rgba[rgbaIdx] = clampByte(r + tR * tintR);
-      rgba[rgbaIdx + 1] = clampByte(g + tG * tintG);
-      rgba[rgbaIdx + 2] = clampByte(b + tB * tintB);
+      const oR = (r + tR * tintR + 0.5) | 0;
+      const oG = (g + tG * tintG + 0.5) | 0;
+      const oB = (b + tB * tintB + 0.5) | 0;
+      rgba[rgbaIdx] = oR > 255 ? 255 : oR;
+      rgba[rgbaIdx + 1] = oG > 255 ? 255 : oG;
+      rgba[rgbaIdx + 2] = oB > 255 ? 255 : oB;
     }
   }
 }

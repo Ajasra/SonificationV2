@@ -80,5 +80,14 @@ export function validatePreset(value: unknown): SonificationPreset {
   } else {
     preset.videoFilters = [];
   }
+  if (preset.chain !== undefined) {
+    if (!Array.isArray(preset.chain) || preset.chain.length > 96) fail('chain order is invalid');
+    for (const raw of preset.chain as unknown[]) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('chain entry is invalid');
+      const ref = raw as Record<string, unknown>;
+      if (ref.kind !== 'audio' && ref.kind !== 'video') fail('chain entry kind is invalid');
+      stringField(ref.id, 'chain entry id', 128);
+    }
+  }
   return JSON.parse(JSON.stringify(preset)) as SonificationPreset;
 }

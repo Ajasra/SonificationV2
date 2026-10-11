@@ -56,8 +56,15 @@ export class WavefolderFilter extends BaseDspFilter {
         }
       }
 
-      // Smooth soft tanh limiter on final output
-      samples[i] = Math.tanh(s);
+      // Smooth soft rational tanh limiter on final output
+      if (s < -3.0) {
+        samples[i] = -1.0;
+      } else if (s > 3.0) {
+        samples[i] = 1.0;
+      } else {
+        const s2 = s * s;
+        samples[i] = (s * (27.0 + s2)) / (27.0 + 9.0 * s2);
+      }
     }
   }
 }

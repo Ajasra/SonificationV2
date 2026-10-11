@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 5. Rutt-Etra Raster Deflector (1973 Scan Deflection Video Synthesizer)
 // Deflects horizontal scanlines vertically according to luminance voltage
@@ -58,12 +58,8 @@ export class RuttEtraFilter extends BaseVideoFilter {
     this.scratchBuffer.set(rgba.subarray(0, sz));
     const src = this.scratchBuffer;
 
-    // Clear output to dark CRT background
-    rgba.fill(8);
-    // Keep alpha at 255
-    for (let i = 3; i < sz; i += 4) {
-      rgba[i] = 255;
-    }
+    // Clear output to dark CRT background with alpha=255 in 1 packed pass
+    new Uint32Array(rgba.buffer, rgba.byteOffset, width * height).fill(0xff080808);
 
     const step = this.density;
     const def = this.deflect;
@@ -71,9 +67,11 @@ export class RuttEtraFilter extends BaseVideoFilter {
 
     // Cross-modulation from audio engine
     const audioAmp = (ctx.audioPeak ?? ctx.audioRms ?? 0) * this.audioMod * 20;
+    const invLumaScale = 1.0 / (256 * 255);
+    const rowBytes = width * 4;
 
     for (let y = 0; y < height; y += step) {
-      const srcRowOffset = y * width * 4;
+      const srcRowOffset = y * rowBytes;
 
       for (let x = 0; x < width; x++) {
         const srcIdx = srcRowOffset + x * 4;
@@ -82,7 +80,7 @@ export class RuttEtraFilter extends BaseVideoFilter {
         const b = src[srcIdx + 2];
 
         // Luminance voltage (0 to 1)
-        const lumaNorm = (r * 77 + g * 150 + b * 29) / (256 * 255);
+        const lumaNorm = (r * 77 + g * 150 + b * 29) * invLumaScale;
 
         // Calculate vertical deflection: deflect upward in proportion to brightness + audio
         const dy = Math.round((lumaNorm * def) + (audioAmp * Math.sin(x * 0.05 + y * 0.02)));
@@ -92,16 +90,22 @@ export class RuttEtraFilter extends BaseVideoFilter {
           const dstIdx = (targetY * width + x) * 4;
 
           // Paint deflected raster point with phosphor brilliance boost
-          rgba[dstIdx] = clampByte(r * bright);
-          rgba[dstIdx + 1] = clampByte(g * bright);
-          rgba[dstIdx + 2] = clampByte(b * bright);
+          const pR = (r * bright + 0.5) | 0;
+          const pG = (g * bright + 0.5) | 0;
+          const pB = (b * bright + 0.5) | 0;
+          rgba[dstIdx] = pR > 255 ? 255 : pR;
+          rgba[dstIdx + 1] = pG > 255 ? 255 : pG;
+          rgba[dstIdx + 2] = pB > 255 ? 255 : pB;
 
           // Subtle vertical beam trail / thickness
           if (step > 2 && targetY + 1 < height) {
-            const dstBelow = ((targetY + 1) * width + x) * 4;
-            rgba[dstBelow] = clampByte(r * bright * 0.45);
-            rgba[dstBelow + 1] = clampByte(g * bright * 0.45);
-            rgba[dstBelow + 2] = clampByte(b * bright * 0.45);
+            const dstBelow = dstIdx + rowBytes;
+            const bR = (pR * 0.45 + 0.5) | 0;
+            const bG = (pG * 0.45 + 0.5) | 0;
+            const bB = (pB * 0.45 + 0.5) | 0;
+            rgba[dstBelow] = bR > 255 ? 255 : bR;
+            rgba[dstBelow + 1] = bG > 255 ? 255 : bG;
+            rgba[dstBelow + 2] = bB > 255 ? 255 : bB;
           }
         }
       }

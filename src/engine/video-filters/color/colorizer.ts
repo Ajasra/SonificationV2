@@ -16,6 +16,9 @@ export class ColorizerFilter extends BaseVideoFilter {
   private lutLow: [number, number, number] = [0, 0, 0];
   private lutMid: [number, number, number] = [0, 0, 0];
   private lutHigh: [number, number, number] = [0, 0, 0];
+  private colorLutR = new Uint8Array(256);
+  private colorLutG = new Uint8Array(256);
+  private colorLutB = new Uint8Array(256);
 
   constructor() {
     super();
@@ -26,62 +29,20 @@ export class ColorizerFilter extends BaseVideoFilter {
     this.lutLow = hsvToRgb(this.lowHue, 0.85, 0.7);
     this.lutMid = hsvToRgb(this.midHue, 0.9, 0.9);
     this.lutHigh = hsvToRgb(this.highHue, 0.85, 1.0);
-  }
-
-  randomize(): void {
-    this.lowHue = Math.round(Math.random() * 360);
-    this.midHue = Math.round(Math.random() * 360);
-    this.highHue = Math.round(Math.random() * 360);
-    this.bands = Math.floor(2 + Math.random() * 6);
-    this.mix = +(0.5 + Math.random() * 0.5).toFixed(2);
-    this.updateLuts();
-  }
-
-  setParams(p: Record<string, number>): void {
-    if (p.lowHue !== undefined) this.lowHue = clamp(p.lowHue, 0, 360);
-    if (p.midHue !== undefined) this.midHue = clamp(p.midHue, 0, 360);
-    if (p.highHue !== undefined) this.highHue = clamp(p.highHue, 0, 360);
-    if (p.bands !== undefined) this.bands = clamp(Math.round(p.bands), 1, 8);
-    if (p.mix !== undefined) this.mix = clamp(p.mix, 0, 1);
-    this.updateLuts();
-  }
-
-  getParams(): Record<string, number> {
-    return {
-      lowHue: this.lowHue,
-      midHue: this.midHue,
-      highHue: this.highHue,
-      bands: this.bands,
-      mix: this.mix,
-    };
-  }
-
-  processFrame(rgba: Uint8ClampedArray, _ctx: VideoFrameContext): void {
-    const len = rgba.length;
-    const numBands = this.bands;
-    const wet = this.mix;
-    const dry = 1.0 - wet;
 
     const [rLow, gLow, bLow] = this.lutLow;
     const [rMid, gMid, bMid] = this.lutMid;
     const [rHigh, gHigh, bHigh] = this.lutHigh;
 
+    const numBands = this.bands;
     const bandStep = 255 / (numBands > 1 ? numBands - 1 : 1);
 
-    for (let i = 0; i < len; i += 4) {
-      const origR = rgba[i];
-      const origG = rgba[i + 1];
-      const origB = rgba[i + 2];
-
-      // Fast integer luminance
-      let luma = (origR * 77 + origG * 150 + origB * 29) >> 8;
-
-      // Quantize to voltage bands
+    for (let rawLuma = 0; rawLuma < 256; rawLuma++) {
+      let luma = rawLuma;
       if (numBands < 8) {
         luma = Math.round(Math.round(luma / bandStep) * bandStep);
       }
 
-      // 3-way color interpolate across shadow -> midtone -> highlight bands
       let cR = 0, cG = 0, cB = 0;
       if (luma < 128) {
         const factor = luma / 128.0;
@@ -97,10 +58,71 @@ export class ColorizerFilter extends BaseVideoFilter {
         cB = (bMid * invFactor + bHigh * factor) | 0;
       }
 
-      // Mix wet/dry
-      rgba[i] = (origR * dry + cR * wet + 0.5) | 0;
-      rgba[i + 1] = (origG * dry + cG * wet + 0.5) | 0;
-      rgba[i + 2] = (origB * dry + cB * wet + 0.5) | 0;
+      this.colorLutR[rawLuma] = cR;
+      this.colorLutG[rawLuma] = cG;
+      this.colorLutB[rawLuma] = cB;
+    }
+  }
+
+  randomize(): void {
+    this.lowHue = Math.round(Math.random() * 360);
+    this.midHue = Math.round(Math.random() * 360);
+    this.highHue = Math.round(Math.random() * 360);
+    this.bands = Math.floor(2 + Math.random() * 6);
+    this.mix = +(0.5 + Math.random() * 0.5).toFixed(2);
+    this.updateLuts();
+  }
+
+  setParams(p: Record<string, number>): void {
+    let changed = false;
+    if (p.lowHue !== undefined) {
+      const v = clamp(p.lowHue, 0, 360);
+      if (v !== this.lowHue) { this.lowHue = v; changed = true; }
+    }
+    if (p.midHue !== undefined) {
+      const v = clamp(p.midHue, 0, 360);
+      if (v !== this.midHue) { this.midHue = v; changed = true; }
+    }
+    if (p.highHue !== undefined) {
+      const v = clamp(p.highHue, 0, 360);
+      if (v !== this.highHue) { this.highHue = v; changed = true; }
+    }
+    if (p.bands !== undefined) {
+      const v = clamp(Math.round(p.bands), 1, 8);
+      if (v !== this.bands) { this.bands = v; changed = true; }
+    }
+    if (p.mix !== undefined) this.mix = clamp(p.mix, 0, 1);
+    if (changed) this.updateLuts();
+  }
+
+  getParams(): Record<string, number> {
+    return {
+      lowHue: this.lowHue,
+      midHue: this.midHue,
+      highHue: this.highHue,
+      bands: this.bands,
+      mix: this.mix,
+    };
+  }
+
+  processFrame(rgba: Uint8ClampedArray, _ctx: VideoFrameContext): void {
+    const len = rgba.length;
+    const wet = this.mix;
+    const dry = 1.0 - wet;
+    const lutR = this.colorLutR;
+    const lutG = this.colorLutG;
+    const lutB = this.colorLutB;
+
+    for (let i = 0; i < len; i += 4) {
+      const origR = rgba[i];
+      const origG = rgba[i + 1];
+      const origB = rgba[i + 2];
+
+      const luma = (origR * 77 + origG * 150 + origB * 29) >> 8;
+
+      rgba[i] = (origR * dry + lutR[luma] * wet + 0.5) | 0;
+      rgba[i + 1] = (origG * dry + lutG[luma] * wet + 0.5) | 0;
+      rgba[i + 2] = (origB * dry + lutB[luma] * wet + 0.5) | 0;
     }
   }
 }

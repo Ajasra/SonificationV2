@@ -126,6 +126,11 @@ export interface VideoFrameContext {
   audioPeak?: number;
 }
 
+export interface ChainNodeRef {
+  kind: 'audio' | 'video';
+  id: string;
+}
+
 export interface SonificationPreset {
   id: string;
   name: string;
@@ -137,6 +142,8 @@ export interface SonificationPreset {
   blendAmount: number; // 0 to 1
   filters: FilterNodeConfig[];
   videoFilters?: VideoFilterNodeConfig[];
+  /** Interleaved execution order of `filters` and `videoFilters`; absent = audio then video. */
+  chain?: ChainNodeRef[];
 }
 
 export type InputSourceMode = 'image' | 'camera' | 'video_file';
