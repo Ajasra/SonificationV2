@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "runId": "259f6559-54d5-4931-9e5b-cced7c4398b8",
+  "createdAt": "2026-10-11T14:51:49.207Z",
+  "build": {
+    "revision": "18730183210393bf695b7f216a25b06780d4fec5",
+    "dirty": true
+  },
+  "scope": "reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation",
+  "backend": "js",
+  "profileEnabled": true,
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "decodedWidth": 1280,
+  "decodedHeight": 720,
+  "randomControl": "production Math.random; timing benchmark only, not deterministic conformance",
+  "processedWidth": 1280,
+  "processedHeight": 720,
+  "targetFps": 60,
+  "preset": {
+    "id": "benchmark-moog",
+    "name": "Benchmark moog",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "moogladder",
+        "type": "moogladder",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "cutoff": 1200,
+          "resonance": 2.2,
+          "drive": 1.5
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "warmupSeconds": 10,
+  "measuredSeconds": 10.115834000000003,
+  "measuredFrames": 76,
+  "processedFps": 7.512974214483944,
+  "skippedPresentedCallbacks": 225,
+  "droppedFrameAttribution": "presentedFrames gaps show missed processing callbacks; decode drops are not observable here",
+  "longTasks": {
+    "count": 75,
+    "durationMs": 8675
+  },
+  "timings": {
+    "captureMs": {
+      "count": 76,
+      "p50": 9.5,
+      "p95": 11,
+      "p99": 11
+    },
+    "pipelineMs": {
+      "count": 76,
+      "p50": 105.39999997615814,
+      "p95": 107,
+      "p99": 108.10000002384186
+    },
+    "outputSubmitMs": {
+      "count": 76,
+      "p50": 0.20000004768371582,
+      "p95": 0.3999999761581421,
+      "p99": 0.40000009536743164
+    },
+    "completeCpuPathMs": {
+      "count": 76,
+      "p50": 115.29999995231628,
+      "p95": 117.5,
+      "p99": 118.20000004768372
+    },
+    "callbackIntervalMs": {
+      "count": 75,
+      "p50": 133.32800000000861,
+      "p95": 133.39999999999418,
+      "p99": 136.60000000000582
+    },
+    "setupMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "p99": 0.19999992847442627
+    },
+    "colorEncodeMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamEncodeMs": {
+      "count": 76,
+      "p50": 2,
+      "p95": 2.399999976158142,
+      "p99": 2.899999976158142
+    },
+    "audioDspMs": {
+      "count": 76,
+      "p50": 100.30000007152557,
+      "p95": 101.89999997615814,
+      "p99": 102.79999995231628
+    },
+    "audioLevelsMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamDecodeMs": {
+      "count": 76,
+      "p50": 3,
+      "p95": 3.200000047683716,
+      "p99": 5
+    },
+    "colorDecodeMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0.10000002384185791
+    },
+    "videoDspMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "equalizeBlendMs": {
+      "count": 76,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    }
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16,
+    "devicePixelRatio": 1
+  },
+  "acceptance": "not evaluated: full application and named physical device gates remain required"
+}

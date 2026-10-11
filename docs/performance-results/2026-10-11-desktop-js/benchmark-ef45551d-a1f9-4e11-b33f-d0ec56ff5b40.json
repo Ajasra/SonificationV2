@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "runId": "ef45551d-a1f9-4e11-b33f-d0ec56ff5b40",
+  "createdAt": "2026-10-11T14:51:16.778Z",
+  "build": {
+    "revision": "18730183210393bf695b7f216a25b06780d4fec5",
+    "dirty": true
+  },
+  "scope": "reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation",
+  "backend": "js",
+  "profileEnabled": true,
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "decodedWidth": 1280,
+  "decodedHeight": 720,
+  "randomControl": "production Math.random; timing benchmark only, not deterministic conformance",
+  "processedWidth": 1280,
+  "processedHeight": 720,
+  "targetFps": 60,
+  "preset": {
+    "id": "benchmark-tape",
+    "name": "Benchmark tape",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      },
+      {
+        "id": "tapewow",
+        "type": "tapewow",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "wow": 0.5,
+          "flutter": 0.3,
+          "drift": 0.3,
+          "mix": 1
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "warmupSeconds": 10,
+  "measuredSeconds": 10.048399999999994,
+  "measuredFrames": 151,
+  "processedFps": 15.027268022769803,
+  "skippedPresentedCallbacks": 150,
+  "droppedFrameAttribution": "presentedFrames gaps show missed processing callbacks; decode drops are not observable here",
+  "longTasks": {
+    "count": 60,
+    "durationMs": 3074
+  },
+  "timings": {
+    "captureMs": {
+      "count": 151,
+      "p50": 7.400000095367432,
+      "p95": 10,
+      "p99": 10.299999952316284
+    },
+    "pipelineMs": {
+      "count": 151,
+      "p50": 41,
+      "p95": 42.700000047683716,
+      "p99": 43.60000002384186
+    },
+    "outputSubmitMs": {
+      "count": 151,
+      "p50": 0.20000004768371582,
+      "p95": 0.30000007152557373,
+      "p99": 0.3999999761581421
+    },
+    "completeCpuPathMs": {
+      "count": 151,
+      "p50": 48.90000009536743,
+      "p95": 51.699999928474426,
+      "p99": 53.199999928474426
+    },
+    "callbackIntervalMs": {
+      "count": 150,
+      "p50": 66.66400000001886,
+      "p95": 66.73599999997532,
+      "p99": 66.89999999999418
+    },
+    "setupMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "p99": 0.10000002384185791
+    },
+    "colorEncodeMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamEncodeMs": {
+      "count": 151,
+      "p50": 2,
+      "p95": 2.1999999284744263,
+      "p99": 2.5
+    },
+    "audioDspMs": {
+      "count": 151,
+      "p50": 34.89999997615814,
+      "p95": 36.39999997615814,
+      "p99": 37.39999997615814
+    },
+    "audioLevelsMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamDecodeMs": {
+      "count": 151,
+      "p50": 4.100000023841858,
+      "p95": 4.200000047683716,
+      "p99": 5.700000047683716
+    },
+    "colorDecodeMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0.10000002384185791
+    },
+    "videoDspMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "equalizeBlendMs": {
+      "count": 151,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    }
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16,
+    "devicePixelRatio": 1
+  },
+  "acceptance": "not evaluated: full application and named physical device gates remain required"
+}

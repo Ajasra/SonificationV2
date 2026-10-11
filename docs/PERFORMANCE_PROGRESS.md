@@ -36,6 +36,8 @@ The browser test is a functional smoke test using a short synthetic video, 10-se
 
 ## Remaining gates and next work
 
+User desktop results are preserved in [performance-results/2026-10-11-desktop-js/ANALYSIS.md](performance-results/2026-10-11-desktop-js/ANALYSIS.md). Short profiled runs measured approximately 30.07 fps unfiltered, 15.03 fps for TapeSat+TapeWow and 7.51 fps for Moog. The observed source cadence was approximately 30 fps despite the selected 60 fps target. DSP dominated the filtered runs; capture/readback also exceeds the desired desktop headroom. These are provisional references, not sustained or physical-phone acceptance.
+
 Stage 0 is in progress. Still required: deterministic TapeWow clock/random/history fixtures; format and block-boundary fidelity coverage; frozen per-filter numerical tolerances; complete live application timing including monitoring/HUD; named source/preset/device matrix; immutable 60-second browser baselines and five-minute runs. Offline export state isolation remains integration work.
 
 Then pin the Emscripten toolchain and implement scalar TapeSat/TapeWow/Moog ports, comparing fidelity and full-path timing before SIMD or WebGPU promotion. No WASM/GPU speedup or desktop/phone FPS acceptance has been claimed.

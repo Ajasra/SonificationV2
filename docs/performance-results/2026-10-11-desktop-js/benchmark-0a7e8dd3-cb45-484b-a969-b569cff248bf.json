@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "runId": "0a7e8dd3-cb45-484b-a969-b569cff248bf",
+  "createdAt": "2026-10-11T14:50:40.866Z",
+  "build": {
+    "revision": "18730183210393bf695b7f216a25b06780d4fec5",
+    "dirty": true
+  },
+  "scope": "reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation",
+  "backend": "js",
+  "profileEnabled": true,
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "decodedWidth": 1280,
+  "decodedHeight": 720,
+  "randomControl": "production Math.random; timing benchmark only, not deterministic conformance",
+  "processedWidth": 1280,
+  "processedHeight": 720,
+  "targetFps": 60,
+  "preset": {
+    "id": "benchmark-control",
+    "name": "Benchmark control",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [],
+    "videoFilters": []
+  },
+  "warmupSeconds": 10,
+  "measuredSeconds": 10.011500000023837,
+  "measuredFrames": 301,
+  "processedFps": 30.065424761452665,
+  "skippedPresentedCallbacks": 0,
+  "droppedFrameAttribution": "presentedFrames gaps show missed processing callbacks; decode drops are not observable here",
+  "longTasks": {
+    "count": 0,
+    "durationMs": 0
+  },
+  "timings": {
+    "captureMs": {
+      "count": 301,
+      "p50": 6.5,
+      "p95": 10.200000047683716,
+      "p99": 11.300000071525574
+    },
+    "pipelineMs": {
+      "count": 301,
+      "p50": 2.3000000715255737,
+      "p95": 3,
+      "p99": 3.700000047683716
+    },
+    "outputSubmitMs": {
+      "count": 301,
+      "p50": 0.2999999523162842,
+      "p95": 0.3999999761581421,
+      "p99": 0.5
+    },
+    "completeCpuPathMs": {
+      "count": 301,
+      "p50": 9.200000047683716,
+      "p95": 13.100000023841858,
+      "p99": 14.799999952316284
+    },
+    "callbackIntervalMs": {
+      "count": 300,
+      "p50": 33.33199999999488,
+      "p95": 33.43599999998696,
+      "p99": 36.6359999999986
+    },
+    "setupMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "p99": 0.10000002384185791
+    },
+    "colorEncodeMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamEncodeMs": {
+      "count": 301,
+      "p50": 2.100000023841858,
+      "p95": 2.700000047683716,
+      "p99": 3.3000000715255737
+    },
+    "audioDspMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "audioLevelsMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "streamDecodeMs": {
+      "count": 301,
+      "p50": 0.20000004768371582,
+      "p95": 0.3999999761581421,
+      "p99": 0.40000009536743164
+    },
+    "colorDecodeMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "videoDspMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "equalizeBlendMs": {
+      "count": 301,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    }
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16,
+    "devicePixelRatio": 1
+  },
+  "acceptance": "not evaluated: full application and named physical device gates remain required"
+}
