@@ -54,6 +54,58 @@ test('reference video benchmark completes and exports an attributed report', asy
   await expect(page.locator('#run')).toBeEnabled();
   await expect(page.locator('#download')).toBeDisabled();
   await expect(page.locator('#report')).toBeEmpty();
+  await page.locator('#backend').selectOption('wasm-scalar');
+  await page.locator('#preset').selectOption('tape');
+  await page.locator('#run').click();
+  await expect(page.locator('#report')).toContainText('"backend": "wasm-scalar"', { timeout: 30_000 });
+  const wasmReport = JSON.parse(await page.locator('#report').textContent() || '{}');
+  expect(wasmReport.randomControl.algorithm).toBe('fixture-xorshift32');
+  expect(wasmReport.wasmBuild.emscripten).toBe('6.0.12');
+  await test.info().attach('wasm-smoke-report', { body: JSON.stringify(wasmReport, null, 2), contentType: 'application/json' });
+  await page.route('**/dsp-scalar.wasm', route => route.abort());
+  await page.locator('#run').click();
+  await expect(page.locator('#status')).toContainText('WASM unavailable');
+  await expect(page.locator('#run')).toBeEnabled();
+  await expect(page.locator('#stop')).toBeDisabled();
+  await expect(page.locator('#download')).toBeDisabled();
+});
+
+test('WASM browser pipelines preserve pixels and samples for supported filters', async ({ page }) => {
+  await page.goto('/benchmark.html');
+  const errors = await page.evaluate(async () => {
+    const { WasmDspRuntime } = await import('/src/engine/backends/wasm.ts');
+    const { SonificationPipeline } = await import('/src/engine/pipeline.ts');
+    const { createFilterInstance, FILTER_DESCRIPTORS } = await import('/src/engine/filters/factory.ts');
+    const { TapeWowFilter } = await import('/src/engine/filters/lofi/tapewow.ts');
+    const { FixtureRandom } = await import('/src/engine/fixtures/random.ts');
+    const results = [];
+    for (const variant of ['scalar', 'simd']) for (const types of [['tapesat'], ['tapewow'], ['tapesat', 'tapewow'], ['moogladder']]) {
+      const runtime = await WasmDspRuntime.load(`/wasm/dsp-${variant}.wasm`);
+      try {
+        const reference = new SonificationPipeline((type: string, rate: number) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
+        const candidate = new SonificationPipeline(runtime.createFilter, runtime.processSegment);
+        const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' };
+        const preset = { id: 'conformance', name: 'conformance', reader: stream, writer: stream,
+          equalize: false, blendMode: 'NONE', blendAmount: 0, videoFilters: [],
+          filters: types.map(type => ({ id: type, type, enabled: true, sampleRate: 44100,
+            params: Object.fromEntries(FILTER_DESCRIPTORS[type].params.map((p: { name: string; value: number }) => [p.name, p.value])) })),
+        };
+        let sampleMax = 0, pixelMax = 0;
+        for (let frame = 0; frame < 8; frame++) {
+          const input = new Uint8ClampedArray(65 * 47 * 4);
+          for (let i = 0; i < input.length; i++) input[i] = (i * 37 + frame * 13) % 256;
+          const js = reference.processFrame(input, 65, 47, preset, undefined, { timeMs: 1234 });
+          const wasm = candidate.processFrame(input, 65, 47, preset, undefined, { timeMs: 1234 });
+          for (let i = 0; i < input.length; i++) pixelMax = Math.max(pixelMax, Math.abs(js.outputRgba[i] - wasm.outputRgba[i]));
+          for (let i = 0; i < js.audioSamples.length; i++) sampleMax = Math.max(sampleMax, Math.abs(js.audioSamples[i] - wasm.audioSamples[i]));
+        }
+        results.push({ variant, types, sampleMax, pixelMax });
+      } finally { runtime.dispose(); }
+    }
+    return results;
+  });
+  for (const result of errors) { expect(result.sampleMax, result.types.join('+')).toBeLessThanOrEqual(1e-6); expect(result.pixelMax, result.types.join('+')).toBe(0); }
+  await test.info().attach('browser-fidelity', { body: JSON.stringify(errors, null, 2), contentType: 'application/json' });
 });
 
 test('benchmark starts with controls disabled until a video is loaded', async ({ page }) => {

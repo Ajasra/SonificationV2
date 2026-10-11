@@ -1,6 +1,6 @@
 # Video acceleration implementation and testing plan
 
-Status: implementation started; Stage 0 is in progress. No WASM/GPU backend or performance acceptance is complete. Updated 2026-10-11. See [PERFORMANCE_PROGRESS.md](PERFORMANCE_PROGRESS.md) for implemented work and verification.
+Status: Stages 0–1 are in progress. Scalar/SIMD WASM prototypes are implemented and remain experimental; no backend promotion or performance acceptance is complete. Updated 2026-10-11. See [PERFORMANCE_PROGRESS.md](PERFORMANCE_PROGRESS.md) and [WASM_PROTOTYPE.md](WASM_PROTOTYPE.md) for implemented work and verification.
 
 ## Goal and scope
 

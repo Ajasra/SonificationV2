@@ -1,0 +1,7 @@
+{
+  "emscripten": "6.0.12",
+  "emsdkCommit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+  "abiVersion": 1,
+  "precision": "double intermediates and state; float sample/history stores",
+  "build": "scalar O3; no fast math, contraction or vectorization"
+}

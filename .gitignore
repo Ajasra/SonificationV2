@@ -4,6 +4,7 @@ dist-benchmark/
 test-results/
 playwright-report/
 .playwright-mcp/
+.tools/
 pb_data/
 pb_public/
 pocketbase

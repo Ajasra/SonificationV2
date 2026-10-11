@@ -18,7 +18,7 @@ export class TapeWowFilter extends BaseDspFilter {
   private noiseTarget = 0;
   private noiseCount = 0;
 
-  constructor(sampleRate: number = 44100) {
+  constructor(sampleRate: number = 44100, private readonly random: () => number = () => Math.random()) {
     super(sampleRate);
     this.init();
   }
@@ -37,9 +37,9 @@ export class TapeWowFilter extends BaseDspFilter {
   }
 
   randomize(): void {
-    this.wow = Math.random();
-    this.flutter = Math.random() * 0.8;
-    this.drift = Math.random() * 0.8;
+    this.wow = this.random();
+    this.flutter = this.random() * 0.8;
+    this.drift = this.random() * 0.8;
     this.mix = 1.0;
   }
 
@@ -83,7 +83,7 @@ export class TapeWowFilter extends BaseDspFilter {
       buf[pos] = x;
 
       if (--nzC <= 0) {
-        nzT = Math.random() * 2 - 1;
+        nzT = this.random() * 2 - 1;
         nzC = stepLen;
       }
       nz += (nzT - nz) * noiseAlpha;
@@ -114,6 +114,13 @@ export class TapeWowFilter extends BaseDspFilter {
     this.noise = nz;
     this.noiseTarget = nzT;
     this.noiseCount = nzC;
+  }
+
+  /** Owned snapshot for conformance; injected random-source state is captured separately. */
+  exportState() {
+    return { version: 1, sampleRate: this.sampleRate, pos: this.pos,
+      wowPhase: this.wowPhase, flutPhase: this.flutPhase, noise: this.noise,
+      noiseTarget: this.noiseTarget, noiseCount: this.noiseCount, buffer: this.buf.slice() };
   }
 }
 

@@ -5,7 +5,9 @@
   <h1>Pipeline reference benchmark</h1>
   <p>Development harness: video capture → JavaScript pipeline → canvas output. Audio playback and application HUD are excluded. These results cannot certify complete application FPS.</p>
   <label>Source video <input id="source" type="file" accept="video/*"></label>
-  <label>Preset <select id="preset"><option value="control">Unfiltered control</option><option value="tape">TapeSat + TapeWow</option><option value="moog">Moog Ladder</option></select></label>
+  <label>Preset <select id="preset"><option value="control">Unfiltered control</option><option value="tapesat">TapeSat only</option><option value="tapewow">TapeWow only</option><option value="tape">TapeSat + TapeWow</option><option value="moog">Moog Ladder</option></select></label>
+  <label>Backend <select id="backend"><option value="js">JavaScript reference</option><option value="wasm-scalar">Scalar WASM prototype</option><option value="wasm-simd">SIMD WASM prototype</option></select></label>
+  <p>TapeWow uses the same seeded fixture control in both benchmark backends. The application keeps its production randomness.</p>
   <label>Target <select id="fps"><option value="30">720p30 — all devices</option></select></label>
   <label>Measure seconds <input id="duration" type="number" min="1" max="300" value="60"></label>
   <label><input id="profile" type="checkbox" checked>Collect pipeline stage timings (adds overhead)</label>

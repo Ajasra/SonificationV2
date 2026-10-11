@@ -106,6 +106,9 @@ export class MoogLadderFilter extends BaseDspFilter {
     this.y1 = s1; this.y2 = s2; this.y3 = s3; this.y4 = s4;
     this.oldx = ox; this.oldy1 = oy1; this.oldy2 = oy2; this.oldy3 = oy3;
   }
+
+  exportState() { return { version: 1, sampleRate: this.sampleRate,
+    values: [this.y1, this.y2, this.y3, this.y4, this.oldx, this.oldy1, this.oldy2, this.oldy3] }; }
 }
 
 export const filter: FilterModule = {

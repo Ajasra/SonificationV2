@@ -1,0 +1,785 @@
+{
+  "schemaVersion": 1,
+  "runId": "0b8e18a5-666e-4b62-b8a6-4ca6f4847ffe",
+  "createdAt": "2026-10-11T15:12:33.612Z",
+  "browserVersion": "156.0.8078.4",
+  "scope": "headless synthetic 720p canvas CPU path; excludes video decoding, monitoring, HUD and display confirmation",
+  "warmupFrames": 5,
+  "measuredFrames": 20,
+  "width": 1280,
+  "height": 720,
+  "fixture": {
+    "pattern": "RGBA byte i: alpha=255, RGB=(i*37)%256",
+    "randomAlgorithm": "xorshift32",
+    "seed": 4821
+  },
+  "acceptance": "not evaluated; exploratory comparison only",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "cases": [
+    {
+      "backend": "js",
+      "preset": {
+        "id": "tapesat",
+        "name": "tapesat",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapesat",
+            "type": "tapesat",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "drive": 2.5,
+              "bias": 0.1,
+              "bump": 0.4,
+              "bumpHz": 80,
+              "tone": 8000
+            }
+          }
+        ]
+      },
+      "wasmBuild": null,
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 2.299999952316284,
+          "p95": 2.799999952316284,
+          "p99": 3.700000047683716
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 26.200000047683716,
+          "p95": 28.5,
+          "p99": 29.700000047683716
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 16.800000071525574,
+          "p95": 18.899999976158142,
+          "p99": 19.100000023841858
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.5,
+          "p95": 0.7000000476837158,
+          "p99": 0.7000000476837158
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 29.100000023841858,
+          "p95": 31.700000047683716,
+          "p99": 32.700000047683716
+        }
+      }
+    },
+    {
+      "backend": "wasm-scalar",
+      "preset": {
+        "id": "tapesat",
+        "name": "tapesat",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapesat",
+            "type": "tapesat",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "drive": 2.5,
+              "bias": 0.1,
+              "bump": 0.4,
+              "bumpHz": 80,
+              "tone": 8000
+            }
+          }
+        ]
+      },
+      "wasmBuild": {
+        "emscripten": "6.0.12",
+        "emsdkCommit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+        "abiVersion": 1,
+        "precision": "double intermediates and state; float sample/history stores",
+        "build": "scalar O3; no fast math, contraction or vectorization",
+        "flags": [
+          "-O3",
+          "-fno-fast-math",
+          "-ffp-contract=off",
+          "-fno-vectorize",
+          "-fno-slp-vectorize",
+          "-fno-exceptions",
+          "-sSTANDALONE_WASM=1",
+          "--no-entry",
+          "-sFILESYSTEM=0",
+          "-sMALLOC=emmalloc",
+          "-sINITIAL_MEMORY=67108864",
+          "-sSTACK_SIZE=1048576",
+          "-sEXPORTED_FUNCTIONS=[\"_malloc\",\"_free\",\"_dsp_abi_version\",\"_dsp_sine_table\",\"_dsp_create\",\"_dsp_destroy\",\"_dsp_reset\",\"_dsp_set_params\",\"_dsp_state\",\"_dsp_history\",\"_dsp_history_length\",\"_dsp_rng\",\"_dsp_position\",\"_dsp_noise_count\",\"_dsp_process\",\"_dsp_process_chain\"]"
+        ],
+        "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)\r\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\r\nThis is free and open source software under the MIT license.\r\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sourceSha256": "73ed87403856f0e6a85e851a9b6579a709fa16ec0aafa25f7d00a1993d86112f",
+        "wasmSha256": "aa611839450973594534387846a18014cf25681c156e57c65b9ab2e28ab046a1"
+      },
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 2.3000000715255737,
+          "p95": 3.6999999284744263,
+          "p99": 3.799999952316284
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 25.200000047683716,
+          "p95": 27.700000047683716,
+          "p99": 28.899999976158142
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 16.799999952316284,
+          "p95": 17.300000071525574,
+          "p99": 17.799999952316284
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.5999999046325684,
+          "p95": 1,
+          "p99": 1.8000000715255737
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 28.799999952316284,
+          "p95": 30.5,
+          "p99": 31.899999976158142
+        }
+      }
+    },
+    {
+      "backend": "js",
+      "preset": {
+        "id": "tapewow",
+        "name": "tapewow",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapewow",
+            "type": "tapewow",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "wow": 0.5,
+              "flutter": 0.3,
+              "drift": 0.3,
+              "mix": 1
+            }
+          }
+        ]
+      },
+      "wasmBuild": null,
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.19999992847442627
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 2.1999999284744263,
+          "p95": 2.8000000715255737,
+          "p99": 3.600000023841858
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 49.5,
+          "p95": 53.699999928474426,
+          "p99": 55.5
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 40,
+          "p95": 45.39999997615814,
+          "p99": 46.89999997615814
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.40000009536743164,
+          "p95": 0.7999999523162842,
+          "p99": 0.9000000953674316
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 52,
+          "p95": 57.10000002384186,
+          "p99": 58.799999952316284
+        }
+      }
+    },
+    {
+      "backend": "wasm-scalar",
+      "preset": {
+        "id": "tapewow",
+        "name": "tapewow",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapewow",
+            "type": "tapewow",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "wow": 0.5,
+              "flutter": 0.3,
+              "drift": 0.3,
+              "mix": 1
+            }
+          }
+        ]
+      },
+      "wasmBuild": {
+        "emscripten": "6.0.12",
+        "emsdkCommit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+        "abiVersion": 1,
+        "precision": "double intermediates and state; float sample/history stores",
+        "build": "scalar O3; no fast math, contraction or vectorization",
+        "flags": [
+          "-O3",
+          "-fno-fast-math",
+          "-ffp-contract=off",
+          "-fno-vectorize",
+          "-fno-slp-vectorize",
+          "-fno-exceptions",
+          "-sSTANDALONE_WASM=1",
+          "--no-entry",
+          "-sFILESYSTEM=0",
+          "-sMALLOC=emmalloc",
+          "-sINITIAL_MEMORY=67108864",
+          "-sSTACK_SIZE=1048576",
+          "-sEXPORTED_FUNCTIONS=[\"_malloc\",\"_free\",\"_dsp_abi_version\",\"_dsp_sine_table\",\"_dsp_create\",\"_dsp_destroy\",\"_dsp_reset\",\"_dsp_set_params\",\"_dsp_state\",\"_dsp_history\",\"_dsp_history_length\",\"_dsp_rng\",\"_dsp_position\",\"_dsp_noise_count\",\"_dsp_process\",\"_dsp_process_chain\"]"
+        ],
+        "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)\r\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\r\nThis is free and open source software under the MIT license.\r\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sourceSha256": "73ed87403856f0e6a85e851a9b6579a709fa16ec0aafa25f7d00a1993d86112f",
+        "wasmSha256": "aa611839450973594534387846a18014cf25681c156e57c65b9ab2e28ab046a1"
+      },
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 2.200000047683716,
+          "p95": 3,
+          "p99": 11.5
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 41.89999997615814,
+          "p95": 48.200000047683716,
+          "p99": 52.800000071525574
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 34,
+          "p95": 39.300000071525574,
+          "p99": 44
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.5,
+          "p95": 0.6999999284744263,
+          "p99": 0.8000000715255737
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 44.60000002384186,
+          "p95": 51.5,
+          "p99": 65
+        }
+      }
+    },
+    {
+      "backend": "js",
+      "preset": {
+        "id": "tapesat+tapewow",
+        "name": "tapesat+tapewow",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapesat",
+            "type": "tapesat",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "drive": 2.5,
+              "bias": 0.1,
+              "bump": 0.4,
+              "bumpHz": 80,
+              "tone": 8000
+            }
+          },
+          {
+            "id": "tapewow",
+            "type": "tapewow",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "wow": 0.5,
+              "flutter": 0.3,
+              "drift": 0.3,
+              "mix": 1
+            }
+          }
+        ]
+      },
+      "wasmBuild": null,
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 2.100000023841858,
+          "p95": 3.100000023841858,
+          "p99": 10.200000047683716
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 49.89999997615814,
+          "p95": 69.5,
+          "p99": 78.19999992847443
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 42.5,
+          "p95": 59.200000047683716,
+          "p99": 66.60000002384186
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.40000009536743164,
+          "p95": 0.7999999523162842,
+          "p99": 0.8000000715255737
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 53,
+          "p95": 76,
+          "p99": 81
+        }
+      }
+    },
+    {
+      "backend": "wasm-scalar",
+      "preset": {
+        "id": "tapesat+tapewow",
+        "name": "tapesat+tapewow",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "tapesat",
+            "type": "tapesat",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "drive": 2.5,
+              "bias": 0.1,
+              "bump": 0.4,
+              "bumpHz": 80,
+              "tone": 8000
+            }
+          },
+          {
+            "id": "tapewow",
+            "type": "tapewow",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "wow": 0.5,
+              "flutter": 0.3,
+              "drift": 0.3,
+              "mix": 1
+            }
+          }
+        ]
+      },
+      "wasmBuild": {
+        "emscripten": "6.0.12",
+        "emsdkCommit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+        "abiVersion": 1,
+        "precision": "double intermediates and state; float sample/history stores",
+        "build": "scalar O3; no fast math, contraction or vectorization",
+        "flags": [
+          "-O3",
+          "-fno-fast-math",
+          "-ffp-contract=off",
+          "-fno-vectorize",
+          "-fno-slp-vectorize",
+          "-fno-exceptions",
+          "-sSTANDALONE_WASM=1",
+          "--no-entry",
+          "-sFILESYSTEM=0",
+          "-sMALLOC=emmalloc",
+          "-sINITIAL_MEMORY=67108864",
+          "-sSTACK_SIZE=1048576",
+          "-sEXPORTED_FUNCTIONS=[\"_malloc\",\"_free\",\"_dsp_abi_version\",\"_dsp_sine_table\",\"_dsp_create\",\"_dsp_destroy\",\"_dsp_reset\",\"_dsp_set_params\",\"_dsp_state\",\"_dsp_history\",\"_dsp_history_length\",\"_dsp_rng\",\"_dsp_position\",\"_dsp_noise_count\",\"_dsp_process\",\"_dsp_process_chain\"]"
+        ],
+        "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)\r\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\r\nThis is free and open source software under the MIT license.\r\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sourceSha256": "73ed87403856f0e6a85e851a9b6579a709fa16ec0aafa25f7d00a1993d86112f",
+        "wasmSha256": "aa611839450973594534387846a18014cf25681c156e57c65b9ab2e28ab046a1"
+      },
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 1.7999999523162842,
+          "p95": 2.600000023841858,
+          "p99": 10.700000047683716
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 46.800000071525574,
+          "p95": 51.799999952316284,
+          "p99": 53.89999997615814
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 39.59999990463257,
+          "p95": 44.09999990463257,
+          "p99": 46.200000047683716
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.3999999761581421,
+          "p95": 0.6999999284744263,
+          "p99": 0.7000000476837158
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 49.10000002384186,
+          "p95": 56.699999928474426,
+          "p99": 58.5
+        }
+      }
+    },
+    {
+      "backend": "js",
+      "preset": {
+        "id": "moogladder",
+        "name": "moogladder",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "moogladder",
+            "type": "moogladder",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "cutoff": 1200,
+              "resonance": 2.2,
+              "drive": 1.5
+            }
+          }
+        ]
+      },
+      "wasmBuild": null,
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 1.8000000715255737,
+          "p95": 2.4000000953674316,
+          "p99": 7.5
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 116.10000002384186,
+          "p95": 118.79999995231628,
+          "p99": 120.29999995231628
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 109.59999990463257,
+          "p95": 111.69999992847443,
+          "p99": 113.29999995231628
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.5,
+          "p95": 0.6000000238418579,
+          "p99": 0.7000000476837158
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 118.5,
+          "p95": 123,
+          "p99": 124.29999995231628
+        }
+      }
+    },
+    {
+      "backend": "wasm-scalar",
+      "preset": {
+        "id": "moogladder",
+        "name": "moogladder",
+        "reader": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "writer": {
+          "rawType": "INTERLEAVED",
+          "law": "NONE",
+          "sign": "UNSIGNED",
+          "bits": 8,
+          "endianess": "LITTLE_ENDIAN",
+          "colorSpace": "RGB"
+        },
+        "equalize": false,
+        "blendMode": "NONE",
+        "blendAmount": 0,
+        "videoFilters": [],
+        "filters": [
+          {
+            "id": "moogladder",
+            "type": "moogladder",
+            "enabled": true,
+            "sampleRate": 44100,
+            "params": {
+              "cutoff": 1200,
+              "resonance": 2.2,
+              "drive": 1.5
+            }
+          }
+        ]
+      },
+      "wasmBuild": {
+        "emscripten": "6.0.12",
+        "emsdkCommit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+        "abiVersion": 1,
+        "precision": "double intermediates and state; float sample/history stores",
+        "build": "scalar O3; no fast math, contraction or vectorization",
+        "flags": [
+          "-O3",
+          "-fno-fast-math",
+          "-ffp-contract=off",
+          "-fno-vectorize",
+          "-fno-slp-vectorize",
+          "-fno-exceptions",
+          "-sSTANDALONE_WASM=1",
+          "--no-entry",
+          "-sFILESYSTEM=0",
+          "-sMALLOC=emmalloc",
+          "-sINITIAL_MEMORY=67108864",
+          "-sSTACK_SIZE=1048576",
+          "-sEXPORTED_FUNCTIONS=[\"_malloc\",\"_free\",\"_dsp_abi_version\",\"_dsp_sine_table\",\"_dsp_create\",\"_dsp_destroy\",\"_dsp_reset\",\"_dsp_set_params\",\"_dsp_state\",\"_dsp_history\",\"_dsp_history_length\",\"_dsp_rng\",\"_dsp_position\",\"_dsp_noise_count\",\"_dsp_process\",\"_dsp_process_chain\"]"
+        ],
+        "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)\r\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\r\nThis is free and open source software under the MIT license.\r\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "sourceSha256": "73ed87403856f0e6a85e851a9b6579a709fa16ec0aafa25f7d00a1993d86112f",
+        "wasmSha256": "aa611839450973594534387846a18014cf25681c156e57c65b9ab2e28ab046a1"
+      },
+      "timings": {
+        "drawMs": {
+          "count": 20,
+          "p50": 0,
+          "p95": 0.10000002384185791,
+          "p99": 0.10000002384185791
+        },
+        "readbackMs": {
+          "count": 20,
+          "p50": 1.8000000715255737,
+          "p95": 2.299999952316284,
+          "p99": 2.5
+        },
+        "pipelineMs": {
+          "count": 20,
+          "p50": 118.30000007152557,
+          "p95": 121.89999997615814,
+          "p99": 122.20000004768372
+        },
+        "dspMs": {
+          "count": 20,
+          "p50": 112,
+          "p95": 115.10000002384186,
+          "p99": 115.69999992847443
+        },
+        "outputSubmitMs": {
+          "count": 20,
+          "p50": 0.5,
+          "p95": 0.7999999523162842,
+          "p99": 0.8000000715255737
+        },
+        "completeCpuPathMs": {
+          "count": 20,
+          "p50": 120.90000009536743,
+          "p95": 124.39999997615814,
+          "p99": 125.09999990463257
+        }
+      }
+    }
+  ]
+}

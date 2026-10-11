@@ -47,6 +47,10 @@ type Segment =
   | { kind: 'video'; filters: IVideoFilter[] };
 
 export class SonificationPipeline {
+  constructor(
+    private readonly audioFactory: typeof createFilterInstance = createFilterInstance,
+    private readonly segmentProcessor?: (filters: IDspFilter[], samples: Float32Array) => void,
+  ) {}
   // Compiled chain, rebuilt only when structure (order / type / enabled / size) changes
   private segments: Segment[] = [];
   private nodes: { inst: IDspFilter | IVideoFilter; cfgRef: { params: Record<string, number> } }[] = [];
@@ -119,7 +123,7 @@ export class SonificationPipeline {
         if (!entry || entry.sig !== sig) {
           let inst: IDspFilter | IVideoFilter;
           if (e.kind === 'audio') {
-            inst = createFilterInstance(e.cfg.type, e.cfg.sampleRate);
+            inst = this.audioFactory(e.cfg.type, e.cfg.sampleRate);
           } else {
             const v = createVideoFilterInstance(e.cfg.type);
             v.init(width, height);
@@ -271,7 +275,9 @@ export class SonificationPipeline {
       const fl = seg.filters;
       start = timings ? performance.now() : 0;
       const numFilters = fl.length;
-      if (numFilters === 1) {
+      if (this.segmentProcessor && numFilters > 0) {
+        this.segmentProcessor(fl, audioStream);
+      } else if (numFilters === 1) {
         fl[0].processBlock(audioStream);
       } else if (numFilters > 1) {
         const chunks = this.chunkViews;

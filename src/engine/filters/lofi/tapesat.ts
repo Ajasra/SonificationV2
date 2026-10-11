@@ -43,6 +43,8 @@ export class TapeSaturationFilter extends BaseDspFilter {
     return { drive: this.drive, bias: this.bias, bump: this.bump, bumpHz: this.bumpHz, tone: this.tone };
   }
 
+  exportState() { return { version: 1, sampleRate: this.sampleRate, bumpLp: this.bumpLp, toneLp: this.toneLp }; }
+
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     const drv = this.drive;

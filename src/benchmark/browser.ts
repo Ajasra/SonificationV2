@@ -1,6 +1,9 @@
 import { SonificationPipeline } from '../engine/pipeline.ts';
 import type { SonificationPreset } from '../types/index.ts';
-import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
+import { FILTER_DESCRIPTORS, createFilterInstance } from '../engine/filters/factory.ts';
+import { TapeWowFilter } from '../engine/filters/lofi/tapewow.ts';
+import { FixtureRandom } from '../engine/fixtures/random.ts';
+import { WasmDspRuntime } from '../engine/backends/wasm.ts';
 import { summarize } from './report.ts';
 
 declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean };
@@ -12,6 +15,7 @@ const element = <T extends HTMLElement>(id: string): T => {
 };
 const source = element<HTMLInputElement>('source');
 const presetSelect = element<HTMLSelectElement>('preset');
+const backendSelect = element<HTMLSelectElement>('backend');
 const fpsSelect = element<HTMLSelectElement>('fps');
 const durationInput = element<HTMLInputElement>('duration');
 const profileInput = element<HTMLInputElement>('profile');
@@ -43,6 +47,7 @@ function setRunning(value: boolean): void {
   runButton.disabled = value || !sourceInfo;
   stopButton.disabled = !value;
   source.disabled = value; presetSelect.disabled = value; fpsSelect.disabled = value;
+  backendSelect.disabled = value;
   durationInput.disabled = value; profileInput.disabled = value;
 }
 function stop(): void {
@@ -91,7 +96,10 @@ source.addEventListener('change', async () => {
 
 function makePreset(): SonificationPreset {
   const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' } as const;
-  const types = presetSelect.value === 'tape' ? ['tapesat', 'tapewow'] as const : presetSelect.value === 'moog' ? ['moogladder'] as const : [];
+  const types = presetSelect.value === 'tape' ? ['tapesat', 'tapewow'] as const :
+    presetSelect.value === 'tapesat' ? ['tapesat'] as const :
+    presetSelect.value === 'tapewow' ? ['tapewow'] as const :
+    presetSelect.value === 'moog' ? ['moogladder'] as const : [];
   return { id: `benchmark-${presetSelect.value}`, name: `Benchmark ${presetSelect.value}`,
     reader: { ...stream }, writer: { ...stream }, equalize: false, blendMode: 'NONE', blendAmount: 0,
     filters: types.map(type => ({ id: type, type, enabled: true, sampleRate: 44100,
@@ -109,7 +117,20 @@ runButton.addEventListener('click', async () => {
   lastReport = undefined; downloadButton.disabled = true; reportElement.textContent = '';
   const currentGeneration = generation;
   const preset = makePreset(), targetFps = Number(fpsSelect.value), profile = profileInput.checked;
-  const pipeline = new SonificationPipeline();
+  const backend = backendSelect.value;
+  let runtime: WasmDspRuntime | undefined;
+  if (backend === 'wasm-scalar' || backend === 'wasm-simd') {
+    try {
+      status.textContent = `Loading ${backend} prototype…`;
+      runtime = await WasmDspRuntime.load(`/wasm/dsp-${backend === 'wasm-simd' ? 'simd' : 'scalar'}.wasm`);
+      if (currentGeneration !== generation) { runtime.dispose(); return; }
+    } catch (error) {
+      if (currentGeneration === generation) { stop(); status.textContent = `WASM unavailable: ${String(error)}`; }
+      return;
+    }
+  }
+  const pipeline = runtime ? new SonificationPipeline(runtime.createFilter, runtime.processSegment) :
+    new SonificationPipeline((type, rate) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
   const outputImage = displayContext.createImageData(1280, 720);
   const samples: Record<string, number[]> = { captureMs: [], pipelineMs: [], outputSubmitMs: [], completeCpuPathMs: [], callbackIntervalMs: [] };
   let warmupStart: number | undefined, measurementStart: number | undefined;
@@ -132,8 +153,8 @@ runButton.addEventListener('click', async () => {
       schemaVersion: 1, runId: crypto.randomUUID(), createdAt: new Date().toISOString(),
       build: __BENCHMARK_BUILD__,
       scope: 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
-      backend: 'js', profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
-      randomControl: 'production Math.random; timing benchmark only, not deterministic conformance',
+      backend, wasmBuild: runtime?.buildInfo ?? null, profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
+      randomControl: { algorithm: 'fixture-xorshift32', seed: 4821, productionPolicyUnchanged: true },
       processedWidth: 1280, processedHeight: 720, targetFps, preset,
       warmupSeconds: 10, measuredSeconds: elapsedMs / 1000, measuredFrames,
       processedFps: measuredFrames / (elapsedMs / 1000), skippedPresentedCallbacks: skippedCallbacks,
@@ -181,7 +202,7 @@ runButton.addEventListener('click', async () => {
   const watchdog = setInterval(() => {
     if (currentGeneration === generation && performance.now() - lastFrameAt > 5000) finish(0, 'Source stopped delivering video callbacks');
   }, 500);
-  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); };
+  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); };
   try {
     await video.play();
     if (currentGeneration !== generation) { observer?.disconnect(); return; }
