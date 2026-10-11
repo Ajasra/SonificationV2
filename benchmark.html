@@ -7,7 +7,7 @@
   <label>Source video <input id="source" type="file" accept="video/*"></label>
   <label>Preset <select id="preset"><option value="control">Unfiltered control</option><option value="tapesat">TapeSat only</option><option value="tapewow">TapeWow only</option><option value="tape">TapeSat + TapeWow</option><option value="moog">Moog Ladder</option></select></label>
   <label>Backend <select id="backend"><option value="js">JavaScript reference</option><option value="wasm-scalar">Scalar WASM prototype</option><option value="wasm-simd">SIMD WASM prototype</option><option value="webgpu-tapesat">Experimental WebGPU (TapeSat only)</option></select></label>
-  <p>WebGPU TapeSat is an experimental f32 scan. GPU timing includes full upload/readback; accuracy and physical device acceptance remain pending.</p>
+  <p>WebGPU TapeSat runs a sample fidelity check before warmup. GPU timing includes full upload/readback; full application and physical device acceptance remain pending.</p>
   <p>TapeWow uses the same seeded fixture control in both benchmark backends. The application keeps its production randomness.</p>
   <label>Target <select id="fps"><option value="30">720p30 — all devices</option></select></label>
   <label>Measure seconds <input id="duration" type="number" min="1" max="300" value="60"></label>

@@ -43,6 +43,7 @@ fn value(i:u32)->f32 {
 `;
 
 export class WebGpuTapeSat {
+  lastTimings: Record<string, number> | undefined;
   readonly adapterInfo: GPUAdapterInfo;
   private busy = false;
   private disposed = false;
@@ -69,13 +70,15 @@ export class WebGpuTapeSat {
   }
   reset(): void { if (this.busy || this.disposed) throw new Error('Backend unavailable'); this.device.queue.writeBuffer(this.state, 0, new Float32Array(2)); }
   dispose(): void { this.disposed = true; this.device.destroy(); }
-  async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100): Promise<Float32Array> {
+  async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100, profile = false): Promise<Float32Array> {
     if (this.busy || this.disposed) throw new Error('Backend unavailable');
     if (!Number.isFinite(rate) || rate <= 0 || Object.values(params).some(value => !Number.isFinite(value))) throw new Error('Invalid parameters');
     if (!samples.length) return new Float32Array();
     const n = samples.length, groups = Math.ceil(n / 256), bytes = n * 4;
     if (bytes * 2 > this.device.limits.maxStorageBufferBindingSize) throw new Error('Sample block exceeds device limits');
     this.busy = true;
+    this.lastTimings = undefined;
+    const started = profile ? performance.now() : 0;
     const buffers: GPUBuffer[] = [];
     const buffer = (size: number, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST) => {
       const result = this.device.createBuffer({ size, usage }); buffers.push(result); return result;
@@ -112,11 +115,15 @@ export class WebGpuTapeSat {
         encoder.copyBufferToBuffer(local,0,input,0,bytes);
       }
       encoder.copyBufferToBuffer(local,0,read,0,bytes);this.device.queue.submit([encoder.finish()]);
+      const submitted = profile ? performance.now() : 0;
       scopePending = false;
       const validation = await this.device.popErrorScope();
       if (validation) throw new Error(`WebGPU validation: ${validation.message}`);
       await read.mapAsync(GPUMapMode.READ);
-      const result = new Float32Array(read.getMappedRange().slice(0)); read.unmap(); return result;
+      const mapped = profile ? performance.now() : 0;
+      const result = new Float32Array(read.getMappedRange().slice(0)); read.unmap();
+      if (profile) this.lastTimings = { gpuPrepareSubmitMs: submitted-started, gpuValidationCompletionMapMs: mapped-submitted, gpuMappedCopyMs: performance.now()-mapped };
+      return result;
     } finally {
       if (scopePending) await this.device.popErrorScope();
       for(const buffer of buffers) buffer.destroy(); this.busy=false;

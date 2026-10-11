@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "runId": "fa672f8b-2613-475f-a873-35432feca102",
+  "createdAt": "2026-10-11T15:40:52.529Z",
+  "build": {
+    "revision": "06a17949af2cef8f6314a617d132380ea89b5f43",
+    "dirty": true
+  },
+  "scope": "reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation",
+  "backend": "webgpu-tapesat",
+  "gpuAdapter": {
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "",
+    "description": ""
+  },
+  "gpuScope": "experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required",
+  "wasmBuild": null,
+  "profileEnabled": true,
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "decodedWidth": 1280,
+  "decodedHeight": 720,
+  "randomControl": {
+    "algorithm": "fixture-xorshift32",
+    "seed": 4821,
+    "productionPolicyUnchanged": true
+  },
+  "processedWidth": 1280,
+  "processedHeight": 720,
+  "targetFps": 30,
+  "preset": {
+    "id": "benchmark-tapesat",
+    "name": "Benchmark tapesat",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "warmupSeconds": 10,
+  "measuredSeconds": 10.032199999976157,
+  "measuredFrames": 208,
+  "processedFps": 20.733238970564216,
+  "skippedPresentedCallbacks": 93,
+  "droppedFrameAttribution": "presentedFrames gaps show missed processing callbacks; decode drops are not observable here",
+  "longTasks": {
+    "count": 0,
+    "durationMs": 0
+  },
+  "timings": {
+    "captureMs": {
+      "count": 208,
+      "p50": 5.5,
+      "p95": 6.899999976158142,
+      "p99": 7.599999904632568
+    },
+    "pipelineMs": {
+      "count": 208,
+      "p50": 26.600000023841858,
+      "p95": 32.39999997615814,
+      "p99": 34.300000071525574
+    },
+    "outputSubmitMs": {
+      "count": 208,
+      "p50": 0.2999999523162842,
+      "p95": 0.40000009536743164,
+      "p99": 0.6000000238418579
+    },
+    "completeCpuPathMs": {
+      "count": 208,
+      "p50": 32.10000002384186,
+      "p95": 39.299999952316284,
+      "p99": 40.60000002384186
+    },
+    "callbackIntervalMs": {
+      "count": 207,
+      "p50": 36.668000000001484,
+      "p95": 66.73199999999997,
+      "p99": 69.90000000000146
+    }
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16,
+    "devicePixelRatio": 1
+  },
+  "acceptance": "not evaluated: full application and named physical device gates remain required"
+}

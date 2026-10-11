@@ -2,6 +2,10 @@
 
 Updated 2026-10-11. Branch: `codex/video-acceleration`.
 
+First physical desktop GPU report received: NVIDIA Ampere, TapeSat-only, 20.73 fps, 39.3 ms p95 over approximately 10 seconds. Shader execution is confirmed on that adapter; fidelity, 720p30, sustained and phone gates remain open. Original report and analysis: [WebGPU results](performance-results/webgpu-prototype/ANALYSIS.md).
+
+GPU benchmark runs now enforce a sample fidelity preflight on the selected adapter before warmup. Reports include its result and, when profiling is enabled, wall-clock serialization, preparation/submission, completion/map wait, mapped copying and decoding timings. Mocked preflight tests cover pass, excessive error and cancellation; they do not establish GPU numerical fidelity. The next physical-browser run must supply that evidence.
+
 Current target: sustained 720p30 on desktops and phones, with p95 processing ≤25 ms, throughput ≥29.4 fps and application drops ≤2%. The user confirmed the initial test video is 30 fps. This supersedes the original desktop 60 fps target.
 
 ## WASM prototype slice
