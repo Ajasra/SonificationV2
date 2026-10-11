@@ -1,9 +1,12 @@
 import { SonificationPipeline } from '../engine/pipeline.ts';
+import type { PipelineTimings } from '../engine/pipeline.ts';
 import type { SonificationPreset } from '../types/index.ts';
 import { FILTER_DESCRIPTORS, createFilterInstance } from '../engine/filters/factory.ts';
 import { TapeWowFilter } from '../engine/filters/lofi/tapewow.ts';
 import { FixtureRandom } from '../engine/fixtures/random.ts';
 import { WasmDspRuntime } from '../engine/backends/wasm.ts';
+import { WebGpuTapeSat } from '../engine/backends/webgpu-tapesat.ts';
+import { imageToAudioStream, audioStreamToImage } from '../engine/streams.ts';
 import { summarize } from './report.ts';
 
 declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean };
@@ -119,6 +122,18 @@ runButton.addEventListener('click', async () => {
   const preset = makePreset(), targetFps = Number(fpsSelect.value), profile = profileInput.checked;
   const backend = backendSelect.value;
   let runtime: WasmDspRuntime | undefined;
+  let gpu: WebGpuTapeSat | undefined;
+  if (backend === 'webgpu-tapesat') {
+    try {
+      if (presetSelect.value !== 'tapesat') throw new Error('The GPU prototype supports TapeSat only.');
+      status.textContent = 'Loading experimental WebGPU TapeSat…';
+      gpu = await WebGpuTapeSat.create();
+      if (currentGeneration !== generation) { gpu.dispose(); return; }
+    } catch (error) {
+      if (currentGeneration === generation) { stop(); status.textContent = `WebGPU unavailable: ${String(error)}`; }
+      return;
+    }
+  }
   if (backend === 'wasm-scalar' || backend === 'wasm-simd') {
     try {
       status.textContent = `Loading ${backend} prototype…`;
@@ -153,7 +168,9 @@ runButton.addEventListener('click', async () => {
       schemaVersion: 1, runId: crypto.randomUUID(), createdAt: new Date().toISOString(),
       build: __BENCHMARK_BUILD__,
       scope: 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
-      backend, wasmBuild: runtime?.buildInfo ?? null, profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
+      backend, gpuAdapter: gpu ? { vendor: gpu.adapterInfo.vendor, architecture: gpu.adapterInfo.architecture, device: gpu.adapterInfo.device, description: gpu.adapterInfo.description } : null,
+      gpuScope: gpu ? 'experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required' : null,
+      wasmBuild: runtime?.buildInfo ?? null, profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
       randomControl: { algorithm: 'fixture-xorshift32', seed: 4821, productionPolicyUnchanged: true },
       processedWidth: 1280, processedHeight: 720, targetFps, preset,
       warmupSeconds: 10, measuredSeconds: elapsedMs / 1000, measuredFrames,
@@ -168,7 +185,8 @@ runButton.addEventListener('click', async () => {
     downloadButton.disabled = false;
     status.textContent = 'Reference run complete. Download the report and record revision/device/power conditions alongside it.';
   };
-  const frame: VideoFrameRequestCallback = (now, metadata) => {
+  const frame: VideoFrameRequestCallback = (now, metadata) => { void processFrame(now, metadata); };
+  const processFrame = async (now: number, metadata: VideoFrameCallbackMetadata) => {
     callbackId = undefined;
     if (currentGeneration !== generation) { observer?.disconnect(); return; }
     try {
@@ -180,7 +198,14 @@ runButton.addEventListener('click', async () => {
       readContext.drawImage(video, 0, 0, 1280, 720);
       const rgba = readContext.getImageData(0, 0, 1280, 720);
       const captured = performance.now();
-      const result = pipeline.processFrame(rgba.data, 1280, 720, preset, outputImage.data, { profile });
+      let result: { timings?: PipelineTimings };
+      if (gpu) {
+        const input = imageToAudioStream(rgba.data, preset.reader);
+        const filtered = await gpu.process(input, preset.filters[0].params, 44100);
+        if (currentGeneration !== generation) return;
+        audioStreamToImage(filtered, preset.writer, outputImage.data);
+        result = {};
+      } else result = pipeline.processFrame(rgba.data, 1280, 720, preset, outputImage.data, { profile });
       const processed = performance.now();
       displayContext.putImageData(outputImage, 0, 0);
       const completed = performance.now();
@@ -202,7 +227,7 @@ runButton.addEventListener('click', async () => {
   const watchdog = setInterval(() => {
     if (currentGeneration === generation && performance.now() - lastFrameAt > 5000) finish(0, 'Source stopped delivering video callbacks');
   }, 500);
-  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); };
+  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); gpu?.dispose(); };
   try {
     await video.play();
     if (currentGeneration !== generation) { observer?.disconnect(); return; }

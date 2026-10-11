@@ -49,3 +49,6 @@ User desktop results are preserved in [performance-results/2026-10-11-desktop-js
 Stage 0 and Stage 1 remain in progress. Deterministic TapeWow fixtures, block-boundary tests and declared prototype tolerances are implemented. Still required: broad format/parameter fidelity coverage; complete live application timing including monitoring/HUD; named source/preset/device matrix; immutable 60-second browser baselines and five-minute runs; serving/deployment smoke checks and production stochastic/state policy. Offline export state isolation remains integration work.
 
 The Emscripten toolchain and scalar/SIMD ports are now pinned and implemented. Next compare longer matched video runs and develop the compatible WebGPU prototype. No backend promotion or desktop/phone FPS acceptance has been claimed.
+# WebGPU TapeSat continuation
+
+An isolated experimental TapeSat backend and benchmark selector now exist. The algorithm scans affine tile summaries and retains bump/tone state across frames. CPU capture, full upload/readback and canvas output remain included. GPU fidelity and speed are pending: this environment exposes no WebGPU adapter, so the dedicated browser fixture skips explicitly. See [WEBGPU_PROTOTYPE.md](WEBGPU_PROTOTYPE.md) for declared tolerances, limitations and remaining gates. No production backend promotion has occurred.
