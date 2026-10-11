@@ -54,6 +54,16 @@ test('reference video benchmark completes and exports an attributed report', asy
   await expect(page.locator('#run')).toBeEnabled();
   await expect(page.locator('#download')).toBeDisabled();
   await expect(page.locator('#report')).toBeEmpty();
+  // Unsupported GPU racks must produce diagnostics without touching an adapter.
+  await page.locator('#backend').selectOption('webgpu-resident');
+  await page.locator('#preset').selectOption('control');
+  await page.locator('#run').click();
+  await expect(page.locator('#status')).toContainText('supports TapeSat only');
+  await expect(page.locator('#run')).toBeEnabled();
+  await expect(page.locator('#download')).toBeEnabled();
+  const gpuFailure=JSON.parse(await page.locator('#report').textContent() || '{}');
+  expect(gpuFailure.backend).toBe('webgpu-resident');
+  expect(gpuFailure.acceptance).toContain('performance run blocked');
   await page.locator('#backend').selectOption('wasm-scalar');
   await page.locator('#preset').selectOption('tape');
   await page.locator('#run').click();

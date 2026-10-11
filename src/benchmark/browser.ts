@@ -7,7 +7,7 @@ import { FixtureRandom } from '../engine/fixtures/random.ts';
 import { WasmDspRuntime } from '../engine/backends/wasm.ts';
 import { WebGpuTapeSat } from '../engine/backends/webgpu-tapesat.ts';
 import { imageToAudioStream, audioStreamToImage } from '../engine/streams.ts';
-import { checkGpuFidelity } from './gpu-fidelity.ts';
+import { checkGpuFidelity, checkResidentFidelity } from './gpu-fidelity.ts';
 import { summarize } from './report.ts';
 
 declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean };
@@ -30,6 +30,7 @@ const status = element<HTMLParagraphElement>('status');
 const reportElement = element<HTMLPreElement>('report');
 const video = element<HTMLVideoElement>('video');
 const output = element<HTMLCanvasElement>('output');
+const gpuOutput = element<HTMLCanvasElement>('output-gpu');
 const outputContext = output.getContext('2d');
 const capture = document.createElement('canvas');
 capture.width = output.width; capture.height = output.height;
@@ -125,23 +126,37 @@ runButton.addEventListener('click', async () => {
   let runtime: WasmDspRuntime | undefined;
   let gpu: WebGpuTapeSat | undefined;
   let gpuFidelity: Awaited<ReturnType<typeof checkGpuFidelity>> | undefined;
-  if (backend === 'webgpu-tapesat') {
+  let residentFidelity: Awaited<ReturnType<typeof checkResidentFidelity>> | undefined;
+  let gpuContext:GPUCanvasContext | undefined;
+  const resident=backend==='webgpu-resident';
+  output.hidden=resident;gpuOutput.hidden=!resident;
+  if (backend === 'webgpu-tapesat' || resident) {
     try {
       if (presetSelect.value !== 'tapesat') throw new Error('The GPU prototype supports TapeSat only.');
       status.textContent = 'Loading experimental WebGPU TapeSat…';
       gpu = await WebGpuTapeSat.create();
       if (currentGeneration !== generation) { gpu.dispose(); return; }
-      releaseRun = () => gpu?.dispose();
+      releaseRun = () => {gpuContext?.unconfigure();gpu?.dispose();};
       status.textContent = 'Comparing GPU samples against JavaScript, including two full 720p frames…';
       gpuFidelity = await checkGpuFidelity(gpu, () => currentGeneration !== generation);
       if (currentGeneration !== generation) return;
-      if (!gpuFidelity.passed) {
-        lastReport = {schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:__BENCHMARK_BUILD__,backend,source:sourceInfo,gpuAdapter:{vendor:gpu.adapterInfo.vendor,architecture:gpu.adapterInfo.architecture,device:gpu.adapterInfo.device,description:gpu.adapterInfo.description},gpuFidelity,acceptance:'GPU fidelity failed; performance run blocked'};
+      if(resident && gpuFidelity.passed){
+        gpuContext=gpu.configureCanvas(gpuOutput);
+        status.textContent='Checking GPU capture, rendered pixels and compact sample indices…';
+        residentFidelity=await checkResidentFidelity(gpu,gpuContext,video,()=>currentGeneration!==generation);
+        if(currentGeneration!==generation)return;
+      }
+      if (!gpuFidelity.passed || residentFidelity?.passed===false) {
+        lastReport = {schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:__BENCHMARK_BUILD__,backend,source:sourceInfo,gpuAdapter:{vendor:gpu.adapterInfo.vendor,architecture:gpu.adapterInfo.architecture,device:gpu.adapterInfo.device,description:gpu.adapterInfo.description},gpuFidelity,residentFidelity,acceptance:'GPU fidelity failed; performance run blocked'};
         stop(); reportElement.textContent=JSON.stringify(lastReport,null,2);downloadButton.disabled=false;
         status.textContent='GPU fidelity failed. Download the diagnostic report; timing run was blocked.'; return;
       }
     } catch (error) {
-      if (currentGeneration === generation) { stop(); status.textContent = `WebGPU unavailable: ${String(error)}`; }
+      if (currentGeneration === generation) {
+        lastReport={schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:__BENCHMARK_BUILD__,backend,source:sourceInfo,gpuFidelity:gpuFidelity??null,residentFidelity:residentFidelity??null,error:String(error),acceptance:'GPU startup or fidelity validation failed; performance run blocked'};
+        stop();status.textContent=`WebGPU unavailable or validation failed: ${String(error)}. Download the diagnostic report.`;
+        reportElement.textContent=JSON.stringify(lastReport,null,2);downloadButton.disabled=false;
+      }
       return;
     }
   }
@@ -178,9 +193,10 @@ runButton.addEventListener('click', async () => {
     lastReport = {
       schemaVersion: 1, runId: crypto.randomUUID(), createdAt: new Date().toISOString(),
       build: __BENCHMARK_BUILD__,
-      scope: 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
-      backend, gpuFidelity: gpuFidelity ?? null, gpuAdapter: gpu ? { vendor: gpu.adapterInfo.vendor, architecture: gpu.adapterInfo.architecture, device: gpu.adapterInfo.device, description: gpu.adapterInfo.description } : null,
-      gpuScope: gpu ? 'experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required' : null,
+      scope: resident ? 'GPU-resident capture/filter/display with compact gather readback; excludes live audio, HUD, recording and physical display confirmation' : 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
+      backend, gpuFidelity: gpuFidelity ?? null, residentFidelity:residentFidelity??null, gpuAdapter: gpu ? { vendor: gpu.adapterInfo.vendor, architecture: gpu.adapterInfo.architecture, device: gpu.adapterInfo.device, description: gpu.adapterInfo.description } : null,
+      gpuScope: resident ? 'GPU texture capture, stream mapping and rendering; 24576-byte playback/preview readback; GPU completion included' : gpu ? 'experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required' : null,
+      timingSemantics:resident ? 'completeCpuPathMs is wall time through GPU rendering and compact map; captureMs/outputSubmitMs zero because included in GPU submission; no physical display completion' : 'completeCpuPathMs is wall time including any GPU waits',
       wasmBuild: runtime?.buildInfo ?? null, profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
       randomControl: { algorithm: 'fixture-xorshift32', seed: 4821, productionPolicyUnchanged: true },
       processedWidth: 1280, processedHeight: 720, targetFps, preset,
@@ -206,13 +222,18 @@ runButton.addEventListener('click', async () => {
       if (measurementStart === undefined && now - warmupStart >= 10_000) measurementStart = now;
       const measuring = measurementStart !== undefined;
       const start = performance.now();
-      readContext.drawImage(video, 0, 0, 1280, 720);
-      const rgba = readContext.getImageData(0, 0, 1280, 720);
-      const captured = performance.now();
+      let rgba:ImageData | undefined;
+      if(!resident){readContext.drawImage(video, 0, 0, 1280, 720);rgba=readContext.getImageData(0, 0, 1280, 720);}
+      const captured = resident ? start : performance.now();
       let result: { timings?: PipelineTimings };
-      if (gpu) {
+      if(resident && gpu && gpuContext){
+        await gpu.processImage(video,gpuContext,preset.filters[0].params,profile);
+        if(currentGeneration!==generation)return;
+        if(measuring && profile) for(const [name,value] of Object.entries(gpu.lastTimings??{}))(samples[name]??=[]).push(value);
+        result={};
+      }else if (gpu) {
         const encodeStarted=profile ? performance.now() : 0;
-        const input = imageToAudioStream(rgba.data, preset.reader);
+        const input = imageToAudioStream(rgba!.data, preset.reader);
         const encoded=profile ? performance.now() : 0;
         const filtered = await gpu.process(input, preset.filters[0].params, 44100, profile);
         if (currentGeneration !== generation) return;
@@ -220,10 +241,10 @@ runButton.addEventListener('click', async () => {
         audioStreamToImage(filtered, preset.writer, outputImage.data);
         if(measuring && profile) for(const [name,value] of Object.entries({gpuStreamEncodeMs:encoded-encodeStarted,...gpu.lastTimings,gpuStreamDecodeMs:performance.now()-decodeStarted})) (samples[name]??=[]).push(value);
         result = {};
-      } else result = pipeline.processFrame(rgba.data, 1280, 720, preset, outputImage.data, { profile });
+      } else result = pipeline.processFrame(rgba!.data, 1280, 720, preset, outputImage.data, { profile });
       const processed = performance.now();
-      displayContext.putImageData(outputImage, 0, 0);
-      const completed = performance.now();
+      if(!resident)displayContext.putImageData(outputImage, 0, 0);
+      const completed = resident ? processed : performance.now();
       if (measuring) {
         measuredFrames++;
         samples.captureMs.push(captured - start); samples.pipelineMs.push(processed - captured);
@@ -242,7 +263,7 @@ runButton.addEventListener('click', async () => {
   const watchdog = setInterval(() => {
     if (currentGeneration === generation && performance.now() - lastFrameAt > 5000) finish(0, 'Source stopped delivering video callbacks');
   }, 500);
-  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); gpu?.dispose(); };
+  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); gpuContext?.unconfigure();gpu?.dispose(); };
   try {
     await video.play();
     if (currentGeneration !== generation) { observer?.disconnect(); return; }

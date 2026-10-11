@@ -35,3 +35,21 @@ test('TapeSat GPU scan preserves tile and frame history', async ({}, testInfo) =
     expect(result.rms).toBeLessThanOrEqual(1e-5);
   } finally { await browser.close(); }
 });
+
+test('GPU resident capture, display and compact gathers match reference',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');
+  const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  test.skip(!available,'No WebGPU adapter; resident shader and color path remain unverified.');
+  const result=await page.evaluate(async()=>{
+    const {WebGpuTapeSat}=await import('/src/engine/backends/webgpu-tapesat.ts');
+    const {checkResidentFidelity}=await import('/src/benchmark/gpu-fidelity.ts');
+    const gpu=await WebGpuTapeSat.create();
+    const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;document.body.append(canvas);
+    const source=document.createElement('canvas');source.width=1280;source.height=720;
+    const ctx=source.getContext('2d')!;ctx.fillStyle='rgb(17,128,253)';ctx.fillRect(0,0,1280,720);
+    const context=gpu.configureCanvas(canvas);
+    try{return await checkResidentFidelity(gpu,context,source);}finally{context.unconfigure();gpu.dispose();canvas.remove();}
+  });
+  await testInfo.attach('Resident fidelity',{body:JSON.stringify(result,null,2),contentType:'application/json'});
+  expect(result.passed).toBe(true);
+});

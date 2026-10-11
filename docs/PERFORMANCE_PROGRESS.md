@@ -2,6 +2,10 @@
 
 Updated 2026-10-11. Branch: `codex/video-acceleration`.
 
+2026-10-12: implemented a separate GPU-resident benchmark path, compact playback/preview gathers, capture/render preflight, buffer/texture reuse and a parallel workgroup tile scan. New shader/color-path and performance evidence are pending the next physical-browser run. The original CPU capture/readback GPU mode remains available for comparison. These changes do not promote the production backend.
+
+Subsequent 60-second NVIDIA Ampere report passed the implemented GPU sample fidelity fixture (worst max error 7.272e-6 against limit 1e-4). Performance remains below target: 16.80 fps, 51.9 ms complete-path p95, completion/map wait 33 ms p95. See [60-second analysis](performance-results/webgpu-prototype/60-SECOND-ANALYSIS.md). This validates the fixture on one adapter; full pixel/application/phone acceptance is still pending.
+
 First physical desktop GPU report received: NVIDIA Ampere, TapeSat-only, 20.73 fps, 39.3 ms p95 over approximately 10 seconds. Shader execution is confirmed on that adapter; fidelity, 720p30, sustained and phone gates remain open. Original report and analysis: [WebGPU results](performance-results/webgpu-prototype/ANALYSIS.md).
 
 GPU benchmark runs now enforce a sample fidelity preflight on the selected adapter before warmup. Reports include its result and, when profiling is enabled, wall-clock serialization, preparation/submission, completion/map wait, mapped copying and decoding timings. Mocked preflight tests cover pass, excessive error and cancellation; they do not establish GPU numerical fidelity. The next physical-browser run must supply that evidence.

@@ -1,4 +1,41 @@
 /// <reference types="@webgpu/types" />
+import { LUT_LINEAR_8 } from '../fast-lut.ts';
+
+const imageShader = `
+struct Size {width:u32,height:u32,pad:vec2<u32>}
+@group(0) @binding(0) var image:texture_2d<f32>;
+@group(0) @binding(1) var<storage,read_write> samples:array<f32>;
+@group(0) @binding(2) var<storage,read> lut:array<f32>;
+@group(0) @binding(3) var<uniform> size:Size;
+@compute @workgroup_size(256) fn encode(@builtin(global_invocation_id) id:vec3<u32>){
+ let i=id.x;if(i>=size.width*size.height){return;}
+ let rgb=textureLoad(image,vec2<i32>(i32(i%size.width),i32(i/size.width)),0).rgb;
+ let bytes=vec3<u32>(round(clamp(rgb,vec3<f32>(0.0),vec3<f32>(1.0))*255.0));
+ samples[i*3u]=lut[bytes.r];samples[i*3u+1u]=lut[bytes.g];samples[i*3u+2u]=lut[bytes.b];
+}
+`;
+const displayShader = `
+struct Size {width:u32,height:u32,pad:vec2<u32>}
+@group(0) @binding(0) var<storage,read> samples:array<f32>;
+@group(0) @binding(1) var<uniform> size:Size;
+@vertex fn vertex(@builtin(vertex_index) i:u32)->@builtin(position) vec4<f32>{
+ let p=array<vec2<f32>,3>(vec2<f32>(-1.0,-1.0),vec2<f32>(3.0,-1.0),vec2<f32>(-1.0,3.0));return vec4<f32>(p[i],0.0,1.0);
+}
+@fragment fn fragment(@builtin(position) p:vec4<f32>)->@location(0) vec4<f32>{
+ let i=(u32(p.y)*size.width+u32(p.x))*3u;
+ let rgb=vec3<f32>(samples[i],samples[i+1u],samples[i+2u]);
+ return vec4<f32>(floor(clamp((rgb+1.0)*127.5,vec3<f32>(0.0),vec3<f32>(255.0)))/255.0,1.0);
+}
+`;
+const gatherShader = `
+@group(0) @binding(0) var<storage,read> samples:array<f32>;
+@group(0) @binding(1) var<storage,read_write> compact:array<f32>;
+@compute @workgroup_size(256) fn gather(@builtin(global_invocation_id) id:vec3<u32>){
+ let i=id.x;let n=arrayLength(&samples);
+ if(i<4096u){let index=i*max(1u,n/4096u);compact[i]=0.0;if(index<n){compact[i]=samples[index];}}
+ else if(i<6144u){let index=i-4096u;compact[i]=0.0;if(index<n){compact[i]=samples[index];}}
+}
+`;
 
 // Experimental f32 affine recurrence backend. Never selected by the application.
 const shader = `
@@ -15,13 +52,16 @@ fn value(i:u32)->f32 {
  let t=select(select(z*(27.0+zz)/(27.0+9.0*zz),1.0,z>3.0),-1.0,z< -3.0);
  return (t-p.dc)*p.norm;
 }
-@compute @workgroup_size(64) fn tiles(@builtin(global_invocation_id) id:vec3<u32>){
- let g=id.x; if(g>=p.groups){return;} let a=select(p.bumpA,p.toneA,p.stage==1u);
- var s=0.0; var power=1.0;
- for(var i=g*256u;i<min(p.n,(g+1u)*256u);i++){
-  s=(1.0-a)*s+a*value(i); power*=1.0-a; local[i]=s;
+var<workgroup> prefix:array<vec2<f32>,256>;
+@compute @workgroup_size(256) fn tiles(@builtin(workgroup_id) group:vec3<u32>,@builtin(local_invocation_index) lane:u32){
+ let g=group.x;let i=g*256u+lane;let a=select(p.bumpA,p.toneA,p.stage==1u);
+ var v=vec2<f32>(1.0,0.0);if(i<p.n){v=vec2<f32>(1.0-a,a*value(i));}
+ prefix[lane]=v;workgroupBarrier();
+ for(var stride=1u;stride<256u;stride*=2u){
+  v=prefix[lane];if(lane>=stride){let left=prefix[lane-stride];v=vec2<f32>(v.x*left.x,v.y+v.x*left.y);}
+  workgroupBarrier();prefix[lane]=v;workgroupBarrier();
  }
- summaries[g]=vec2<f32>(power,s);
+ if(i<p.n){local[i]=prefix[lane].y;}if(lane==255u){summaries[g]=prefix[lane];}
 }
 @compute @workgroup_size(64) fn scan(@builtin(global_invocation_id) id:vec3<u32>){
  let i=id.x; if(i>=p.groups){return;} var v=summaries[i];
@@ -49,9 +89,19 @@ export class WebGpuTapeSat {
   private disposed = false;
   private readonly state: GPUBuffer;
   private readonly pipelines: Record<string, GPUComputePipeline>;
+  private imagePipeline!: GPUComputePipeline;
+  private gatherPipeline!: GPUComputePipeline;
+  private displayPipeline!: GPURenderPipeline;
+  private pool:{buffer:GPUBuffer;size:number;usage:number}[]=[];
+  private imageTexture:GPUTexture | undefined;
+  private imageDimensions='';
+  private readonly lut:GPUBuffer;
+  private readonly format = navigator.gpu.getPreferredCanvasFormat();
   private constructor(private readonly device: GPUDevice, adapter: GPUAdapter, pipelines: Record<string, GPUComputePipeline>) {
     this.adapterInfo = adapter.info; this.pipelines = pipelines;
     this.state = device.createBuffer({ size: 8, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    this.lut=device.createBuffer({size:1024,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
+    device.queue.writeBuffer(this.lut,0,LUT_LINEAR_8 as Float32Array<ArrayBuffer>);
   }
   static async create(): Promise<WebGpuTapeSat> {
     if (!navigator.gpu) throw new Error('WebGPU unavailable');
@@ -65,34 +115,75 @@ export class WebGpuTapeSat {
       if (errors.length) throw new Error(errors.map(message => message.message).join('\n'));
       const entries = await Promise.all(['tiles', 'scan', 'apply', 'finish', 'save'].map(async entryPoint =>
         [entryPoint, await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint } })] as const));
-      return new WebGpuTapeSat(device, adapter, Object.fromEntries(entries));
+      const runtime = new WebGpuTapeSat(device, adapter, Object.fromEntries(entries));
+      runtime.imagePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:imageShader}),entryPoint:'encode'}});
+      runtime.gatherPipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:gatherShader}),entryPoint:'gather'}});
+      const display = device.createShaderModule({code:displayShader});
+      runtime.displayPipeline = await device.createRenderPipelineAsync({layout:'auto',vertex:{module:display,entryPoint:'vertex'},fragment:{module:display,entryPoint:'fragment',targets:[{format:runtime.format}]},primitive:{topology:'triangle-list'}});
+      return runtime;
     } catch (error) { device.destroy(); throw error; }
   }
   reset(): void { if (this.busy || this.disposed) throw new Error('Backend unavailable'); this.device.queue.writeBuffer(this.state, 0, new Float32Array(2)); }
   dispose(): void { this.disposed = true; this.device.destroy(); }
+  configureCanvas(canvas: HTMLCanvasElement): GPUCanvasContext {
+    if(this.disposed) throw new Error('Backend unavailable');
+    const context=canvas.getContext('webgpu');
+    if(!context) throw new Error('WebGPU canvas unavailable');
+    context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb'});
+    return context;
+  }
+  async processImage(source: HTMLVideoElement | HTMLCanvasElement, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false):Promise<Float32Array> {
+    const canvas=context.canvas;
+    if(!(canvas instanceof HTMLCanvasElement)) throw new Error('HTML canvas required');
+    const width=canvas.width,height=canvas.height;
+    const sourceWidth=source instanceof HTMLVideoElement ? source.videoWidth : source.width;
+    const sourceHeight=source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+    if(sourceWidth!==width || sourceHeight!==height) throw new Error('Resident prototype requires source dimensions to match output; use a 1280×720 source.');
+    return this.execute(undefined,params,44100,profile,{source,context,width,height,diagnostic});
+  }
   async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100, profile = false): Promise<Float32Array> {
+    return this.execute(samples,params,rate,profile);
+  }
+  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLVideoElement | HTMLCanvasElement;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
     if (this.busy || this.disposed) throw new Error('Backend unavailable');
     if (!Number.isFinite(rate) || rate <= 0 || Object.values(params).some(value => !Number.isFinite(value))) throw new Error('Invalid parameters');
-    if (!samples.length) return new Float32Array();
-    const n = samples.length, groups = Math.ceil(n / 256), bytes = n * 4;
+    const n = resident ? resident.width*resident.height*3 : samples!.length;
+    if (!n) return new Float32Array();
+    const groups = Math.ceil(n / 256), bytes = n * 4;
     if (bytes * 2 > this.device.limits.maxStorageBufferBindingSize) throw new Error('Sample block exceeds device limits');
     this.busy = true;
     this.lastTimings = undefined;
     const started = profile ? performance.now() : 0;
-    const buffers: GPUBuffer[] = [];
+    let poolIndex=0;
     const buffer = (size: number, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST) => {
-      const result = this.device.createBuffer({ size, usage }); buffers.push(result); return result;
+      const old=this.pool[poolIndex];
+      const reusable=old && old.size===size && old.usage===usage;
+      if(old && !reusable)old.buffer.destroy();
+      const entry=reusable ? old : {buffer:this.device.createBuffer({size,usage}),size,usage};
+      this.pool[poolIndex++]=entry;return entry.buffer;
     };
     this.device.pushErrorScope('validation');
     let scopePending = true;
     try {
       const input = buffer(bytes), local = buffer(bytes), sums = buffer(Math.max(groups * 8, bytes * 2)), scratch = buffer(Math.max(groups * 8, bytes * 2));
-      const read = buffer(bytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-      this.device.queue.writeBuffer(input, 0, samples as Float32Array<ArrayBuffer>);
+      const readBytes=resident && !resident.diagnostic ? 6144*4 : bytes;
+      const read = buffer(readBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+      if(samples) this.device.queue.writeBuffer(input, 0, samples as Float32Array<ArrayBuffer>);
       const clamp = (v:number, low:number, high:number) => Math.min(high, Math.max(low, v));
       const drive = clamp(params.drive ?? 2.5, 1, 10), bias = clamp(params.bias ?? .1, -.5, .5);
       const tanh = (z:number) => z < -3 ? -1 : z > 3 ? 1 : z*(27+z*z)/(27+9*z*z);
       const encoder = this.device.createCommandEncoder();
+      let imageSize:GPUBuffer | undefined;
+      if(resident){
+        const dimensions=`${resident.width}x${resident.height}`;
+        if(!this.imageTexture || dimensions!==this.imageDimensions){this.imageTexture?.destroy();this.imageDimensions=dimensions;this.imageTexture=this.device.createTexture({size:[resident.width,resident.height],format:'rgba8unorm',usage:GPUTextureUsage.COPY_DST|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.RENDER_ATTACHMENT});}
+        const texture=this.imageTexture;
+        this.device.queue.copyExternalImageToTexture({source:resident.source},{texture,colorSpace:'srgb',premultipliedAlpha:false},[resident.width,resident.height]);
+        imageSize=buffer(16,GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
+        this.device.queue.writeBuffer(imageSize,0,new Uint32Array([resident.width,resident.height,0,0]));
+        const bind=this.device.createBindGroup({layout:this.imagePipeline.getBindGroupLayout(0),entries:[{binding:0,resource:texture.createView()},{binding:1,resource:{buffer:input}},{binding:2,resource:{buffer:this.lut}},{binding:3,resource:{buffer:imageSize}}]});
+        const pass=encoder.beginComputePass();pass.setPipeline(this.imagePipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(resident.width*resident.height/256));pass.end();
+      }
       for (let stage = 0; stage < 2; stage++) {
         const dispatch = (entry:string, stride:number, source:GPUBuffer, target:GPUBuffer, count:number) => {
           const uniform = buffer(48, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
@@ -106,7 +197,7 @@ export class WebGpuTapeSat {
           const bind=this.device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:used[entry].map(binding=>({binding,resource:{buffer:all[binding]}}))});
           const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(count);pass.end();
         };
-        dispatch('tiles',0,sums,scratch,Math.ceil(groups/64));
+        dispatch('tiles',0,sums,scratch,groups);
         let source=sums,target=scratch;
         for(let stride=1;stride<groups;stride*=2){dispatch('scan',stride,source,target,Math.ceil(groups/64));[source,target]=[target,source];}
         dispatch('apply',0,source,target,Math.ceil(n/256));
@@ -114,7 +205,18 @@ export class WebGpuTapeSat {
         dispatch('save',0,source,target,1);
         encoder.copyBufferToBuffer(local,0,input,0,bytes);
       }
-      encoder.copyBufferToBuffer(local,0,read,0,bytes);this.device.queue.submit([encoder.finish()]);
+      if(resident){
+        const bind=this.device.createBindGroup({layout:this.displayPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:local}},{binding:1,resource:{buffer:imageSize!}}]});
+        const render=encoder.beginRenderPass({colorAttachments:[{view:resident.context.getCurrentTexture().createView(),loadOp:'clear',storeOp:'store',clearValue:{r:0,g:0,b:0,a:1}}]});
+        render.setPipeline(this.displayPipeline);render.setBindGroup(0,bind);render.draw(3);render.end();
+      }
+      if(resident && !resident.diagnostic){
+        const compact=buffer(readBytes);
+        const bind=this.device.createBindGroup({layout:this.gatherPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:local}},{binding:1,resource:{buffer:compact}}]});
+        const pass=encoder.beginComputePass();pass.setPipeline(this.gatherPipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(24);pass.end();
+        encoder.copyBufferToBuffer(compact,0,read,0,readBytes);
+      }else encoder.copyBufferToBuffer(local,0,read,0,bytes);
+      this.device.queue.submit([encoder.finish()]);
       const submitted = profile ? performance.now() : 0;
       scopePending = false;
       const validation = await this.device.popErrorScope();
@@ -126,7 +228,7 @@ export class WebGpuTapeSat {
       return result;
     } finally {
       if (scopePending) await this.device.popErrorScope();
-      for(const buffer of buffers) buffer.destroy(); this.busy=false;
+      for(const entry of this.pool.splice(poolIndex))entry.buffer.destroy();this.busy=false;
     }
   }
 }

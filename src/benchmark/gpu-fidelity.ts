@@ -1,5 +1,6 @@
 import { WebGpuTapeSat } from '../engine/backends/webgpu-tapesat.ts';
 import { TapeSaturationFilter } from '../engine/filters/lofi/tapesat.ts';
+import { imageToAudioStream, audioStreamToImage } from '../engine/streams.ts';
 
 export const GPU_FIDELITY_LIMITS = { maxAbsoluteError: 1e-4, rmsError: 1e-5 } as const;
 
@@ -31,4 +32,48 @@ export async function checkGpuFidelity(gpu: WebGpuTapeSat, cancelled: () => bool
     }
     return { version:1, limits:GPU_FIDELITY_LIMITS, cases, passed:cases.every(value=>value.maxAbsoluteError<=GPU_FIDELITY_LIMITS.maxAbsoluteError && value.rmsError<=GPU_FIDELITY_LIMITS.rmsError), scope:'sample comparison with parameter changes and retained frame/tile history; no full application or pixel acceptance' };
   } finally { if (!cancelled()) gpu.reset(); }
+}
+
+// Pixel bound declared before running the new path: at most one byte level.
+// Samples continue to use the original f32 bounds.
+export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvasContext, source:HTMLVideoElement | HTMLCanvasElement, cancelled:()=>boolean=()=>false) {
+  const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
+  const capture=document.createElement('canvas');capture.width=1280;capture.height=720;
+  const read=capture.getContext('2d',{willReadFrequently:true});
+  const display=document.createElement('canvas');display.width=1280;display.height=720;
+  const displayRead=display.getContext('2d',{willReadFrequently:true});
+  if(!read || !displayRead) throw new Error('Fidelity canvas unavailable');
+  const cases=[];
+  try {
+    const fixture=document.createElement('canvas');fixture.width=1280;fixture.height=720;
+    const fixtureContext=fixture.getContext('2d')!;const fixturePixels=fixtureContext.createImageData(1280,720);
+    for(let i=0;i<fixturePixels.data.length;i+=4){fixturePixels.data[i]=(i*37)%256;fixturePixels.data[i+1]=(i*13+1)%256;fixturePixels.data[i+2]=(i*7+127)%256;fixturePixels.data[i+3]=255;}
+    fixtureContext.putImageData(fixturePixels,0,0);
+    for(const input of [fixture,source]) {
+      if(cancelled()) throw new Error('Fidelity check cancelled');
+      gpu.reset();const cpu=new TapeSaturationFilter(44100);
+      read.drawImage(input,0,0);const rgba=read.getImageData(0,0,1280,720);
+      const expected=imageToAudioStream(rgba.data,stream);cpu.processBlock(expected);
+      const actual=await gpu.processImage(input,context,{},false,true);
+      if(cancelled()) throw new Error('Fidelity check cancelled');
+      let maxAbsoluteError=0,square=0;
+      for(let i=0;i<expected.length;i++){const d=Math.abs(expected[i]-actual[i]);if(!Number.isFinite(d))throw new Error('Non-finite resident output');maxAbsoluteError=Math.max(maxAbsoluteError,d);square+=d*d;}
+      const expectedPixels=new Uint8ClampedArray(rgba.data.length);audioStreamToImage(expected,stream,expectedPixels);
+      displayRead.drawImage(context.canvas as HTMLCanvasElement,0,0);
+      const actualPixels=displayRead.getImageData(0,0,1280,720).data;
+      let maxPixelError=0,differingBytes=0;
+      for(let i=0;i<actualPixels.length;i++){const d=Math.abs(expectedPixels[i]-actualPixels[i]);maxPixelError=Math.max(maxPixelError,d);if(d)differingBytes++;}
+      // Same captured frame again, now retaining the first frame's history.
+      const second=imageToAudioStream(rgba.data,stream);cpu.processBlock(second);
+      const compact=await gpu.processImage(input,context);
+      if(cancelled())throw new Error('Fidelity check cancelled');
+      let compactMaxError=0;
+      for(let i=0;i<6144;i++){
+        const index=i<4096 ? i*Math.max(1,Math.floor(second.length/4096)) : i-4096;
+        const d=Math.abs(compact[i]-(second[index]??0));if(!Number.isFinite(d))throw new Error('Non-finite compact output');compactMaxError=Math.max(compactMaxError,d);
+      }
+      cases.push({source:input===fixture?'synthetic-rgb-bytes':'provided-source-frame',samples:expected.length,maxAbsoluteError,rmsError:Math.sqrt(square/expected.length),maxPixelError,differingBytes,compactMaxError});
+    }
+    return {version:1,limits:{...GPU_FIDELITY_LIMITS,maxPixelByteError:1},cases,passed:cases.every(value=>value.maxAbsoluteError<=GPU_FIDELITY_LIMITS.maxAbsoluteError && value.rmsError<=GPU_FIDELITY_LIMITS.rmsError && value.maxPixelError<=1 && value.compactMaxError<=GPU_FIDELITY_LIMITS.maxAbsoluteError),scope:'opaque RGB fixture and paused decoded source frame; sample, rendered byte and compact gather comparison'};
+  } finally {if(!cancelled())gpu.reset();}
 }
