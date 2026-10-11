@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp } from '../util.ts';
+import { clamp, SIN_TABLE, SIN_TABLE_MASK, RAD_TO_SIN_IDX, TWO_PI } from '../util.ts';
 
 // 2. Stereo Flanger & Chorus
 // In audio: comb filter sweeps with modulated delay (0.5 to 20ms) and feedback. Jet-plane woosh or rich chorus ensemble.
@@ -61,7 +61,7 @@ export class FlangerFilter extends BaseDspFilter {
     const fs = this.sampleRate;
     const buf = this.buffer;
     const mask = FlangerFilter.BUFFER_MASK;
-    const lfoInc = (2.0 * Math.PI * this.rate) / fs;
+    const lfoInc = (TWO_PI * this.rate) / fs;
     const fb = this.feedback;
     const mix = this.mix;
     const dry = 1.0 - mix;
@@ -71,11 +71,12 @@ export class FlangerFilter extends BaseDspFilter {
 
     for (let i = 0; i < len; i++) {
       // Modulated delay time in samples
-      const currentDelayMs = this.delayMs + this.depth * 0.5 * (1.0 + Math.sin(lfo));
+      const sinVal = SIN_TABLE[((lfo * RAD_TO_SIN_IDX) | 0) & SIN_TABLE_MASK];
+      const currentDelayMs = this.delayMs + this.depth * 0.5 * (1.0 + sinVal);
       const delaySamples = clamp((currentDelayMs * 0.001) * fs, 1, mask - 2);
 
       lfo += lfoInc;
-      if (lfo >= 2.0 * Math.PI) lfo -= 2.0 * Math.PI;
+      if (lfo >= TWO_PI) lfo -= TWO_PI;
 
       // Linear interpolation read
       const readPosExact = wpos - delaySamples;

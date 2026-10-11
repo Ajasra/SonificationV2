@@ -65,6 +65,7 @@ export class NoiseGateFilter extends BaseDspFilter {
     const att = this.attackCoeff;
     const rel = this.releaseCoeff;
     const thresh = this.threshold;
+    const threshLin = Math.pow(10.0, thresh / 20.0);
     const minGain = Math.pow(10.0, this.range / 20.0);
 
     for (let i = 0; i < len; i++) {
@@ -77,8 +78,7 @@ export class NoiseGateFilter extends BaseDspFilter {
         env = rel * env + (1.0 - rel) * absSample;
       }
 
-      const envDb = 20.0 * Math.log10(Math.max(1e-5, env));
-      const targetGain = envDb >= thresh ? 1.0 : minGain;
+      const targetGain = env >= threshLin ? 1.0 : minGain;
 
       // Smooth gain transition
       if (targetGain > gain) {

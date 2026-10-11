@@ -28,6 +28,9 @@ export class HudOverlay {
   private valSeed: HTMLElement | null = document.getElementById('hud-val-seed');
   private meterSegsL: HTMLElement[] = [];
   private meterSegsR: HTMLElement[] = [];
+  private lastActiveCountL: number = -1;
+  private lastActiveCountR: number = -1;
+  private lastDomUpdate: number = 0;
 
   private enabled: boolean = false;
   private dpr: number = 1;
@@ -172,8 +175,6 @@ export class HudOverlay {
 
   public render(data: HudTelemetryData = {}): void {
     if (!this.enabled) return;
-
-    this.handleResize();
 
     const w = this.hudCanvas.width;
     const h = this.hudCanvas.height;
@@ -552,28 +553,38 @@ export class HudOverlay {
       rms = Math.sqrt(sum / count);
     }
 
-    const peakDb = Math.max(-60, 20 * Math.log10(peak));
+    const now = performance.now();
+    if (now - this.lastDomUpdate >= 80) {
+      this.lastDomUpdate = now;
+      const peakDb = Math.max(-60, 20 * Math.log10(peak));
 
-    if (this.valBus && data.sampleRate) {
-      this.valBus.textContent = `${(data.sampleRate / 1000).toFixed(1)} kHz`;
-    }
-    if (this.valPeak) {
-      this.valPeak.textContent = `${peakDb > -0.5 ? 'CLIP' : peakDb.toFixed(1) + ' dB'}`;
-      this.valPeak.style.color = peakDb > -0.5 ? 'var(--accent-red)' : 'var(--text-primary)';
-    }
-    if (this.valRms) {
-      this.valRms.textContent = rms.toFixed(2);
-    }
-    if (this.valSeed && data.seed) {
-      this.valSeed.textContent = String(data.seed);
+      if (this.valBus && data.sampleRate) {
+        this.valBus.textContent = `${(data.sampleRate / 1000).toFixed(1)} kHz`;
+      }
+      if (this.valPeak) {
+        this.valPeak.textContent = `${peakDb > -0.5 ? 'CLIP' : peakDb.toFixed(1) + ' dB'}`;
+        this.valPeak.style.color = peakDb > -0.5 ? 'var(--accent-red)' : 'var(--text-primary)';
+      }
+      if (this.valRms) {
+        this.valRms.textContent = rms.toFixed(2);
+      }
+      if (this.valSeed && data.seed) {
+        this.valSeed.textContent = String(data.seed);
+      }
     }
 
-    // Segmented LED Meters (Ref 2)
+    // Segmented LED Meters (Ref 2) - only mutate DOM when active segment count changes
     const activeCountL = Math.min(20, Math.floor(Math.min(1.0, peak * 1.4) * 20));
     const activeCountR = Math.min(20, Math.floor(Math.min(1.0, rms * 2.2) * 20));
 
-    this.updateSegmentList(this.meterSegsL, activeCountL);
-    this.updateSegmentList(this.meterSegsR, activeCountR);
+    if (activeCountL !== this.lastActiveCountL) {
+      this.lastActiveCountL = activeCountL;
+      this.updateSegmentList(this.meterSegsL, activeCountL);
+    }
+    if (activeCountR !== this.lastActiveCountR) {
+      this.lastActiveCountR = activeCountR;
+      this.updateSegmentList(this.meterSegsR, activeCountR);
+    }
   }
 
   private updateSegmentList(segs: HTMLElement[], activeCount: number): void {

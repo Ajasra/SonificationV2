@@ -34,3 +34,16 @@ export function hsvToRgb(h: number, s: number, v: number): [number, number, numb
     Math.round((b + m) * 255),
   ];
 }
+
+// 8192-point precomputed sine table for inner video/LFO loops (max error < 0.0004)
+export const SIN_TABLE_SIZE = 8192;
+export const SIN_TABLE_MASK = 8191;
+export const SIN_TABLE = new Float32Array(SIN_TABLE_SIZE);
+for (let i = 0; i < SIN_TABLE_SIZE; i++) {
+  SIN_TABLE[i] = Math.sin((i / SIN_TABLE_SIZE) * Math.PI * 2);
+}
+export const RAD_TO_SIN_IDX = SIN_TABLE_SIZE / (Math.PI * 2);
+
+export function fastSin(rad: number): number {
+  return SIN_TABLE[((rad * RAD_TO_SIN_IDX) | 0) & SIN_TABLE_MASK];
+}

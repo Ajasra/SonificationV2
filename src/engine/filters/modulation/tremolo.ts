@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp } from '../util.ts';
+import { clamp, fastSin, TWO_PI } from '../util.ts';
 
 // 3. Tremolo & Strobe
 // In audio: rhythmic volume pulsating, shutter helicopter gating.
@@ -44,30 +44,36 @@ export class TremoloFilter extends BaseDspFilter {
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     const fs = this.sampleRate;
-    const lfoInc = (2.0 * Math.PI * this.rate) / fs;
+    const lfoInc = (TWO_PI * this.rate) / fs;
     const d = this.depth;
     const shp = this.shape;
     let lfo = this.lfoPhase;
 
-    for (let i = 0; i < len; i++) {
-      let lfoVal = 0.0; // [0, 1]
-      if (shp === 0) {
-        // Sine
-        lfoVal = 0.5 * (1.0 + Math.sin(lfo));
-      } else if (shp === 1) {
-        // Triangle
-        const norm = (lfo / (2.0 * Math.PI)) % 1.0;
-        lfoVal = norm < 0.5 ? 2.0 * norm : 2.0 * (1.0 - norm);
-      } else {
-        // Square
-        lfoVal = Math.sin(lfo) >= 0 ? 1.0 : 0.0;
+    if (shp === 0) {
+      // Sine wave loop
+      for (let i = 0; i < len; i++) {
+        const lfoVal = 0.5 * (1.0 + fastSin(lfo));
+        lfo += lfoInc;
+        if (lfo >= TWO_PI) lfo -= TWO_PI;
+        samples[i] *= 1.0 - d * (1.0 - lfoVal);
       }
-
-      lfo += lfoInc;
-      if (lfo >= 2.0 * Math.PI) lfo -= 2.0 * Math.PI;
-
-      const gain = 1.0 - d * (1.0 - lfoVal);
-      samples[i] = samples[i] * gain;
+    } else if (shp === 1) {
+      // Triangle wave loop
+      for (let i = 0; i < len; i++) {
+        const norm = (lfo / TWO_PI) % 1.0;
+        const lfoVal = norm < 0.5 ? 2.0 * norm : 2.0 * (1.0 - norm);
+        lfo += lfoInc;
+        if (lfo >= TWO_PI) lfo -= TWO_PI;
+        samples[i] *= 1.0 - d * (1.0 - lfoVal);
+      }
+    } else {
+      // Square wave loop
+      for (let i = 0; i < len; i++) {
+        const lfoVal = lfo < Math.PI ? 1.0 : 0.0;
+        lfo += lfoInc;
+        if (lfo >= TWO_PI) lfo -= TWO_PI;
+        samples[i] *= 1.0 - d * (1.0 - lfoVal);
+      }
     }
 
     this.lfoPhase = lfo;

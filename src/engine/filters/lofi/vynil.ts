@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp, lerp } from '../util.ts';
+import { clamp, lerp, fastSin } from '../util.ts';
 import { Biquad } from '../../biquad.ts';
 
 // 16. Vynil: Turntable vinyl record simulator (LADSPA vynil_1905)
@@ -124,7 +124,7 @@ export class VynilFilter extends BaseDspFilter {
   }
 
   private df(x: number): number {
-    return (Math.sin(x) + 1.0) * 0.5;
+    return (fastSin(x) + 1.0) * 0.5;
   }
 
   processBlock(samples: Float32Array): void {
@@ -168,7 +168,9 @@ export class VynilFilter extends BaseDspFilter {
 
       const clickVal = this.clickBuffer[this.clickBufferPos & 4095] * this.clickGain;
       srcM = this.lowpM.run(srcM + clickVal);
-      srcM = lerp(srcM, Math.sin(srcM * this.wrapGain + this.wrapBias), this.age);
+      if (this.age > 0.001) {
+        srcM = lerp(srcM, fastSin(srcM * this.wrapGain + this.wrapBias), this.age);
+      }
       srcM =
         this.highp.run(srcM) +
         this.noiseFilt.run(this.fnoise()) * this.noiseAmp +

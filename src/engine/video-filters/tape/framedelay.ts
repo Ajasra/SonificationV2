@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp, clampByte } from '../util.ts';
+import { clamp } from '../util.ts';
 
 // 14. Quantel DPE 5000 / Prime Image Temporal Frame Delay & Glitch Stutter
 // Circular digital frame-store buffer providing multi-frame temporal delay echoes,
@@ -76,22 +76,14 @@ export class FrameDelayFilter extends BaseVideoFilter {
 
     const wet = this.echoMix;
     const dry = 1.0 - wet;
-    const dcy = this.decay;
+    const dcyWet = this.decay * wet;
 
     // Blend current frame with delayed frame buffer
     if (delayedBuf) {
       for (let i = 0; i < size; i += 4) {
-        const inR = rgba[i];
-        const inG = rgba[i + 1];
-        const inB = rgba[i + 2];
-
-        const dR = delayedBuf[i] * dcy;
-        const dG = delayedBuf[i + 1] * dcy;
-        const dB = delayedBuf[i + 2] * dcy;
-
-        rgba[i] = clampByte(inR * dry + dR * wet);
-        rgba[i + 1] = clampByte(inG * dry + dG * wet);
-        rgba[i + 2] = clampByte(inB * dry + dB * wet);
+        rgba[i] = (rgba[i] * dry + delayedBuf[i] * dcyWet + 0.5) | 0;
+        rgba[i + 1] = (rgba[i + 1] * dry + delayedBuf[i + 1] * dcyWet + 0.5) | 0;
+        rgba[i + 2] = (rgba[i + 2] * dry + delayedBuf[i + 2] * dcyWet + 0.5) | 0;
       }
     }
 

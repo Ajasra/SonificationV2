@@ -47,8 +47,11 @@ export class TapeSaturationFilter extends BaseDspFilter {
     const len = samples.length;
     const drv = this.drive;
     const bias = this.bias;
-    const dcOffset = Math.tanh(drv * bias);
-    const norm = 1 / Math.max(0.2, Math.tanh(drv));
+    const zb = drv * bias;
+    const dcOffset = zb < -3.0 ? -1.0 : zb > 3.0 ? 1.0 : (zb * (27.0 + zb * zb)) / (27.0 + 9.0 * zb * zb);
+    const zd = drv;
+    const tanhDrv = zd < -3.0 ? -1.0 : zd > 3.0 ? 1.0 : (zd * (27.0 + zd * zd)) / (27.0 + 9.0 * zd * zd);
+    const norm = 1 / Math.max(0.2, tanhDrv);
     const bumpA = 1 - Math.exp((-2 * Math.PI * this.bumpHz) / this.sampleRate);
     const toneA = 1 - Math.exp((-2 * Math.PI * Math.min(this.tone, this.sampleRate * 0.45)) / this.sampleRate);
     const bump = this.bump;
@@ -56,7 +59,17 @@ export class TapeSaturationFilter extends BaseDspFilter {
     let tl = this.toneLp;
 
     for (let i = 0; i < len; i++) {
-      let y = (Math.tanh(drv * (samples[i] + bias)) - dcOffset) * norm;
+      const z = drv * (samples[i] + bias);
+      let tz: number;
+      if (z < -3.0) {
+        tz = -1.0;
+      } else if (z > 3.0) {
+        tz = 1.0;
+      } else {
+        const z2 = z * z;
+        tz = (z * (27.0 + z2)) / (27.0 + 9.0 * z2);
+      }
+      let y = (tz - dcOffset) * norm;
       bl += bumpA * (y - bl);
       y += bump * bl;
       tl += toneA * (y - tl);

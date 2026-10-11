@@ -51,6 +51,8 @@ export class SonificationPipeline {
   private lastChainRef: SonificationPreset['chain'] | null = null;
   private lastFiltersRef: SonificationPreset['filters'] | null = null;
   private lastVideoFiltersRef: SonificationPreset['videoFilters'] | null = null;
+  private lastWidth = 0;
+  private lastHeight = 0;
 
   private ensureBuffers(numPixels: number, numSamples: number): void {
     const rgbaBytes = numPixels * 4;
@@ -77,29 +79,32 @@ export class SonificationPipeline {
 
   /** Rebuild segments if the chain structure changed; otherwise push params in place. */
   private syncChain(preset: SonificationPreset, width: number, height: number): void {
-    let ordered = this.cachedOrdered;
-    if (
-      !ordered ||
+    const structureDirty =
+      !this.cachedOrdered ||
       preset !== this.lastPresetRef ||
       preset.chain !== this.lastChainRef ||
       preset.filters !== this.lastFiltersRef ||
-      preset.videoFilters !== this.lastVideoFiltersRef
-    ) {
-      ordered = resolveChain(preset);
+      preset.videoFilters !== this.lastVideoFiltersRef ||
+      width !== this.lastWidth ||
+      height !== this.lastHeight;
+
+    if (structureDirty) {
+      const ordered = resolveChain(preset);
       this.cachedOrdered = ordered;
       this.lastPresetRef = preset;
       this.lastChainRef = preset.chain;
       this.lastFiltersRef = preset.filters;
       this.lastVideoFiltersRef = preset.videoFilters;
-    }
+      this.lastWidth = width;
+      this.lastHeight = height;
 
-    let key = `${width}x${height}`;
-    for (let i = 0; i < ordered.length; i++) {
-      const e = ordered[i];
-      key += `|${e.kind}:${e.cfg.id}:${e.cfg.type}:${e.cfg.enabled}${e.kind === 'audio' ? ':' + e.cfg.sampleRate : ''}`;
-    }
+      let key = `${width}x${height}`;
+      for (let i = 0; i < ordered.length; i++) {
+        const e = ordered[i];
+        key += `|${e.kind}:${e.cfg.id}:${e.cfg.type}:${e.cfg.enabled}${e.kind === 'audio' ? ':' + e.cfg.sampleRate : ''}`;
+      }
 
-    if (key !== this.chainKey) {
+      if (key !== this.chainKey) {
       const nextCache = new Map<string, { sig: string; inst: IDspFilter | IVideoFilter }>();
       const segments: Segment[] = [];
       const nodes: { inst: IDspFilter | IVideoFilter; cfgRef: { params: Record<string, number> } }[] = [];
@@ -150,6 +155,7 @@ export class SonificationPipeline {
       this.instanceCache = nextCache;
       this.chainKey = key;
     }
+  }
 
     for (const n of this.nodes) n.inst.setParams(n.cfgRef.params);
   }
@@ -252,9 +258,24 @@ export class SonificationPipeline {
       if (this.hasVideo) this.measureAudio(audioStream);
 
       // Decode the stream back into image pixels, then revert the color space
-      audioStreamToImage(audioStream, preset.writer, outRgba);
-      convertFromColorSpace(outRgba, preset.writer.colorSpace);
-      cur = outRgba;
+      if (
+        fl.length === 0 &&
+        preset.reader.colorSpace === preset.writer.colorSpace &&
+        preset.reader.bits === preset.writer.bits &&
+        preset.reader.rawType === preset.writer.rawType &&
+        preset.reader.law === preset.writer.law &&
+        preset.reader.sign === preset.writer.sign &&
+        preset.reader.endianess === preset.writer.endianess
+      ) {
+        if (cur === inputRgba) {
+          outRgba.set(inputRgba.subarray(0, numPixels * 4));
+        }
+        cur = outRgba;
+      } else {
+        audioStreamToImage(audioStream, preset.writer, outRgba);
+        convertFromColorSpace(outRgba, preset.writer.colorSpace);
+        cur = outRgba;
+      }
 
       // Equalize & blend belong to the final audio stage
       if (seg.isLast) {

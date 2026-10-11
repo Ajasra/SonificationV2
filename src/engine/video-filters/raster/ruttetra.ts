@@ -1,7 +1,7 @@
 import type { VideoFilterModule } from '../descriptor.ts';
 import { BaseVideoFilter } from '../base.ts';
 import type { VideoFrameContext } from '../../../types/index.ts';
-import { clamp } from '../util.ts';
+import { clamp, fastSin } from '../util.ts';
 
 // 5. Rutt-Etra Raster Deflector (1973 Scan Deflection Video Synthesizer)
 // Deflects horizontal scanlines vertically according to luminance voltage
@@ -67,11 +67,13 @@ export class RuttEtraFilter extends BaseVideoFilter {
 
     // Cross-modulation from audio engine
     const audioAmp = (ctx.audioPeak ?? ctx.audioRms ?? 0) * this.audioMod * 20;
-    const invLumaScale = 1.0 / (256 * 255);
+    const invLumaDef = def / (256 * 255);
     const rowBytes = width * 4;
+    const hasAudio = audioAmp > 0.001;
 
     for (let y = 0; y < height; y += step) {
       const srcRowOffset = y * rowBytes;
+      const yPhase = y * 0.02;
 
       for (let x = 0; x < width; x++) {
         const srcIdx = srcRowOffset + x * 4;
@@ -79,11 +81,10 @@ export class RuttEtraFilter extends BaseVideoFilter {
         const g = src[srcIdx + 1];
         const b = src[srcIdx + 2];
 
-        // Luminance voltage (0 to 1)
-        const lumaNorm = (r * 77 + g * 150 + b * 29) * invLumaScale;
-
         // Calculate vertical deflection: deflect upward in proportion to brightness + audio
-        const dy = Math.round((lumaNorm * def) + (audioAmp * Math.sin(x * 0.05 + y * 0.02)));
+        const lumaDef = (r * 77 + g * 150 + b * 29) * invLumaDef;
+        const audioDef = hasAudio ? audioAmp * fastSin(x * 0.05 + yPhase) : 0;
+        const dy = (lumaDef + audioDef + 0.5) | 0;
         const targetY = y - dy;
 
         if (targetY >= 0 && targetY < height) {

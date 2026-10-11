@@ -89,6 +89,9 @@ export class CrtBloomFilter extends BaseVideoFilter {
       }
 
       // 2. Apply phosphor halation spread and aperture grille
+      const rowScanFactor = (isOddScanline && sStrength > 0) ? scanlineDarkFactor : 1.0;
+      let colMod = 0;
+
       for (let x = 0; x < width; x++) {
         const idx = rowOffset + x * 4;
         let r = rgba[idx];
@@ -109,7 +112,6 @@ export class CrtBloomFilter extends BaseVideoFilter {
 
         // CRT Aperture Grille (repeating RGB triad columns)
         if (gStrength > 0) {
-          const colMod = x % 3;
           if (colMod === 0) {
             g *= dim;
             b *= dim;
@@ -120,13 +122,14 @@ export class CrtBloomFilter extends BaseVideoFilter {
             r *= dim;
             g *= dim;
           }
+          if (++colMod === 3) colMod = 0;
         }
 
         // Horizontal scanline darkening
-        if (isOddScanline && sStrength > 0) {
-          r *= scanlineDarkFactor;
-          g *= scanlineDarkFactor;
-          b *= scanlineDarkFactor;
+        if (rowScanFactor !== 1.0) {
+          r *= rowScanFactor;
+          g *= rowScanFactor;
+          b *= rowScanFactor;
         }
 
         rgba[idx] = r < 0 ? 0 : r > 255 ? 255 : (r | 0);

@@ -69,6 +69,7 @@ export class CompressorFilter extends BaseDspFilter {
     const thresh = this.threshold;
     const slope = 1.0 - 1.0 / this.ratio;
     const makeup = this.linearMakeup;
+    const threshLin = Math.pow(10.0, thresh / 20.0);
 
     for (let i = 0; i < len; i++) {
       const inSample = samples[i];
@@ -81,16 +82,12 @@ export class CompressorFilter extends BaseDspFilter {
         env = rel * env + (1.0 - rel) * absSample;
       }
 
-      // Convert envelope to dB (prevent log(0))
-      const envDb = 20.0 * Math.log10(Math.max(1e-5, env));
-
-      // Compute compression gain reduction
-      let gainDb = 0.0;
-      if (envDb > thresh) {
-        gainDb = -slope * (envDb - thresh);
+      // Compute compression gain reduction (mathematically eliminates Math.log10)
+      let gain = makeup;
+      if (env > threshLin) {
+        gain = Math.pow(threshLin / env, slope) * makeup;
       }
 
-      const gain = Math.pow(10.0, gainDb / 20.0) * makeup;
       const out = inSample * gain;
 
       // Soft clamp to [-1, 1]

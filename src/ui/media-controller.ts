@@ -244,11 +244,13 @@ export class MediaController {
         return;
       }
 
-      // Check A-B loop boundaries and wrap to start if reached end
-      const wrapTime = this.videoTimeline.checkLoopBoundaries(cur.currentTime);
-      if (wrapTime !== null) {
-        cur.currentTime = wrapTime;
-        this.lastVideoTime = -1;
+      // Check A-B loop boundaries and wrap to start if reached end (guard against recursive seek thrashing)
+      if (!cur.seeking) {
+        const wrapTime = this.videoTimeline.checkLoopBoundaries(cur.currentTime);
+        if (wrapTime !== null && Math.abs(cur.currentTime - wrapTime) > 0.05) {
+          cur.currentTime = wrapTime;
+          this.lastVideoTime = -1;
+        }
       }
 
       this.videoTimeline.updatePlayhead(cur.currentTime);

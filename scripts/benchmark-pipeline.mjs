@@ -129,7 +129,7 @@ const benchStreamDec = benchmarkFunction('audioStreamToImage', () => {
 }, 25, 5);
 console.log(`  * ${benchStreamDec.name.padEnd(20)}: ${benchStreamDec.avgMs.toFixed(2)} ms/frame  (${benchStreamDec.fps.toFixed(1)} FPS)`);
 
-for (const aType of ['moogladder', 'wavefolder', 'echo']) {
+for (const aType of ['moogladder', 'wavefolder', 'echo', 'tapesat', 'tapewow']) {
   const inst = createFilterInstance(aType, 44100);
   inst.setParams(defaultParams(FILTER_DESCRIPTORS[aType]));
   const testBlock = new Float32Array(audioBuffer);
@@ -228,6 +228,37 @@ const resC = benchmarkFunction('Pipeline: Interleaved V-A-V', () => {
   pipeC.processFrame(img480, W_480, H_480, interleavedPreset, out480);
 }, 20, 5);
 console.log(`  * ${resC.name.padEnd(24)}: ${resC.avgMs.toFixed(2)} ms/frame  (${resC.fps.toFixed(1)} FPS)`);
+
+// Scenario D: User Preset: 480x852 Vertical Video + TapeSat + TapeWow
+const W_USER = 480;
+const H_USER = 852;
+const imgUser = createTestImage(W_USER, H_USER);
+const outUser = new Uint8ClampedArray(W_USER * H_USER * 4);
+
+const userTapePreset = {
+  id: 'bench-user-tape',
+  name: 'User 480x852 TapeSat + TapeWow',
+  reader: streamCfg,
+  writer: streamCfg,
+  equalize: false,
+  blendMode: 'NONE',
+  blendAmount: 0,
+  filters: [
+    { id: 'a1', type: 'tapesat', enabled: true, sampleRate: 44100, params: { drive: 2.2, bias: 0.08, bump: 0.35, bumpHz: 80, tone: 9500 } },
+    { id: 'a2', type: 'tapewow', enabled: true, sampleRate: 44100, params: { wow: 0.25, flutter: 0.15, drift: 0.20, mix: 0.50 } },
+  ],
+  videoFilters: [],
+  chain: [
+    { kind: 'audio', id: 'a1' },
+    { kind: 'audio', id: 'a2' },
+  ],
+};
+
+const pipeD = new SonificationPipeline();
+const resD = benchmarkFunction('Pipeline: 480x852 TapeSat+Wow', () => {
+  pipeD.processFrame(imgUser, W_USER, H_USER, userTapePreset, outUser);
+}, 20, 5);
+console.log(`  * ${resD.name.padEnd(28)}: ${resD.avgMs.toFixed(2)} ms/frame  (${resD.fps.toFixed(1)} FPS)`);
 
 // Output JSON report for automated before/after comparison
 const report = {

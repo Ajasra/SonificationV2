@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp } from '../util.ts';
+import { clamp, SIN_TABLE, SIN_TABLE_SIZE, SIN_TABLE_MASK, RAD_TO_SIN_IDX, TWO_PI } from '../util.ts';
 
 // 1. Tape Wow & Flutter: modulated delay line with slow wow, fast flutter and random drift.
 export class TapeWowFilter extends BaseDspFilter {
@@ -10,6 +10,7 @@ export class TapeWowFilter extends BaseDspFilter {
   mix = 1.0;
 
   private buf = new Float32Array(0);
+  private bufMask = 0;
   private pos = 0;
   private wowPhase = 0;
   private flutPhase = 0;
@@ -23,7 +24,10 @@ export class TapeWowFilter extends BaseDspFilter {
   }
 
   init(): void {
-    this.buf = new Float32Array(Math.ceil(this.sampleRate * 0.08) + 4);
+    const minSize = Math.ceil(this.sampleRate * 0.08) + 4;
+    const p2Size = 1 << Math.ceil(Math.log2(minSize));
+    this.buf = new Float32Array(p2Size);
+    this.bufMask = p2Size - 1;
     this.pos = 0;
     this.wowPhase = 0;
     this.flutPhase = 0;
@@ -53,21 +57,23 @@ export class TapeWowFilter extends BaseDspFilter {
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     const buf = this.buf;
-    const size = buf.length;
+    const mask = this.bufMask;
+    const cap = mask + 1;
     const sr = this.sampleRate;
     const baseDelay = sr * 0.03;
     const wowDepth = this.wow * sr * 0.008;
     const flutDepth = this.flutter * sr * 0.0015;
     const driftDepth = this.drift * sr * 0.004;
-    const wowInc = (0.5 / sr) * 2 * Math.PI;
-    const flutInc = (8.0 / sr) * 2 * Math.PI;
+    const wpIncIdx = (0.5 / sr) * SIN_TABLE_SIZE;
+    const fpIncIdx = (8.0 / sr) * SIN_TABLE_SIZE;
     const mix = this.mix;
     const dry = 1 - mix;
     const stepLen = Math.max(1, Math.floor(sr / 4));
+    const noiseAlpha = 4.0 / sr;
 
     let pos = this.pos;
-    let wp = this.wowPhase;
-    let fp = this.flutPhase;
+    let wpIdx = this.wowPhase * RAD_TO_SIN_IDX;
+    let fpIdx = this.flutPhase * RAD_TO_SIN_IDX;
     let nz = this.noise;
     let nzT = this.noiseTarget;
     let nzC = this.noiseCount;
@@ -76,32 +82,35 @@ export class TapeWowFilter extends BaseDspFilter {
       const x = samples[i];
       buf[pos] = x;
 
-      if (nzC <= 0) {
+      if (--nzC <= 0) {
         nzT = Math.random() * 2 - 1;
         nzC = stepLen;
       }
-      nzC--;
-      nz += (nzT - nz) * (4.0 / sr);
+      nz += (nzT - nz) * noiseAlpha;
 
-      const d = baseDelay + wowDepth * Math.sin(wp) + flutDepth * Math.sin(fp) + driftDepth * nz;
-      wp += wowInc;
-      fp += flutInc;
+      const sinW = SIN_TABLE[(wpIdx | 0) & SIN_TABLE_MASK];
+      const sinF = SIN_TABLE[(fpIdx | 0) & SIN_TABLE_MASK];
+      wpIdx += wpIncIdx;
+      fpIdx += fpIncIdx;
 
+      const d = baseDelay + wowDepth * sinW + flutDepth * sinF + driftDepth * nz;
       let rp = pos - d;
-      while (rp < 0) rp += size;
-      const i0 = Math.floor(rp);
-      const frac = rp - i0;
-      const a = buf[i0 % size];
-      const b = buf[(i0 + 1) % size];
+      while (rp < 0) rp += cap;
+
+      const i0 = (rp | 0) & mask;
+      const frac = rp - (rp | 0);
+      const i1 = (i0 + 1) & mask;
+      const a = buf[i0];
+      const b = buf[i1];
       const wet = a + (b - a) * frac;
 
-      if (++pos >= size) pos = 0;
+      pos = (pos + 1) & mask;
       samples[i] = x * dry + wet * mix;
     }
 
     this.pos = pos;
-    this.wowPhase = wp % (2 * Math.PI);
-    this.flutPhase = fp % (2 * Math.PI);
+    this.wowPhase = (wpIdx / RAD_TO_SIN_IDX) % TWO_PI;
+    this.flutPhase = (fpIdx / RAD_TO_SIN_IDX) % TWO_PI;
     this.noise = nz;
     this.noiseTarget = nzT;
     this.noiseCount = nzC;

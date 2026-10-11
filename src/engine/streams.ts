@@ -60,6 +60,35 @@ export function imageToAudioStream(
     }
   }
 
+  // DIRECT 1-PASS PATH for 16-bit unsigned little-endian
+  if (bits === 16 && cfg.sign === 'UNSIGNED' && cfg.endianess === 'LITTLE_ENDIAN') {
+    const byteStream = ensureByteStream(totalColorBytes);
+    if (cfg.rawType === 'PLANAR') {
+      let rIdx = 0;
+      let gIdx = numPixels;
+      let bIdx = numPixels << 1;
+      for (let i = 0; i < rgba.length; i += 4) {
+        byteStream[rIdx++] = rgba[i];
+        byteStream[gIdx++] = rgba[i + 1];
+        byteStream[bIdx++] = rgba[i + 2];
+      }
+    } else {
+      let bIdx = 0;
+      for (let i = 0; i < rgba.length; i += 4) {
+        byteStream[bIdx++] = rgba[i];
+        byteStream[bIdx++] = rgba[i + 1];
+        byteStream[bIdx++] = rgba[i + 2];
+      }
+    }
+    const u16 = new Uint16Array(byteStream.buffer, byteStream.byteOffset, numSamples);
+    const mul = 2.0 * s16;
+    for (let s = 0; s < numSamples; s++) {
+      const res = u16[s] * mul - 1.0;
+      samples[s] = res < -1.0 ? -1.0 : res > 1.0 ? 1.0 : res;
+    }
+    return samples;
+  }
+
   // General fallback for 16-bit / 24-bit / signed modes
   const byteStream = ensureByteStream(totalColorBytes);
   if (cfg.rawType === 'PLANAR') {
@@ -200,6 +229,33 @@ export function audioStreamToImage(
       }
       return;
     }
+  }
+
+  // DIRECT 1-PASS PATH for 16-bit unsigned little-endian
+  if (bits === 16 && cfg.sign === 'UNSIGNED' && cfg.endianess === 'LITTLE_ENDIAN') {
+    const byteStream = ensureByteStream(totalColorBytes);
+    const u16 = new Uint16Array(byteStream.buffer, byteStream.byteOffset, numSamples);
+    for (let s = 0; s < numSamples; s++) {
+      let ires = ((samples[s] + 1.0) * 32767.5) | 0;
+      if (ires < 0) ires = 0; else if (ires > 65535) ires = 65535;
+      u16[s] = ires;
+    }
+    const out32 = new Uint32Array(outRgba.buffer, outRgba.byteOffset, numPixels);
+    if (cfg.rawType === 'PLANAR') {
+      let rIdx = 0;
+      let gIdx = numPixels;
+      let bIdx = numPixels << 1;
+      for (let i = 0; i < numPixels; i++) {
+        out32[i] = 0xff000000 | (byteStream[bIdx++] << 16) | (byteStream[gIdx++] << 8) | byteStream[rIdx++];
+      }
+    } else {
+      let bIdx = 0;
+      for (let i = 0; i < numPixels; i++) {
+        out32[i] = 0xff000000 | (byteStream[bIdx + 2] << 16) | (byteStream[bIdx + 1] << 8) | byteStream[bIdx];
+        bIdx += 3;
+      }
+    }
+    return;
   }
 
   // General path fallback

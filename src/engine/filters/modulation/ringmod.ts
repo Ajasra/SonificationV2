@@ -1,6 +1,6 @@
 import type { FilterModule } from '../descriptor.ts';
 import { BaseDspFilter } from '../base.ts';
-import { clamp } from '../util.ts';
+import { clamp, fastSin, TWO_PI } from '../util.ts';
 
 // 1. Ring Modulator
 // In audio: non-harmonic sidebands, sci-fi Dalek robotic timbre, metallic clangorous bells.
@@ -44,31 +44,37 @@ export class RingModFilter extends BaseDspFilter {
   processBlock(samples: Float32Array): void {
     const len = samples.length;
     const fs = this.sampleRate;
-    const phaseInc = (2.0 * Math.PI * this.freq) / fs;
+    const phaseInc = (TWO_PI * this.freq) / fs;
     const mix = this.mix;
     const dry = 1.0 - mix;
     const wf = this.waveform;
     let ph = this.phase;
 
-    for (let i = 0; i < len; i++) {
-      let carrier = 0.0;
-      if (wf === 0) {
-        // Sine
-        carrier = Math.sin(ph);
-      } else if (wf === 1) {
-        // Triangle
-        const norm = (ph / (2.0 * Math.PI)) % 1.0;
-        carrier = norm < 0.5 ? 4.0 * norm - 1.0 : 3.0 - 4.0 * norm;
-      } else {
-        // Square
-        carrier = Math.sin(ph) >= 0 ? 1.0 : -1.0;
+    if (wf === 0) {
+      // Sine carrier
+      for (let i = 0; i < len; i++) {
+        const carrier = fastSin(ph);
+        ph += phaseInc;
+        if (ph >= TWO_PI) ph -= TWO_PI;
+        samples[i] = samples[i] * (dry + carrier * mix);
       }
-
-      ph += phaseInc;
-      if (ph >= 2.0 * Math.PI) ph -= 2.0 * Math.PI;
-
-      const mod = samples[i] * carrier;
-      samples[i] = samples[i] * dry + mod * mix;
+    } else if (wf === 1) {
+      // Triangle carrier
+      for (let i = 0; i < len; i++) {
+        const norm = (ph / TWO_PI) % 1.0;
+        const carrier = norm < 0.5 ? 4.0 * norm - 1.0 : 3.0 - 4.0 * norm;
+        ph += phaseInc;
+        if (ph >= TWO_PI) ph -= TWO_PI;
+        samples[i] = samples[i] * (dry + carrier * mix);
+      }
+    } else {
+      // Square carrier
+      for (let i = 0; i < len; i++) {
+        const carrier = ph < Math.PI ? 1.0 : -1.0;
+        ph += phaseInc;
+        if (ph >= TWO_PI) ph -= TWO_PI;
+        samples[i] = samples[i] * (dry + carrier * mix);
+      }
     }
 
     this.phase = ph;
