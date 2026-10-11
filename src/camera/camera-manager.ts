@@ -3,6 +3,8 @@ export class CameraManager {
   private videoElement: HTMLVideoElement;
   private currentStream: MediaStream | null = null;
   private facingMode: 'user' | 'environment' = 'environment';
+  private preferredWidth = 1920;
+  private preferredHeight = 1080;
   private isRunning = false;
   private generation = 0;
   private pendingStart: Promise<void> | null = null;
@@ -28,11 +30,13 @@ export class CameraManager {
     if (this.pendingStart) return;
     this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
     if (this.isRunning) {
-      await this.start();
+      await this.start(this.preferredWidth, this.preferredHeight);
     }
   }
 
-  start(preferredWidth = 640, preferredHeight = 480): Promise<void> {
+  start(preferredWidth = 1920, preferredHeight = 1080): Promise<void> {
+    this.preferredWidth = preferredWidth;
+    this.preferredHeight = preferredHeight;
     if (this.pendingStart) return this.pendingStart;
     const operation = this.openCamera(preferredWidth, preferredHeight);
     this.pendingStart = operation;

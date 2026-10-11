@@ -105,12 +105,21 @@ export class MediaController {
   public getTargetDimensions(srcW: number, srcH: number): { w: number; h: number } {
     if (this.liveResolution === 'native') return { w: Math.max(2, srcW & ~1), h: Math.max(2, srcH & ~1) };
 
-    const targetH = this.liveResolution === '360p' ? 360 : this.liveResolution === '480p' ? 480 : 720;
-    if (srcH <= targetH) return { w: Math.max(2, srcW & ~1), h: Math.max(2, srcH & ~1) };
+    const targetShort = this.liveResolution === '360p' ? 360 : this.liveResolution === '480p' ? 480 : 720;
+    const isPortrait = srcW < srcH;
+    const currentShort = isPortrait ? srcW : srcH;
 
-    const aspect = srcW / srcH;
-    const targetW = Math.round(targetH * aspect);
-    return { w: Math.max(2, targetW & ~1), h: Math.max(2, targetH & ~1) };
+    if (currentShort <= targetShort) return { w: Math.max(2, srcW & ~1), h: Math.max(2, srcH & ~1) };
+
+    if (isPortrait) {
+      const targetW = targetShort;
+      const targetH = Math.round(targetShort * (srcH / srcW));
+      return { w: Math.max(2, targetW & ~1), h: Math.max(2, targetH & ~1) };
+    } else {
+      const targetH = targetShort;
+      const targetW = Math.round(targetShort * (srcW / srcH));
+      return { w: Math.max(2, targetW & ~1), h: Math.max(2, targetH & ~1) };
+    }
   }
 
   public showVideoLoading(statusText: string, metaText: string): void {

@@ -158,15 +158,7 @@ export class MobileController {
   }
 
   public updateCamToggleUI(isActive: boolean): void {
-    const badgeText = document.getElementById('mobile-cam-badge-text');
-    const badge = document.getElementById('btn-mobile-cam-feed');
     const startOverlay = document.getElementById('mobile-start-overlay');
-    if (badgeText) {
-      badgeText.textContent = isActive ? 'CAM: LIVE' : 'START CAM';
-    }
-    if (badge) {
-      badge.classList.toggle('active', isActive);
-    }
     if (isActive) {
       startOverlay?.classList.add('hidden');
     } else if (this.isMobileDevice()) {
@@ -189,16 +181,6 @@ export class MobileController {
 
     document.getElementById('btn-mobile-preset-pill')?.addEventListener('click', () => {
       this.openDrawer();
-    });
-
-    document.getElementById('btn-mobile-cam-feed')?.addEventListener('click', async () => {
-      if (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-        if (confirm('iOS Safari blocks camera over plain HTTP.\nReload page using secure HTTPS?')) {
-          window.location.href = window.location.href.replace('http:', 'https:');
-        }
-        return;
-      }
-      await this.opts.onToggleCamera();
     });
 
     document.getElementById('btn-drawer-camera')?.addEventListener('click', async () => {
@@ -232,18 +214,15 @@ export class MobileController {
     const btnMobileAudio = document.getElementById('btn-mobile-audio');
     const iconOn = document.getElementById('mobile-audio-icon-on');
     const iconOff = document.getElementById('mobile-audio-icon-off');
-    const labelAudio = document.getElementById('mobile-audio-label');
     const updateAudioMobileUI = () => {
       const muted = this.opts.audioEngine.getMuted();
       if (muted) {
         iconOn?.classList.add('hidden');
         iconOff?.classList.remove('hidden');
-        if (labelAudio) labelAudio.textContent = 'MUTED';
         btnMobileAudio?.classList.remove('active');
       } else {
         iconOff?.classList.add('hidden');
         iconOn?.classList.remove('hidden');
-        if (labelAudio) labelAudio.textContent = 'SOUND';
         btnMobileAudio?.classList.add('active');
       }
     };
@@ -253,10 +232,6 @@ export class MobileController {
       const isMuted = !this.opts.audioEngine.getMuted();
       this.opts.audioEngine.setMuted(isMuted);
       updateAudioMobileUI();
-    });
-
-    document.getElementById('btn-mobile-fullscreen')?.addEventListener('click', () => {
-      this.setFullscreenMode(!this.isFullscreenMode, true);
     });
 
     const mobileVol = document.getElementById('mobile-slider-volume') as HTMLInputElement | null;

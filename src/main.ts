@@ -46,7 +46,6 @@ class SonificationApp {
   private hudCanvas = document.getElementById('hud-canvas') as HTMLCanvasElement;
   private hudOverlay!: HudOverlay;
   private btnToggleHud = document.getElementById('btn-toggle-hud') as HTMLButtonElement | null;
-  private btnMobileHud = document.getElementById('btn-mobile-hud') as HTMLButtonElement | null;
   private btnDrawerHud = document.getElementById('btn-drawer-hud') as HTMLButtonElement | null;
   private perfBadge = document.getElementById('perf-badge') as HTMLDivElement;
 
@@ -328,12 +327,6 @@ class SonificationApp {
         this.requestRender();
       });
 
-      this.btnMobileHud?.addEventListener('click', () => {
-        this.hudOverlay.toggle();
-        this.updateHudToggleUI();
-        this.requestRender();
-      });
-
       this.btnDrawerHud?.addEventListener('click', () => {
         this.hudOverlay.toggle();
         this.updateHudToggleUI();
@@ -355,12 +348,6 @@ class SonificationApp {
       this.btnToggleHud.classList.toggle('active', isEnabled);
       const text = document.getElementById('hud-btn-text');
       if (text) text.textContent = isEnabled ? 'HUD' : 'NO HUD';
-    }
-
-    if (this.btnMobileHud) {
-      this.btnMobileHud.classList.toggle('active', isEnabled);
-      const text = document.getElementById('mobile-hud-badge-text');
-      if (text) text.textContent = isEnabled ? 'HUD ON' : 'HUD OFF';
     }
 
     if (this.btnDrawerHud) {
@@ -874,7 +861,7 @@ class SonificationApp {
     this.cameraBusy = true;
     try {
       this.mediaController?.stopVideoFile();
-      await this.cameraManager.start(640, 480);
+      await this.cameraManager.start(1920, 1080);
       if (!this.cameraManager.isActive() || document.hidden) return false;
       this.startLiveLoop();
       this.updateCamToggleUI(true);
