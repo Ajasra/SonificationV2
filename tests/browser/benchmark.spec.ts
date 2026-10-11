@@ -4,6 +4,7 @@ test('reference video benchmark completes and exports an attributed report', asy
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/benchmark.html');
+  await expect(page.locator('#fps')).toHaveValue('30');
   // Generate a local smoke fixture in-browser; this tests real decoding and
   // callbacks, not physical camera fidelity or a performance acceptance target.
   const bytes = await page.evaluate(async () => {
@@ -36,6 +37,7 @@ test('reference video benchmark completes and exports an attributed report', asy
   const report = JSON.parse(await page.locator('#report').textContent() || '{}');
   expect(report.decodedWidth).toBe(1280); expect(report.decodedHeight).toBe(720);
   expect(report.measuredFrames).toBeGreaterThan(0);
+  expect(report.targetFps).toBe(30);
   expect(report.measuredSeconds).toBeGreaterThanOrEqual(1);
   expect(report.source.sha256).toMatch(/^[a-f0-9]{64}$/);
   expect(report.build.revision).toMatch(/^[a-f0-9]{40}$/);

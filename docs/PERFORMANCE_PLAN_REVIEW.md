@@ -36,6 +36,6 @@ An isolated reviewer identified three additional major gaps, now addressed in th
 
 ## Promotion delta
 
-The companion plan adds a reference gate, reproducible toolchain setup, worker/session ownership and failure contracts, format-specific capabilities, separate export state, explicit throughput/latency budgets, device/resource tests, and rollback. Desktop 720p60 and phone 720p30 are user-confirmed targets; named hardware and supported preset acceptance remain open.
+The companion plan adds a reference gate, reproducible toolchain setup, worker/session ownership and failure contracts, format-specific capabilities, separate export state, explicit throughput/latency budgets, device/resource tests, and rollback. The initial targets were desktop 720p60 and phone 720p30. On 2026-10-11 the user revised the target to 720p30 on all devices; named hardware and supported preset acceptance remain open. The frozen proposal above is retained as historical review input.
 
 This review records the proposal before implementation. Current implementation status and verification are tracked in [PERFORMANCE_PROGRESS.md](PERFORMANCE_PROGRESS.md); no physical performance acceptance is claimed.

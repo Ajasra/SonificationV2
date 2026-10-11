@@ -4,7 +4,7 @@ Status: implementation started; Stage 0 is in progress. No WASM/GPU backend or p
 
 ## Goal and scope
 
-Deliver sustained 1280×720 processing and display at 60 fps on named desktop hardware and 30 fps on named physical phones, for a published set of supported presets. Preserve the image-to-sample mapping, chain order, filter history, and recording behavior. The user confirmed these desktop/phone targets. Arbitrarily long racks are outside a universal FPS guarantee.
+Deliver sustained 1280×720 processing and display at 30 fps on named desktop hardware and named physical phones, for a published set of supported presets. Preserve the image-to-sample mapping, chain order, filter history, and recording behavior. On 2026-10-11 the user changed the target to 30 fps on all devices and confirmed the initial test video is 30 fps. Arbitrarily long racks are outside a universal FPS guarantee.
 
 The first delivery compares JavaScript, precompiled C++/WebAssembly, and WebGPU for TapeSat, TapeWow, and Moog Ladder. Subsequent integration promotes only measured winners. AudioWorklet redesign, WASM threads, 4K guarantees, approximate filter replacements, and 60 fps recording are outside this delivery. Current offline export retains its existing frame and audio timing.
 
@@ -93,9 +93,9 @@ Commands after implementation: `npm test`, `npm run build`, explicit WASM build/
 
 ## Performance protocol
 
-Freeze preset definitions and source clips at 720p30/60. Measure JS, scalar WASM, SIMD WASM and GPU with identical inputs/settings. Include unfiltered control, TapeSat+TapeWow, Moog, compatible video rack, and mixed CPU/GPU rack. Preserve existing benchmark results as historical evidence; Node compute timings cannot establish displayed browser FPS.
+Freeze preset definitions and source clips at 720p30. Measure JS, scalar WASM, SIMD WASM and GPU with identical inputs/settings. Include unfiltered control, TapeSat+TapeWow, Moog, compatible video rack, and mixed CPU/GPU rack. Preserve existing benchmark results as historical evidence; Node compute timings cannot establish displayed browser FPS.
 
-Validate actual decoded frame dimensions and cadence, and camera track settings, rather than relying on requested constraints or the resolution selector. Use callback media timestamps/presented-frame counters to separate source omissions from application drops. A source delivering fewer than 30/60 fps cannot certify the corresponding target. Exercise file input and physical camera input separately.
+Validate actual decoded frame dimensions and cadence, and camera track settings, rather than relying on requested constraints or the resolution selector. Use callback media timestamps/presented-frame counters to separate source omissions from application drops. A source delivering fewer than 30 fps cannot certify the target. Exercise file input and physical camera input separately.
 
 Capture draw/readback, color conversion, stream encode/decode, filter computation, equalization, transfers/upload/readback, monitor/HUD and output presentation separately. GPU submission time is not execution time: use optional timestamp queries only when supported, plus complete-frame wall timings. Avoid adding a synchronization after every pass to the production path. Label presentation estimates honestly.
 
@@ -105,8 +105,7 @@ Proposed acceptance budgets for each named device/preset:
 
 | Target | Processing p95 budget | Processed throughput | Application drops |
 |---|---|---|---|
-| Desktop 720p60 | ≤12 ms | ≥58.8 processed fps with a 60 fps source | ≤2% |
-| Phone 720p30 | ≤25 ms | ≥29.4 processed fps with a 30 fps source | ≤2% |
+| Desktop and phone 720p30 | ≤25 ms | ≥29.4 processed fps with a 30 fps source | ≤2% |
 
 These are engineering gates with presentation headroom, not measurements or universal hardware promises. Require correct output presentation, responsive controls and no backlog; record source/decode failures separately. Sustained runs must meet the same gates in each 60 s window. Publish the exact hardware and supported preset set. Test Chromium desktop plus browser fallbacks; physical Android Chrome and iOS Safari are separate acceptance entries. Browser emulation cannot replace phones.
 

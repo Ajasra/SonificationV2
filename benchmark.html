@@ -6,11 +6,11 @@
   <p>Development harness: video capture → JavaScript pipeline → canvas output. Audio playback and application HUD are excluded. These results cannot certify complete application FPS.</p>
   <label>Source video <input id="source" type="file" accept="video/*"></label>
   <label>Preset <select id="preset"><option value="control">Unfiltered control</option><option value="tape">TapeSat + TapeWow</option><option value="moog">Moog Ladder</option></select></label>
-  <label>Target <select id="fps"><option value="60">720p60 desktop</option><option value="30">720p30 phone</option></select></label>
+  <label>Target <select id="fps"><option value="30">720p30 — all devices</option></select></label>
   <label>Measure seconds <input id="duration" type="number" min="1" max="300" value="60"></label>
   <label><input id="profile" type="checkbox" checked>Collect pipeline stage timings (adds overhead)</label>
   <button id="run" disabled>Warm up 10 s and measure</button><button id="stop" disabled>Stop</button><button id="download" disabled>Download JSON</button>
-  <p id="status" role="status">Choose a local video. Use a known 720p30/60 fixture for comparable runs.</p>
+  <p id="status" role="status">Choose a local video. Use a known 720p30 fixture for comparable runs.</p>
   <video id="video" muted playsinline loop hidden></video>
   <canvas id="output" width="1280" height="720" style="max-width:100%;height:auto"></canvas>
   <pre id="report"></pre>
