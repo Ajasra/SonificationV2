@@ -212,3 +212,24 @@ test('chain order survives the share-link round trip, including video filters', 
   assert.deepEqual(JSON.parse(JSON.stringify(restored.videoFilters)), preset.videoFilters);
 });
 
+test('real compressor history continues across bypass and in-place parameter replacement', () => {
+  const { SonificationPipeline } = load('src/engine/pipeline.ts');
+  const { FILTER_DESCRIPTORS } = load('src/engine/filters/factory.ts');
+  const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' };
+  const base = { id: 'continuity', name: 'continuity', reader: stream, writer: stream, equalize: false,
+    blendMode: 'NONE', blendAmount: 0, filters: [{ id: 'c', type: 'compressor', enabled: true, sampleRate: 44100,
+      params: Object.fromEntries(FILTER_DESCRIPTORS.compressor.params.map(p => [p.name, p.value])) }], videoFilters: [] };
+  const cfg = structuredClone(base), other = structuredClone(base);
+  const pipeline = new SonificationPipeline(), reference = new SonificationPipeline();
+  const loud = new Uint8ClampedArray(64 * 48 * 4).fill(250);
+  const quiet = new Uint8ClampedArray(loud.length).fill(130);
+  pipeline.processFrame(loud, 64, 48, cfg); reference.processFrame(loud, 64, 48, other);
+  cfg.filters[0].enabled = false;
+  pipeline.processFrame(quiet, 64, 48, cfg);
+  cfg.filters[0] = { ...cfg.filters[0], enabled: true, params: { ...cfg.filters[0].params } };
+  const expected = Array.from(reference.processFrame(quiet, 64, 48, other).audioSamples);
+  assert.deepEqual(Array.from(pipeline.processFrame(quiet, 64, 48, cfg).audioSamples), expected);
+  const cold = Array.from(new SonificationPipeline().processFrame(quiet, 64, 48, other).audioSamples);
+  assert.notDeepEqual(expected, cold, 'fixture must detect lost history');
+});
+

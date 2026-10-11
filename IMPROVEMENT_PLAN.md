@@ -22,6 +22,8 @@ Acceptance: valid edited studies round-trip without parameter loss; invalid and 
 
 ## 4. Establish a performance baseline
 
+The detailed 720p acceleration contract is in [docs/PERFORMANCE_IMPLEMENTATION_PLAN.md](docs/PERFORMANCE_IMPLEMENTATION_PLAN.md), with the proposal review in [docs/PERFORMANCE_PLAN_REVIEW.md](docs/PERFORMANCE_PLAN_REVIEW.md). Targets: desktop 720p60 and phones 720p30, subject to named device and preset acceptance.
+
 Measure canvas draw/readback, color conversion, stream encoding/decoding, individual filters, equalization, audio submission, and output drawing separately. Use warmed-up runs with representative light and heavy presets at 360p, 480p, 720p, and 4K still-image size. Record median and p95 latency, processed FPS, long tasks, and memory growth. Include device/browser identity with every result.
 
 Acceptance: a reproducible benchmark report identifies the largest measured costs. Treat the existing FPS badge as a processing indicator; it does not report latency percentiles or thermal stability.

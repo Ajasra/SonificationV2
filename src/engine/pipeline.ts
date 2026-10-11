@@ -15,9 +15,31 @@ import { resolveChain } from './chain.ts';
 
 export interface PipelineResult {
   outputRgba: Uint8ClampedArray;
+  /** Borrowed working storage: copy samples before retaining across processFrame calls. */
   audioSamples: Float32Array;
+  /** Borrowed preview storage with the same lifetime as audioSamples. */
   rawAudioSamples?: Float32Array;
   executionTimeMs: number;
+  /** Opt-in instrumentation; total includes setup and timing overhead. */
+  timings?: PipelineTimings;
+}
+
+export interface PipelineTimings {
+  setupMs: number;
+  colorEncodeMs: number;
+  streamEncodeMs: number;
+  audioDspMs: number;
+  audioLevelsMs: number;
+  streamDecodeMs: number;
+  colorDecodeMs: number;
+  videoDspMs: number;
+  equalizeBlendMs: number;
+}
+
+export interface PipelineFrameOptions {
+  /** Controlled effect clock for conformance; omitted preserves processing-start time. */
+  timeMs?: number;
+  profile?: boolean;
 }
 
 type Segment =
@@ -43,16 +65,7 @@ export class SonificationPipeline {
   private rawAudioPreviewBuffer = new Float32Array(2048);
   private chunkViews: Float32Array[] = [];
   private lastChunkSamples = 0;
-  private static readonly CHUNK_SIZE = 8192; // 32 KB cache tile (100% L1 Data Cache hit rate)
-
-  // Fast chain memoization
-  private cachedOrdered: ReturnType<typeof resolveChain> | null = null;
-  private lastPresetRef: SonificationPreset | null = null;
-  private lastChainRef: SonificationPreset['chain'] | null = null;
-  private lastFiltersRef: SonificationPreset['filters'] | null = null;
-  private lastVideoFiltersRef: SonificationPreset['videoFilters'] | null = null;
-  private lastWidth = 0;
-  private lastHeight = 0;
+  private static readonly CHUNK_SIZE = 8192; // 32 KiB sample tile; cache behavior depends on hardware.
 
   private ensureBuffers(numPixels: number, numSamples: number): void {
     const rgbaBytes = numPixels * 4;
@@ -79,42 +92,30 @@ export class SonificationPipeline {
 
   /** Rebuild segments if the chain structure changed; otherwise push params in place. */
   private syncChain(preset: SonificationPreset, width: number, height: number): void {
-    const structureDirty =
-      !this.cachedOrdered ||
-      preset !== this.lastPresetRef ||
-      preset.chain !== this.lastChainRef ||
-      preset.filters !== this.lastFiltersRef ||
-      preset.videoFilters !== this.lastVideoFiltersRef ||
-      width !== this.lastWidth ||
-      height !== this.lastHeight;
+    // UI edits may mutate arrays/configs in place. Reference equality cannot detect
+    // enabled/order/type/rate changes, and replacement configs need fresh params.
+    const ordered = resolveChain(preset);
+    const key = JSON.stringify([width, height, ordered.map(e => [
+      e.kind, e.cfg.id, e.cfg.type, e.cfg.enabled,
+      e.kind === 'audio' ? e.cfg.sampleRate : null,
+    ])]);
 
-    if (structureDirty) {
-      const ordered = resolveChain(preset);
-      this.cachedOrdered = ordered;
-      this.lastPresetRef = preset;
-      this.lastChainRef = preset.chain;
-      this.lastFiltersRef = preset.filters;
-      this.lastVideoFiltersRef = preset.videoFilters;
-      this.lastWidth = width;
-      this.lastHeight = height;
-
-      let key = `${width}x${height}`;
-      for (let i = 0; i < ordered.length; i++) {
-        const e = ordered[i];
-        key += `|${e.kind}:${e.cfg.id}:${e.cfg.type}:${e.cfg.enabled}${e.kind === 'audio' ? ':' + e.cfg.sampleRate : ''}`;
-      }
-
-      if (key !== this.chainKey) {
+    if (key !== this.chainKey) {
       const nextCache = new Map<string, { sig: string; inst: IDspFilter | IVideoFilter }>();
       const segments: Segment[] = [];
       const nodes: { inst: IDspFilter | IVideoFilter; cfgRef: { params: Record<string, number> } }[] = [];
       let hasVideo = false;
 
       for (const e of ordered) {
-        if (!e.cfg.enabled) continue;
         const sig = e.kind === 'audio' ? `a:${e.cfg.type}:${e.cfg.sampleRate}` : `v:${e.cfg.type}:${width}x${height}`;
         const cacheKey = `${e.kind}:${e.cfg.id}`;
         let entry = this.instanceCache.get(cacheKey);
+        if (!e.cfg.enabled) {
+          // Bypass freezes history. Removed nodes or incompatible type/rate/size
+          // invalidate it; disabled nodes are not processed or newly allocated.
+          if (entry?.sig === sig) nextCache.set(cacheKey, entry);
+          continue;
+        }
         if (!entry || entry.sig !== sig) {
           let inst: IDspFilter | IVideoFilter;
           if (e.kind === 'audio') {
@@ -154,8 +155,12 @@ export class SonificationPipeline {
       this.hasVideo = hasVideo;
       this.instanceCache = nextCache;
       this.chainKey = key;
+    } else {
+      let index = 0;
+      for (const e of ordered) {
+        if (e.cfg.enabled) this.nodes[index++].cfgRef = e.cfg;
+      }
     }
-  }
 
     for (const n of this.nodes) n.inst.setParams(n.cfgRef.params);
   }
@@ -182,13 +187,26 @@ export class SonificationPipeline {
     width: number,
     height: number,
     preset: SonificationPreset,
-    outputTargetRgba?: Uint8ClampedArray
+    outputTargetRgba?: Uint8ClampedArray,
+    options?: PipelineFrameOptions
   ): PipelineResult {
     const t0 = performance.now();
+    if (outputTargetRgba && inputRgba.buffer === outputTargetRgba.buffer &&
+      inputRgba.byteOffset < outputTargetRgba.byteOffset + outputTargetRgba.byteLength &&
+      outputTargetRgba.byteOffset < inputRgba.byteOffset + inputRgba.byteLength) {
+      throw new Error('Pipeline input and output must not overlap');
+    }
+    const timings: PipelineTimings | undefined = options?.profile ? {
+      setupMs: 0, colorEncodeMs: 0, streamEncodeMs: 0, audioDspMs: 0,
+      audioLevelsMs: 0, streamDecodeMs: 0, colorDecodeMs: 0,
+      videoDspMs: 0, equalizeBlendMs: 0,
+    } : undefined;
+    const effectTimeMs = options?.timeMs ?? t0;
     const numPixels = width * height;
     const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
     this.ensureBuffers(numPixels, numSamples);
     this.syncChain(preset, width, height);
+    if (timings) timings.setupMs = performance.now() - t0;
 
     const outRgba = outputTargetRgba || new Uint8ClampedArray(numPixels * 4);
 
@@ -201,6 +219,7 @@ export class SonificationPipeline {
 
     for (const seg of this.segments) {
       if (seg.kind === 'video') {
+        const start = timings ? performance.now() : 0;
         if (cur === inputRgba) {
           outRgba.set(inputRgba.subarray(0, numPixels * 4));
           cur = outRgba;
@@ -208,23 +227,29 @@ export class SonificationPipeline {
         const videoCtx: VideoFrameContext = {
           width,
           height,
-          timeMs: t0,
+          timeMs: effectTimeMs,
           audioRms: this.lastAudioRms,
           audioPeak: this.lastAudioPeak,
         };
         const fl = seg.filters;
         for (let i = 0; i < fl.length; i++) fl[i].processFrame(outRgba, videoCtx);
+        if (timings) timings.videoDspMs += performance.now() - start;
         continue;
       }
 
       // Audio segment. Color space transform: if RGB, bypass the 8MB memcpy completely!
       let srcRgba: Uint8ClampedArray;
+      let start = timings ? performance.now() : 0;
       if (preset.reader.colorSpace === 'RGB') {
         srcRgba = cur;
       } else {
         this.workRgbaBuffer.set(cur.subarray(0, numPixels * 4));
         convertToColorSpace(this.workRgbaBuffer.subarray(0, numPixels * 4), preset.reader.colorSpace);
         srcRgba = this.workRgbaBuffer;
+      }
+      if (timings) {
+        timings.colorEncodeMs += performance.now() - start;
+        start = performance.now();
       }
 
       // Encode image pixels into 1D audio sample stream [-1.0, 1.0]
@@ -233,6 +258,7 @@ export class SonificationPipeline {
         preset.reader,
         this.workAudioBuffer.subarray(0, numSamples)
       );
+      if (timings) timings.streamEncodeMs += performance.now() - start;
 
       // Snapshot preview of the unmodulated stream before the first DSP segment
       if (firstAudio) {
@@ -243,6 +269,7 @@ export class SonificationPipeline {
 
       // Run audio DSP chain in-place with preallocated L1 cache chunk fusion
       const fl = seg.filters;
+      start = timings ? performance.now() : 0;
       const numFilters = fl.length;
       if (numFilters === 1) {
         fl[0].processBlock(audioStream);
@@ -254,8 +281,15 @@ export class SonificationPipeline {
           for (let f = 0; f < numFilters; f++) fl[f].processBlock(chunk);
         }
       }
-
+      if (timings) {
+        timings.audioDspMs += performance.now() - start;
+        start = performance.now();
+      }
       if (this.hasVideo) this.measureAudio(audioStream);
+      if (timings) {
+        timings.audioLevelsMs += performance.now() - start;
+        start = performance.now();
+      }
 
       // Decode the stream back into image pixels, then revert the color space
       if (
@@ -271,18 +305,26 @@ export class SonificationPipeline {
           outRgba.set(inputRgba.subarray(0, numPixels * 4));
         }
         cur = outRgba;
+        if (timings) timings.streamDecodeMs += performance.now() - start;
       } else {
         audioStreamToImage(audioStream, preset.writer, outRgba);
+        if (timings) {
+          timings.streamDecodeMs += performance.now() - start;
+          start = performance.now();
+        }
         convertFromColorSpace(outRgba, preset.writer.colorSpace);
+        if (timings) timings.colorDecodeMs += performance.now() - start;
         cur = outRgba;
       }
 
       // Equalize & blend belong to the final audio stage
       if (seg.isLast) {
+        start = timings ? performance.now() : 0;
         if (preset.equalize) equalizeHistogram(outRgba);
         if (preset.blendMode !== 'NONE' && preset.blendAmount > 0) {
           this.blend(inputRgba, outRgba, preset.blendMode, preset.blendAmount);
         }
+        if (timings) timings.equalizeBlendMs += performance.now() - start;
       }
     }
 
@@ -293,6 +335,7 @@ export class SonificationPipeline {
       audioSamples: audioStream,
       rawAudioSamples: this.rawAudioPreviewBuffer.subarray(0, copyLen),
       executionTimeMs: t1 - t0,
+      timings,
     };
   }
 
