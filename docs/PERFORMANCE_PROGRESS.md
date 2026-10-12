@@ -2,6 +2,8 @@
 
 Updated 2026-10-12. Branch: `codex/video-acceleration`.
 
+Five-minute user MP4 report cfa78a3a closes the supported TapeSat benchmark gates: 30.0006 fps over 300.0272 seconds, complete-path p95 20.7 ms, zero presented-callback gaps/long tasks, implemented fidelity preflight passed using reference-bytes capture. See [five-minute analysis](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-300-SECOND.md). Advance to real application audio/HUD integration with JS fallback; production promotion, other presets and physical-phone acceptance remain open.
+
 User MP4 byte-fallback report 95bb5341 passed all implemented fidelity fixtures. Over 60.0311 seconds: 29.1849 fps, complete-path p95 20.4 ms, 34 callback gaps (~1.904% proxy), zero long tasks. Benchmark latency passes; strict throughput >=29.4 fps narrowly fails. Full application, five-minute sustained and phone gates remain open. See [60-second byte-fallback analysis](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-60-SECOND.md). Keep production on JS until remaining gates close.
 
 User diagnostic 52a7e061 isolated sparse one-byte capture differences (280 synthetic and 248 source samples), while equal-byte compact history passed. Added automatic reference-RGBA upload fallback, GPU byte unpacking/serialization and retained texture probe diagnostics. Limits are unchanged; capture, filter, pixel and gather checks must pass again before measurement. Browser settings are preserved. GPU tests cover deliberately altered canvas readback and decoded-video runs in both capture modes. User MP4 performance remains pending.
