@@ -27,6 +27,17 @@ struct Size {width:u32,height:u32,pad:vec2<u32>}
  return vec4<f32>(floor(clamp((rgb+1.0)*127.5,vec3<f32>(0.0),vec3<f32>(255.0)))/255.0,1.0);
 }
 `;
+const byteShader = `
+struct Size {width:u32,height:u32,pad:vec2<u32>}
+@group(0) @binding(0) var<storage,read> rgba:array<u32>;
+@group(0) @binding(1) var<storage,read_write> samples:array<f32>;
+@group(0) @binding(2) var<storage,read> lut:array<f32>;
+@group(0) @binding(3) var<uniform> size:Size;
+@compute @workgroup_size(256) fn encode(@builtin(global_invocation_id) id:vec3<u32>){
+ let i=id.x;if(i>=size.width*size.height){return;}let pixel=rgba[i];
+ samples[i*3u]=lut[pixel&255u];samples[i*3u+1u]=lut[(pixel>>8u)&255u];samples[i*3u+2u]=lut[(pixel>>16u)&255u];
+}
+`;
 const gatherShader = `
 @group(0) @binding(0) var<storage,read> samples:array<f32>;
 @group(0) @binding(1) var<storage,read_write> compact:array<f32>;
@@ -92,6 +103,8 @@ export class WebGpuTapeSat {
   private readonly state: GPUBuffer;
   private readonly pipelines: Record<string, GPUComputePipeline>;
   private imagePipeline!: GPUComputePipeline;
+  private bytePipeline!: GPUComputePipeline;
+  captureMode:'texture' | 'reference-bytes'='texture';
   private gatherPipeline!: GPUComputePipeline;
   private displayPipeline!: GPURenderPipeline;
   private pool:{buffer:GPUBuffer;size:number;usage:number}[]=[];
@@ -123,6 +136,7 @@ export class WebGpuTapeSat {
         [entryPoint, await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint } })] as const));
       const runtime = new WebGpuTapeSat(device, adapter, Object.fromEntries(entries));
       runtime.imagePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:imageShader}),entryPoint:'encode'}});
+      runtime.bytePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:byteShader}),entryPoint:'encode'}});
       runtime.gatherPipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:gatherShader}),entryPoint:'gather'}});
       const display = device.createShaderModule({code:displayShader});
       runtime.displayPipeline = await device.createRenderPipelineAsync({layout:'auto',vertex:{module:display,entryPoint:'vertex'},fragment:{module:display,entryPoint:'fragment',targets:[{format:runtime.format}]},primitive:{topology:'triangle-list'}});
@@ -131,6 +145,7 @@ export class WebGpuTapeSat {
   }
   reset(): void { if (this.busy || this.disposed) throw new Error('Backend unavailable'); this.device.queue.writeBuffer(this.state, 0, new Float32Array(2)); }
   dispose(): void { this.disposed = true; this.device.destroy(); }
+  useReferenceBytes():void {if(this.busy || this.disposed)throw new Error('Backend unavailable');this.captureMode='reference-bytes';}
   configureCanvas(canvas: HTMLCanvasElement): GPUCanvasContext {
     if(this.disposed) throw new Error('Backend unavailable');
     const context=canvas.getContext('webgpu');
@@ -138,7 +153,7 @@ export class WebGpuTapeSat {
     context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb',usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.COPY_DST});
     return context;
   }
-  async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false):Promise<Float32Array> {
+  async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false, referenceRgba?:Uint8ClampedArray):Promise<Float32Array> {
     const canvas=context.canvas;
     if(!(canvas instanceof HTMLCanvasElement)) throw new Error('HTML canvas required');
     const width=canvas.width,height=canvas.height;
@@ -158,8 +173,10 @@ export class WebGpuTapeSat {
       if(this.rasterCanvas.width!==width)this.rasterCanvas.width=width;
       if(this.rasterCanvas.height!==height)this.rasterCanvas.height=height;
       this.rasterContext.drawImage(bitmap??source,0,0);
+      const rgba=this.captureMode==='reference-bytes' ? referenceRgba??this.rasterContext.getImageData(0,0,width,height).data : undefined;
+      if(rgba && rgba.length!==width*height*4)throw new Error('Reference RGBA size mismatch');
       const rasterMs=profile ? performance.now()-rasterStarted : 0;
-      const result=await this.execute(undefined,params,44100,profile,{source:this.rasterCanvas,context,width,height,diagnostic});
+      const result=await this.execute(undefined,params,44100,profile,{source:this.rasterCanvas,rgba,context,width,height,diagnostic});
       if(profile && this.lastTimings){this.lastTimings.gpuSourceSnapshotMs=snapshotMs;this.lastTimings.gpuRasterCaptureMs=rasterMs;}
       return result;
     }finally{bitmap?.close();}
@@ -167,7 +184,7 @@ export class WebGpuTapeSat {
   async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100, profile = false): Promise<Float32Array> {
     return this.execute(samples,params,rate,profile);
   }
-  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLCanvasElement | HTMLVideoElement | ImageBitmap;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
+  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLCanvasElement | HTMLVideoElement | ImageBitmap;rgba?:Uint8ClampedArray;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
     if (this.busy || this.disposed) throw new Error('Backend unavailable');
     if (!Number.isFinite(rate) || rate <= 0 || Object.values(params).some(value => !Number.isFinite(value))) throw new Error('Invalid parameters');
     const n = resident ? resident.width*resident.height*3 : samples!.length;
@@ -202,14 +219,23 @@ export class WebGpuTapeSat {
       const encoder = this.device.createCommandEncoder();
       let imageSize:GPUBuffer | undefined;
       if(resident){
+        let imageResource:GPUTextureView | GPUBufferBinding;
+        const pipeline=resident.rgba ? this.bytePipeline : this.imagePipeline;
+        if(resident.rgba){
+          const rgbaBuffer=buffer(resident.rgba.byteLength);
+          this.device.queue.writeBuffer(rgbaBuffer,0,resident.rgba as Uint8ClampedArray<ArrayBuffer>);
+          imageResource={buffer:rgbaBuffer};
+        }else{
         const dimensions=`${resident.width}x${resident.height}`;
         if(!this.imageTexture || dimensions!==this.imageDimensions){this.imageTexture?.destroy();this.imageDimensions=dimensions;this.imageTexture=this.device.createTexture({size:[resident.width,resident.height],format:'rgba8unorm',usage:GPUTextureUsage.COPY_DST|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.RENDER_ATTACHMENT});}
         const texture=this.imageTexture;
         this.device.queue.copyExternalImageToTexture({source:resident.source},{texture,colorSpace:'srgb',premultipliedAlpha:false},[resident.width,resident.height]);
+        imageResource=texture.createView();
+        }
         imageSize=buffer(16,GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
         this.device.queue.writeBuffer(imageSize,0,new Uint32Array([resident.width,resident.height,0,0]));
-        const bind=this.device.createBindGroup({layout:this.imagePipeline.getBindGroupLayout(0),entries:[{binding:0,resource:texture.createView()},{binding:1,resource:{buffer:input}},{binding:2,resource:{buffer:this.lut}},{binding:3,resource:{buffer:imageSize}}]});
-        const pass=encoder.beginComputePass();pass.setPipeline(this.imagePipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(resident.width*resident.height/256));pass.end();
+        const bind=this.device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:imageResource},{binding:1,resource:{buffer:input}},{binding:2,resource:{buffer:this.lut}},{binding:3,resource:{buffer:imageSize}}]});
+        const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(resident.width*resident.height/256));pass.end();
         if(rawRead)encoder.copyBufferToBuffer(input,0,rawRead,0,bytes);
       }
       for (let stage = 0; stage < 2; stage++) {

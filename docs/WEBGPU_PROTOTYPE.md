@@ -2,6 +2,10 @@
 
 ## Status
 
+Sparse capture-byte mismatch fallback: user diagnostic 52a7e061 reported one-byte RGB differences in only 280 synthetic/248 source samples, while identical-byte compact checks passed. Resident preflight now retains the texture probe and selects reference-bytes capture when any raw capture mismatch exists. That route uploads the exact reference getImageData RGBA bytes to a storage buffer; a GPU byte-unpacking shader performs RGB serialization. It preserves any modifications present in those reference bytes. No browser settings are changed, and capture/sample/pixel limits remain unchanged. All fidelity checks rerun before timing; a continuing failure still blocks measurement.
+
+Reports include captureSelection.captureMode and the failed textureProbe. Reference-bytes mode performs CPU canvas readback and RGBA upload, both included in total/raster/preparation timings. Filtering, serialization, render and compact gathers remain GPU operations. Performance benefit is pending the user's next run; the mode is an accuracy-compatible fallback, not a zero-copy optimization. Tests simulate changed canvas readback, including an actual decoded-video measurement with fallback active.
+
 2026-10-12 resident fidelity correction: the diagnostic now reads rendered bytes from an owned GPU texture, with row alignment and BGRA/RGBA conversion, instead of inspecting a swapchain canvas after an asynchronous wait. It also compares captured samples exactly against CPU serialization and records the largest-error index and first input/output samples.
 
 A real installed-Chrome AMD GCN-5 test reproduced one-byte differences between direct GPU video conversion and the reference CPU raster. Capture now rasterizes through an sRGB canvas with the reference willReadFrequently setting before GPU import, without getImageData or JavaScript full-stream serialization in measured frames. Reports include gpuRasterCaptureMs. This is a hybrid capture path; raster/snapshot costs remain measured. The repeated-frame history fixture uses the frozen reference RGBA bytes to avoid redoing YUV conversion/dithering for what is intended to be the same input.

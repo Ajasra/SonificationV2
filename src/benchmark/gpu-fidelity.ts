@@ -53,7 +53,7 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
       read.drawImage(input,0,0);const rgba=read.getImageData(0,0,1280,720);
       const encoded=imageToAudioStream(rgba.data,stream);
       const expected=encoded.slice();cpu.processBlock(expected);
-      const actual=await gpu.processImage(input,context,{},false,true);
+      const actual=await gpu.processImage(input,context,{},false,true,rgba.data);
       if(cancelled()) throw new Error('Fidelity check cancelled');
       const captured=gpu.lastDiagnosticInput;
       const actualPixels=gpu.lastDiagnosticPixels;
@@ -74,7 +74,7 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
       const repeatedContext=repeated.getContext('2d',{willReadFrequently:true})!;
       repeatedContext.putImageData(rgba,0,0);
       const second=imageToAudioStream(rgba.data,stream);cpu.processBlock(second);
-      const compact=await gpu.processImage(repeated,context);
+      const compact=await gpu.processImage(repeated,context,{},false,false,rgba.data);
       if(cancelled())throw new Error('Fidelity check cancelled');
       let compactMaxError=0;
       for(let i=0;i<6144;i++){
@@ -85,4 +85,14 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
     }
     return {version:2,limits:{...GPU_FIDELITY_LIMITS,maxPixelByteError:1,captureMaxError:0},cases,passed:cases.every(value=>value.captureMaxError===0 && value.maxAbsoluteError<=GPU_FIDELITY_LIMITS.maxAbsoluteError && value.rmsError<=GPU_FIDELITY_LIMITS.rmsError && value.maxPixelError<=1 && value.compactMaxError<=GPU_FIDELITY_LIMITS.maxAbsoluteError),scope:'exact RGB capture samples, filtered samples, owned render texture bytes and compact gather comparison'};
   } finally {if(!cancelled())gpu.reset();}
+}
+
+export async function selectResidentCapture(gpu:WebGpuTapeSat,context:GPUCanvasContext,source:HTMLVideoElement | HTMLCanvasElement | ImageBitmap,cancelled:()=>boolean=()=>false){
+  const probe=await checkResidentFidelity(gpu,context,source,cancelled);
+  if(cancelled())throw new Error('Fidelity check cancelled');
+  if(probe.cases.some(value=>value.captureMaxError>0)){
+    gpu.useReferenceBytes();
+    return {textureProbe:probe,fidelity:await checkResidentFidelity(gpu,context,source,cancelled),captureMode:gpu.captureMode};
+  }
+  return {textureProbe:null,fidelity:probe,captureMode:gpu.captureMode};
 }

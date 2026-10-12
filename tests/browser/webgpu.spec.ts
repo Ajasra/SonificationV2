@@ -52,11 +52,16 @@ test('GPU resident capture, display and compact gathers match reference',async (
   expect(result.base.passed).toBe(true);expect(result.resident.passed).toBe(true);
 });
 
-test('resident video benchmark passes preflight and completes',async ({page},testInfo)=>{
+for(const altered of [false,true]) {
+test(`resident video benchmark completes (${altered?'altered readback':'texture capture'})`,async ({page},testInfo)=>{
   await page.goto('/benchmark.html');
   const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
   if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
   test.skip(!available,'No WebGPU adapter for decoded video test');
+  if(altered)await page.evaluate(()=>{
+    const original=CanvasRenderingContext2D.prototype.getImageData;
+    CanvasRenderingContext2D.prototype.getImageData=function(...args){const value=original.apply(this,args);value.data[0]^=1;return value;};
+  });
   const bytes=await page.evaluate(async()=>{
     const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;
     const ctx=canvas.getContext('2d')!;ctx.fillStyle='rgb(17,128,253)';ctx.fillRect(0,0,1280,720);
@@ -76,4 +81,29 @@ test('resident video benchmark passes preflight and completes',async ({page},tes
   const report=JSON.parse(await page.locator('#report').textContent()||'{}');
   await testInfo.attach('Resident video report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
   expect(report.gpuFidelity.passed).toBe(true);expect(report.residentFidelity.passed).toBe(true);expect(report.measuredFrames).toBeGreaterThan(0);
+  expect(report.captureSelection.captureMode).toBe(altered?'reference-bytes':'texture');
+});
+}
+
+test('capture fallback preserves altered reference canvas bytes',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');
+  const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
+  test.skip(!available,'No WebGPU adapter for byte-preserving fallback');
+  const result=await page.evaluate(async()=>{
+    const {WebGpuTapeSat}=await import('/src/engine/backends/webgpu-tapesat.ts');
+    const {selectResidentCapture}=await import('/src/benchmark/gpu-fidelity.ts');
+    const original=CanvasRenderingContext2D.prototype.getImageData;
+    CanvasRenderingContext2D.prototype.getImageData=function(...args){
+      const value=original.apply(this,args);value.data[0]^=1;return value;
+    };
+    const gpu=await WebGpuTapeSat.create();
+    const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;document.body.append(canvas);
+    const source=document.createElement('canvas');source.width=1280;source.height=720;const ctx=source.getContext('2d')!;ctx.fillStyle='rgb(17,128,253)';ctx.fillRect(0,0,1280,720);
+    const context=gpu.configureCanvas(canvas);
+    try{return await selectResidentCapture(gpu,context,source);}finally{CanvasRenderingContext2D.prototype.getImageData=original;context.unconfigure();gpu.dispose();canvas.remove();}
+  });
+  await testInfo.attach('Byte fallback fidelity',{body:JSON.stringify(result,null,2),contentType:'application/json'});
+  expect(result.captureMode).toBe('reference-bytes');expect(result.textureProbe?.passed).toBe(false);expect(result.fidelity.passed).toBe(true);
+  expect(result.fidelity.cases.every(value=>value.captureMaxError===0)).toBe(true);
 });
