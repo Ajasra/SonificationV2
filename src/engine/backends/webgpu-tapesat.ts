@@ -132,7 +132,7 @@ export class WebGpuTapeSat {
     context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb'});
     return context;
   }
-  async processImage(source: HTMLVideoElement | HTMLCanvasElement, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false):Promise<Float32Array> {
+  async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false):Promise<Float32Array> {
     const canvas=context.canvas;
     if(!(canvas instanceof HTMLCanvasElement)) throw new Error('HTML canvas required');
     const width=canvas.width,height=canvas.height;

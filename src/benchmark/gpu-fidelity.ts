@@ -36,7 +36,7 @@ export async function checkGpuFidelity(gpu: WebGpuTapeSat, cancelled: () => bool
 
 // Pixel bound declared before running the new path: at most one byte level.
 // Samples continue to use the original f32 bounds.
-export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvasContext, source:HTMLVideoElement | HTMLCanvasElement, cancelled:()=>boolean=()=>false) {
+export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvasContext, source:HTMLVideoElement | HTMLCanvasElement | ImageBitmap, cancelled:()=>boolean=()=>false) {
   const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
   const capture=document.createElement('canvas');capture.width=1280;capture.height=720;
   const read=capture.getContext('2d',{willReadFrequently:true});

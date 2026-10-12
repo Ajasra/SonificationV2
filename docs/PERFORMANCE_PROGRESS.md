@@ -2,6 +2,8 @@
 
 Updated 2026-10-11. Branch: `codex/video-acceleration`.
 
+2026-10-12 capture follow-up: the user's next error showed ImageBitmap creation also failed before playback. Corrected preflight sequencing to play, wait for a delivered video frame, freeze one bitmap, then pause and compare that same bitmap on CPU/GPU. Real browser video snapshot lifecycle and cancellation/late-result cleanup are covered. Physical MP4 capture/color validation and resident FPS remain pending.
+
 2026-10-12: implemented a separate GPU-resident benchmark path, compact playback/preview gathers, capture/render preflight, buffer/texture reuse and a parallel workgroup tile scan. New shader/color-path and performance evidence are pending the next physical-browser run. The original CPU capture/readback GPU mode remains available for comparison. These changes do not promote the production backend.
 
 The first resident diagnostic (`benchmark-8eff03a8-98c6-4a97-834c-aac55f1f0166.json`) confirms the new parallel scan passed its sample fixture (worst max error 9.656e-6), then failed direct paused-video texture import with no backing resource. Original report is preserved under performance-results/webgpu-prototype. Capture now uses an owned ImageBitmap snapshot for video, reports snapshot time and closes it on success/failure. This compatibility fix remains pending physical-browser verification; no resident FPS or rendered pixel acceptance is claimed.

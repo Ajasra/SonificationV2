@@ -26,6 +26,14 @@ test('reference video benchmark completes and exports an attributed report', asy
   });
   await page.locator('#source').setInputFiles({ name: 'synthetic-smoke-720p30.webm', mimeType: 'video/webm', buffer: Buffer.from(bytes) });
   await expect(page.locator('#run')).toBeEnabled();
+  // Exercise the real video lifecycle even on machines without a GPU adapter.
+  const snapshot=await page.evaluate(async()=>{
+    const {snapshotVideoFrame}=await import('/src/benchmark/video-snapshot.ts');
+    const video=document.querySelector<HTMLVideoElement>('#video')!;
+    const bitmap=await snapshotVideoFrame(video,new AbortController().signal);
+    try{return {width:bitmap.width,height:bitmap.height,paused:video.paused};}finally{bitmap.close();}
+  });
+  expect(snapshot).toEqual({width:1280,height:720,paused:true});
   await page.locator('#duration').fill('0');
   await page.locator('#run').click();
   await expect(page.locator('#status')).toContainText('1–300 seconds');

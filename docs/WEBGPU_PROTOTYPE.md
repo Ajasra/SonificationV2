@@ -2,6 +2,8 @@
 
 ## Status
 
+Second capture fix: ImageBitmap creation was still attempted before playback began and failed with an unusable source in the physical browser. Resident preflight now plays the source, waits for requestVideoFrameCallback, snapshots inside that callback, then pauses playback. The CPU/GPU comparison uses the same frozen ImageBitmap for both frames. A 15-second timeout and cancellation release the callback and any late snapshot. A real browser video test exercises this lifecycle without requiring WebGPU. The affected physical MP4 remains the verification gate.
+
 Capture compatibility fix: a physical-browser run reported that direct video texture import had no backing resource during the paused preflight. Video capture now creates an owned ImageBitmap snapshot before GPU texture copying, retaining it through completion and closing it in finally. No full video pixels are read into JavaScript. Snapshot cost is included in total elapsed time and reported as gpuSourceSnapshotMs with profiling. Browser-internal snapshot copies are implementation dependent; this is not a zero-copy claim. The next physical run must verify the fix and color fidelity.
 
 2026-10-12 continuation: the benchmark now offers `GPU capture + display (TapeSat only)`. It uses a copied GPU texture, the reference Float32 RGB lookup table, GPU stream mapping/filtering, and direct canvas rendering. Each measured frame reads back 6,144 samples (24,576 bytes): the exact 4,096 playback indices and first 2,048 preview values. This excludes HUD/audio playback integration; physical display completion remains unmeasured. Source size must be exactly 1280x720 for this prototype.

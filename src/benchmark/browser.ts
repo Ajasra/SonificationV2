@@ -8,6 +8,7 @@ import { WasmDspRuntime } from '../engine/backends/wasm.ts';
 import { WebGpuTapeSat } from '../engine/backends/webgpu-tapesat.ts';
 import { imageToAudioStream, audioStreamToImage } from '../engine/streams.ts';
 import { checkGpuFidelity, checkResidentFidelity } from './gpu-fidelity.ts';
+import { snapshotVideoFrame } from './video-snapshot.ts';
 import { summarize } from './report.ts';
 
 declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean };
@@ -128,6 +129,7 @@ runButton.addEventListener('click', async () => {
   let gpuFidelity: Awaited<ReturnType<typeof checkGpuFidelity>> | undefined;
   let residentFidelity: Awaited<ReturnType<typeof checkResidentFidelity>> | undefined;
   let gpuContext:GPUCanvasContext | undefined;
+  const snapshotAbort=new AbortController();
   const resident=backend==='webgpu-resident';
   output.hidden=resident;gpuOutput.hidden=!resident;
   if (backend === 'webgpu-tapesat' || resident) {
@@ -136,14 +138,19 @@ runButton.addEventListener('click', async () => {
       status.textContent = 'Loading experimental WebGPU TapeSat…';
       gpu = await WebGpuTapeSat.create();
       if (currentGeneration !== generation) { gpu.dispose(); return; }
-      releaseRun = () => {gpuContext?.unconfigure();gpu?.dispose();};
+      releaseRun = () => {snapshotAbort.abort();gpuContext?.unconfigure();gpu?.dispose();};
       status.textContent = 'Comparing GPU samples against JavaScript, including two full 720p frames…';
       gpuFidelity = await checkGpuFidelity(gpu, () => currentGeneration !== generation);
       if (currentGeneration !== generation) return;
       if(resident && gpuFidelity.passed){
         gpuContext=gpu.configureCanvas(gpuOutput);
-        status.textContent='Checking GPU capture, rendered pixels and compact sample indices…';
-        residentFidelity=await checkResidentFidelity(gpu,gpuContext,video,()=>currentGeneration!==generation);
+        status.textContent='Waiting for a decoded video frame for capture validation…';
+        const snapshot=await snapshotVideoFrame(video,snapshotAbort.signal);
+        try{
+          if(currentGeneration!==generation)return;
+          status.textContent='Checking GPU capture, rendered pixels and compact sample indices…';
+          residentFidelity=await checkResidentFidelity(gpu,gpuContext,snapshot,()=>currentGeneration!==generation);
+        }finally{snapshot.close();}
         if(currentGeneration!==generation)return;
       }
       if (!gpuFidelity.passed || residentFidelity?.passed===false) {
@@ -263,7 +270,7 @@ runButton.addEventListener('click', async () => {
   const watchdog = setInterval(() => {
     if (currentGeneration === generation && performance.now() - lastFrameAt > 5000) finish(0, 'Source stopped delivering video callbacks');
   }, 500);
-  releaseRun = () => { observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); gpuContext?.unconfigure();gpu?.dispose(); };
+  releaseRun = () => { snapshotAbort.abort();observer?.disconnect(); clearInterval(watchdog); runtime?.dispose(); gpuContext?.unconfigure();gpu?.dispose(); };
   try {
     await video.play();
     if (currentGeneration !== generation) { observer?.disconnect(); return; }
