@@ -83,6 +83,8 @@ var<workgroup> prefix:array<vec2<f32>,256>;
 `;
 
 export class WebGpuTapeSat {
+  lastDiagnosticInput: Float32Array | undefined;
+  lastDiagnosticPixels: Uint8ClampedArray | undefined;
   lastTimings: Record<string, number> | undefined;
   readonly adapterInfo: GPUAdapterInfo;
   private busy = false;
@@ -95,6 +97,10 @@ export class WebGpuTapeSat {
   private pool:{buffer:GPUBuffer;size:number;usage:number}[]=[];
   private imageTexture:GPUTexture | undefined;
   private imageDimensions='';
+  private diagnosticTexture:GPUTexture | undefined;
+  private diagnosticDimensions='';
+  private rasterCanvas:HTMLCanvasElement | undefined;
+  private rasterContext:CanvasRenderingContext2D | undefined;
   private readonly lut:GPUBuffer;
   private readonly format = navigator.gpu.getPreferredCanvasFormat();
   private constructor(private readonly device: GPUDevice, adapter: GPUAdapter, pipelines: Record<string, GPUComputePipeline>) {
@@ -129,7 +135,7 @@ export class WebGpuTapeSat {
     if(this.disposed) throw new Error('Backend unavailable');
     const context=canvas.getContext('webgpu');
     if(!context) throw new Error('WebGPU canvas unavailable');
-    context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb'});
+    context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb',usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.COPY_DST});
     return context;
   }
   async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false):Promise<Float32Array> {
@@ -146,8 +152,15 @@ export class WebGpuTapeSat {
     const bitmap=source instanceof HTMLVideoElement ? await createImageBitmap(source) : undefined;
     const snapshotMs=profile ? performance.now()-snapshotStarted : 0;
     try {
-      const result=await this.execute(undefined,params,44100,profile,{source:bitmap??source,context,width,height,diagnostic});
-      if(profile && this.lastTimings)this.lastTimings.gpuSourceSnapshotMs=snapshotMs;
+      const rasterStarted=profile ? performance.now() : 0;
+      if(!this.rasterCanvas){this.rasterCanvas=document.createElement('canvas');this.rasterContext=this.rasterCanvas.getContext('2d',{willReadFrequently:true,colorSpace:'srgb'})??undefined;}
+      if(!this.rasterContext)throw new Error('Reference RGBA raster canvas unavailable');
+      if(this.rasterCanvas.width!==width)this.rasterCanvas.width=width;
+      if(this.rasterCanvas.height!==height)this.rasterCanvas.height=height;
+      this.rasterContext.drawImage(bitmap??source,0,0);
+      const rasterMs=profile ? performance.now()-rasterStarted : 0;
+      const result=await this.execute(undefined,params,44100,profile,{source:this.rasterCanvas,context,width,height,diagnostic});
+      if(profile && this.lastTimings){this.lastTimings.gpuSourceSnapshotMs=snapshotMs;this.lastTimings.gpuRasterCaptureMs=rasterMs;}
       return result;
     }finally{bitmap?.close();}
   }
@@ -163,6 +176,7 @@ export class WebGpuTapeSat {
     if (bytes * 2 > this.device.limits.maxStorageBufferBindingSize) throw new Error('Sample block exceeds device limits');
     this.busy = true;
     this.lastTimings = undefined;
+    this.lastDiagnosticInput=undefined;this.lastDiagnosticPixels=undefined;
     const started = profile ? performance.now() : 0;
     let poolIndex=0;
     const buffer = (size: number, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST) => {
@@ -178,6 +192,9 @@ export class WebGpuTapeSat {
       const input = buffer(bytes), local = buffer(bytes), sums = buffer(Math.max(groups * 8, bytes * 2)), scratch = buffer(Math.max(groups * 8, bytes * 2));
       const readBytes=resident && !resident.diagnostic ? 6144*4 : bytes;
       const read = buffer(readBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+      const rawRead=resident?.diagnostic ? buffer(bytes,GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST) : undefined;
+      const pixelPitch=resident ? Math.ceil(resident.width*4/256)*256 : 0;
+      const pixelRead=resident?.diagnostic ? buffer(pixelPitch*resident.height,GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST) : undefined;
       if(samples) this.device.queue.writeBuffer(input, 0, samples as Float32Array<ArrayBuffer>);
       const clamp = (v:number, low:number, high:number) => Math.min(high, Math.max(low, v));
       const drive = clamp(params.drive ?? 2.5, 1, 10), bias = clamp(params.bias ?? .1, -.5, .5);
@@ -193,6 +210,7 @@ export class WebGpuTapeSat {
         this.device.queue.writeBuffer(imageSize,0,new Uint32Array([resident.width,resident.height,0,0]));
         const bind=this.device.createBindGroup({layout:this.imagePipeline.getBindGroupLayout(0),entries:[{binding:0,resource:texture.createView()},{binding:1,resource:{buffer:input}},{binding:2,resource:{buffer:this.lut}},{binding:3,resource:{buffer:imageSize}}]});
         const pass=encoder.beginComputePass();pass.setPipeline(this.imagePipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(resident.width*resident.height/256));pass.end();
+        if(rawRead)encoder.copyBufferToBuffer(input,0,rawRead,0,bytes);
       }
       for (let stage = 0; stage < 2; stage++) {
         const dispatch = (entry:string, stride:number, source:GPUBuffer, target:GPUBuffer, count:number) => {
@@ -217,8 +235,19 @@ export class WebGpuTapeSat {
       }
       if(resident){
         const bind=this.device.createBindGroup({layout:this.displayPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:local}},{binding:1,resource:{buffer:imageSize!}}]});
-        const render=encoder.beginRenderPass({colorAttachments:[{view:resident.context.getCurrentTexture().createView(),loadOp:'clear',storeOp:'store',clearValue:{r:0,g:0,b:0,a:1}}]});
+        const canvasTexture=resident.context.getCurrentTexture();
+        let renderTexture=canvasTexture;
+        if(resident.diagnostic){
+          const dimensions=`${resident.width}x${resident.height}`;
+          if(!this.diagnosticTexture || this.diagnosticDimensions!==dimensions){this.diagnosticTexture?.destroy();this.diagnosticDimensions=dimensions;this.diagnosticTexture=this.device.createTexture({size:[resident.width,resident.height],format:this.format,usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.COPY_SRC});}
+          renderTexture=this.diagnosticTexture;
+        }
+        const render=encoder.beginRenderPass({colorAttachments:[{view:renderTexture.createView(),loadOp:'clear',storeOp:'store',clearValue:{r:0,g:0,b:0,a:1}}]});
         render.setPipeline(this.displayPipeline);render.setBindGroup(0,bind);render.draw(3);render.end();
+        if(pixelRead){
+          encoder.copyTextureToBuffer({texture:renderTexture},{buffer:pixelRead,bytesPerRow:pixelPitch},[resident.width,resident.height]);
+          encoder.copyTextureToTexture({texture:renderTexture},{texture:canvasTexture},[resident.width,resident.height]);
+        }
       }
       if(resident && !resident.diagnostic){
         const compact=buffer(readBytes);
@@ -234,6 +263,18 @@ export class WebGpuTapeSat {
       await read.mapAsync(GPUMapMode.READ);
       const mapped = profile ? performance.now() : 0;
       const result = new Float32Array(read.getMappedRange().slice(0)); read.unmap();
+      if(rawRead && pixelRead && resident){
+        await Promise.all([rawRead.mapAsync(GPUMapMode.READ),pixelRead.mapAsync(GPUMapMode.READ)]);
+        this.lastDiagnosticInput=new Float32Array(rawRead.getMappedRange().slice(0));rawRead.unmap();
+        const mappedPixels=new Uint8Array(pixelRead.getMappedRange());
+        const rgba=new Uint8ClampedArray(resident.width*resident.height*4);
+        const bgra=this.format.startsWith('bgra');
+        for(let y=0;y<resident.height;y++)for(let x=0;x<resident.width;x++){
+          const source=y*pixelPitch+x*4,target=(y*resident.width+x)*4;
+          rgba[target]=mappedPixels[source+(bgra?2:0)];rgba[target+1]=mappedPixels[source+1];rgba[target+2]=mappedPixels[source+(bgra?0:2)];rgba[target+3]=mappedPixels[source+3];
+        }
+        pixelRead.unmap();this.lastDiagnosticPixels=rgba;
+      }
       if (profile) this.lastTimings = { gpuPrepareSubmitMs: submitted-started, gpuValidationCompletionMapMs: mapped-submitted, gpuMappedCopyMs: performance.now()-mapped };
       return result;
     } finally {

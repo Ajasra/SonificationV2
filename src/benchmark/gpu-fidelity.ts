@@ -40,9 +40,7 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
   const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
   const capture=document.createElement('canvas');capture.width=1280;capture.height=720;
   const read=capture.getContext('2d',{willReadFrequently:true});
-  const display=document.createElement('canvas');display.width=1280;display.height=720;
-  const displayRead=display.getContext('2d',{willReadFrequently:true});
-  if(!read || !displayRead) throw new Error('Fidelity canvas unavailable');
+  if(!read) throw new Error('Fidelity canvas unavailable');
   const cases=[];
   try {
     const fixture=document.createElement('canvas');fixture.width=1280;fixture.height=720;
@@ -53,27 +51,38 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
       if(cancelled()) throw new Error('Fidelity check cancelled');
       gpu.reset();const cpu=new TapeSaturationFilter(44100);
       read.drawImage(input,0,0);const rgba=read.getImageData(0,0,1280,720);
-      const expected=imageToAudioStream(rgba.data,stream);cpu.processBlock(expected);
+      const encoded=imageToAudioStream(rgba.data,stream);
+      const expected=encoded.slice();cpu.processBlock(expected);
       const actual=await gpu.processImage(input,context,{},false,true);
       if(cancelled()) throw new Error('Fidelity check cancelled');
-      let maxAbsoluteError=0,square=0;
-      for(let i=0;i<expected.length;i++){const d=Math.abs(expected[i]-actual[i]);if(!Number.isFinite(d))throw new Error('Non-finite resident output');maxAbsoluteError=Math.max(maxAbsoluteError,d);square+=d*d;}
+      const captured=gpu.lastDiagnosticInput;
+      const actualPixels=gpu.lastDiagnosticPixels;
+      if(!captured || !actualPixels)throw new Error('Missing GPU capture diagnostics');
+      let maxAbsoluteError=0,square=0,maxErrorIndex=0,captureMaxError=0,captureDifferingSamples=0;
+      for(let i=0;i<expected.length;i++){
+        const d=Math.abs(expected[i]-actual[i]);if(!Number.isFinite(d))throw new Error('Non-finite resident output');
+        if(d>maxAbsoluteError){maxAbsoluteError=d;maxErrorIndex=i;}square+=d*d;
+        const inputDifference=Math.abs(encoded[i]-captured[i]);if(!Number.isFinite(inputDifference))throw new Error('Non-finite capture output');captureMaxError=Math.max(captureMaxError,inputDifference);if(inputDifference)captureDifferingSamples++;
+      }
       const expectedPixels=new Uint8ClampedArray(rgba.data.length);audioStreamToImage(expected,stream,expectedPixels);
-      displayRead.drawImage(context.canvas as HTMLCanvasElement,0,0);
-      const actualPixels=displayRead.getImageData(0,0,1280,720).data;
       let maxPixelError=0,differingBytes=0;
       for(let i=0;i<actualPixels.length;i++){const d=Math.abs(expectedPixels[i]-actualPixels[i]);maxPixelError=Math.max(maxPixelError,d);if(d)differingBytes++;}
       // Same captured frame again, now retaining the first frame's history.
+      // Freeze reference RGBA bytes: rerasterizing a YUV-backed bitmap can dither
+      // differently and would test a different input sequence on the second call.
+      const repeated=document.createElement('canvas');repeated.width=1280;repeated.height=720;
+      const repeatedContext=repeated.getContext('2d',{willReadFrequently:true})!;
+      repeatedContext.putImageData(rgba,0,0);
       const second=imageToAudioStream(rgba.data,stream);cpu.processBlock(second);
-      const compact=await gpu.processImage(input,context);
+      const compact=await gpu.processImage(repeated,context);
       if(cancelled())throw new Error('Fidelity check cancelled');
       let compactMaxError=0;
       for(let i=0;i<6144;i++){
         const index=i<4096 ? i*Math.max(1,Math.floor(second.length/4096)) : i-4096;
         const d=Math.abs(compact[i]-(second[index]??0));if(!Number.isFinite(d))throw new Error('Non-finite compact output');compactMaxError=Math.max(compactMaxError,d);
       }
-      cases.push({source:input===fixture?'synthetic-rgb-bytes':'provided-source-frame',samples:expected.length,maxAbsoluteError,rmsError:Math.sqrt(square/expected.length),maxPixelError,differingBytes,compactMaxError});
+      cases.push({source:input===fixture?'synthetic-rgb-bytes':'provided-source-frame',samples:expected.length,captureMaxError,captureDifferingSamples,maxAbsoluteError,maxErrorIndex,rmsError:Math.sqrt(square/expected.length),maxPixelError,differingBytes,compactMaxError,firstSamples:{input:Array.from(encoded.subarray(0,12)),captured:Array.from(captured.subarray(0,12)),expected:Array.from(expected.subarray(0,12)),actual:Array.from(actual.subarray(0,12))}});
     }
-    return {version:1,limits:{...GPU_FIDELITY_LIMITS,maxPixelByteError:1},cases,passed:cases.every(value=>value.maxAbsoluteError<=GPU_FIDELITY_LIMITS.maxAbsoluteError && value.rmsError<=GPU_FIDELITY_LIMITS.rmsError && value.maxPixelError<=1 && value.compactMaxError<=GPU_FIDELITY_LIMITS.maxAbsoluteError),scope:'opaque RGB fixture and paused decoded source frame; sample, rendered byte and compact gather comparison'};
+    return {version:2,limits:{...GPU_FIDELITY_LIMITS,maxPixelByteError:1,captureMaxError:0},cases,passed:cases.every(value=>value.captureMaxError===0 && value.maxAbsoluteError<=GPU_FIDELITY_LIMITS.maxAbsoluteError && value.rmsError<=GPU_FIDELITY_LIMITS.rmsError && value.maxPixelError<=1 && value.compactMaxError<=GPU_FIDELITY_LIMITS.maxAbsoluteError),scope:'exact RGB capture samples, filtered samples, owned render texture bytes and compact gather comparison'};
   } finally {if(!cancelled())gpu.reset();}
 }

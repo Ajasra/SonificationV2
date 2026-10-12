@@ -200,9 +200,9 @@ runButton.addEventListener('click', async () => {
     lastReport = {
       schemaVersion: 1, runId: crypto.randomUUID(), createdAt: new Date().toISOString(),
       build: __BENCHMARK_BUILD__,
-      scope: resident ? 'GPU-resident capture/filter/display with compact gather readback; excludes live audio, HUD, recording and physical display confirmation' : 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
+      scope: resident ? 'Reference RGBA canvas capture; GPU stream/filter/display with compact gather readback; excludes live audio, HUD, recording and physical display confirmation' : 'reference-canvas-path; excludes live audio, HUD, recording and physical display confirmation',
       backend, gpuFidelity: gpuFidelity ?? null, residentFidelity:residentFidelity??null, gpuAdapter: gpu ? { vendor: gpu.adapterInfo.vendor, architecture: gpu.adapterInfo.architecture, device: gpu.adapterInfo.device, description: gpu.adapterInfo.description } : null,
-      gpuScope: resident ? 'ImageBitmap video snapshot to GPU texture, stream mapping and rendering; 24576-byte playback/preview readback; snapshot and GPU completion included' : gpu ? 'experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required' : null,
+      gpuScope: resident ? 'Reference RGBA canvas raster to GPU texture, GPU stream mapping/filter/render; 24576-byte playback/preview readback; snapshot/raster and GPU completion included' : gpu ? 'experimental f32; CPU capture, full upload/readback and CPU presentation included; fidelity gate required' : null,
       timingSemantics:resident ? 'completeCpuPathMs is wall time through GPU rendering and compact map; captureMs/outputSubmitMs zero because included in GPU submission; no physical display completion' : 'completeCpuPathMs is wall time including any GPU waits',
       wasmBuild: runtime?.buildInfo ?? null, profileEnabled: profile, source: sourceInfo, decodedWidth: video.videoWidth, decodedHeight: video.videoHeight,
       randomControl: { algorithm: 'fixture-xorshift32', seed: 4821, productionPolicyUnchanged: true },

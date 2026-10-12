@@ -1,13 +1,11 @@
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 // Declared before measurement: f32 scan candidate gates, separate from WASM.
-// Software adapter tests establish functionality only.
-test('TapeSat GPU scan preserves tile and frame history', async ({}, testInfo) => {
-  const browser = await chromium.launch({ args: ['--enable-unsafe-webgpu', '--use-angle=swiftshader'] });
-  try {
-    const page = await browser.newPage();
+// Adapter tests establish functionality; named-device FPS gates are separate.
+test('TapeSat GPU scan preserves tile and frame history', async ({page}, testInfo) => {
     await page.goto('http://127.0.0.1:5175/benchmark.html');
     const available = await page.evaluate(async () => Boolean(await navigator.gpu?.requestAdapter()));
+    if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
     test.skip(!available, 'No WebGPU adapter in this environment; GPU fidelity remains unverified.');
     const result = await page.evaluate(async () => {
       const { WebGpuTapeSat } = await import('/src/engine/backends/webgpu-tapesat.ts');
@@ -27,29 +25,55 @@ test('TapeSat GPU scan preserves tile and frame history', async ({}, testInfo) =
         const expected=input.slice(); cpu.processBlock(expected);
         const actual=await gpu.process(input);
         for(let i=0;i<input.length;i++) max=Math.max(max,Math.abs(expected[i]-actual[i]));
-        return { max, rms:Math.sqrt(square/count), adapter: { vendor:gpu.adapterInfo.vendor, architecture:gpu.adapterInfo.architecture, device:gpu.adapterInfo.device, description:gpu.adapterInfo.description }, scope:'software GPU functional validation; no device FPS acceptance' };
+        return { max, rms:Math.sqrt(square/count), adapter: { vendor:gpu.adapterInfo.vendor, architecture:gpu.adapterInfo.architecture, device:gpu.adapterInfo.device, description:gpu.adapterInfo.description }, scope:'adapter-specific functional validation; no device FPS acceptance' };
       } finally { gpu.dispose(); }
     });
     await testInfo.attach('GPU fidelity', { body:JSON.stringify(result,null,2), contentType:'application/json' });
     expect(result.max).toBeLessThanOrEqual(1e-4);
     expect(result.rms).toBeLessThanOrEqual(1e-5);
-  } finally { await browser.close(); }
 });
 
 test('GPU resident capture, display and compact gathers match reference',async ({page},testInfo)=>{
   await page.goto('/benchmark.html');
   const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
   test.skip(!available,'No WebGPU adapter; resident shader and color path remain unverified.');
   const result=await page.evaluate(async()=>{
     const {WebGpuTapeSat}=await import('/src/engine/backends/webgpu-tapesat.ts');
-    const {checkResidentFidelity}=await import('/src/benchmark/gpu-fidelity.ts');
+    const {checkGpuFidelity,checkResidentFidelity}=await import('/src/benchmark/gpu-fidelity.ts');
     const gpu=await WebGpuTapeSat.create();
     const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;document.body.append(canvas);
     const source=document.createElement('canvas');source.width=1280;source.height=720;
     const ctx=source.getContext('2d')!;ctx.fillStyle='rgb(17,128,253)';ctx.fillRect(0,0,1280,720);
     const context=gpu.configureCanvas(canvas);
-    try{return await checkResidentFidelity(gpu,context,source);}finally{context.unconfigure();gpu.dispose();canvas.remove();}
+    try{const base=await checkGpuFidelity(gpu);return {base,resident:await checkResidentFidelity(gpu,context,source)};}finally{context.unconfigure();gpu.dispose();canvas.remove();}
   });
   await testInfo.attach('Resident fidelity',{body:JSON.stringify(result,null,2),contentType:'application/json'});
-  expect(result.passed).toBe(true);
+  expect(result.base.passed).toBe(true);expect(result.resident.passed).toBe(true);
+});
+
+test('resident video benchmark passes preflight and completes',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');
+  const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
+  test.skip(!available,'No WebGPU adapter for decoded video test');
+  const bytes=await page.evaluate(async()=>{
+    const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;
+    const ctx=canvas.getContext('2d')!;ctx.fillStyle='rgb(17,128,253)';ctx.fillRect(0,0,1280,720);
+    const stream=canvas.captureStream(30),chunks:BlobPart[]=[];
+    const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});
+    let frame=0;const timer=setInterval(()=>{ctx.fillStyle=`rgb(${17+frame++%32},128,253)`;ctx.fillRect(0,0,1280,720);},33);
+    recorder.ondataavailable=event=>chunks.push(event.data);
+    const stopped=new Promise<void>(resolve=>recorder.onstop=()=>resolve());
+    recorder.start();await new Promise(resolve=>setTimeout(resolve,1000));recorder.stop();await stopped;clearInterval(timer);stream.getTracks().forEach(track=>track.stop());
+    return Array.from(new Uint8Array(await new Blob(chunks).arrayBuffer()));
+  });
+  await page.locator('#source').setInputFiles({name:'resident-video.webm',mimeType:'video/webm',buffer:Buffer.from(bytes)});
+  await expect(page.locator('#run')).toBeEnabled();
+  await page.locator('#preset').selectOption('tapesat');await page.locator('#backend').selectOption('webgpu-resident');await page.locator('#duration').fill('1');
+  await page.locator('#run').click();
+  await expect(page.locator('#report')).toContainText('"processedFps"',{timeout:30000});
+  const report=JSON.parse(await page.locator('#report').textContent()||'{}');
+  await testInfo.attach('Resident video report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
+  expect(report.gpuFidelity.passed).toBe(true);expect(report.residentFidelity.passed).toBe(true);expect(report.measuredFrames).toBeGreaterThan(0);
 });

@@ -1,6 +1,8 @@
 # Acceleration implementation progress
 
-Updated 2026-10-11. Branch: `codex/video-acceleration`.
+Updated 2026-10-12. Branch: `codex/video-acceleration`.
+
+Resident fidelity follow-up: user report 455b4b8d-d2cd-46cf-987e-6cc5e89df075 passed the sample-only gate but failed resident samples (max ~0.0134), pixels (max 255), and compact gathers. Corrected swapchain diagnostic lifetime using an owned render texture. Installed Chrome exposed an AMD GCN-5 adapter here; real GPU tests reproduced the decoded-video RGB conversion mismatch and now pass with reference RGBA raster capture and a byte-frozen repeated-frame fixture. Added npm run test:gpu. The user's adapter/MP4 still needs verification; limits were not loosened.
 
 2026-10-12 capture follow-up: the user's next error showed ImageBitmap creation also failed before playback. Corrected preflight sequencing to play, wait for a delivered video frame, freeze one bitmap, then pause and compare that same bitmap on CPU/GPU. Real browser video snapshot lifecycle and cancellation/late-result cleanup are covered. Physical MP4 capture/color validation and resident FPS remain pending.
 
