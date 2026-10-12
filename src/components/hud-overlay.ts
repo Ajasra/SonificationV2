@@ -32,6 +32,7 @@ export class HudOverlay {
   private lastActiveCountL: number = -1;
   private lastActiveCountR: number = -1;
   private lastDomUpdate: number = 0;
+  private renderDurations: number[] = [];
 
   private enabled: boolean = false;
   private dpr: number = 1;
@@ -133,6 +134,14 @@ export class HudOverlay {
     Object.assign(this.latestData, data);
   }
 
+  public getRenderTimingSummary(): { count: number; p50: number; p95: number; p99: number } {
+    const sorted=[...this.renderDurations].sort((a,b)=>a-b);
+    const percentile=(p:number)=>sorted.length?sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*p)-1)]:0;
+    return {count:sorted.length,p50:percentile(0.5),p95:percentile(0.95),p99:percentile(0.99)};
+  }
+
+  public resetRenderTimings(): void { this.renderDurations=[]; }
+
   private startLoop(): void {
     if (this.rafId !== null) return;
     const tick = () => {
@@ -176,6 +185,7 @@ export class HudOverlay {
 
   public render(data: HudTelemetryData = {}): void {
     if (!this.enabled) return;
+    const renderStarted=performance.now();
 
     const w = this.hudCanvas.width;
     const h = this.hudCanvas.height;
@@ -212,6 +222,8 @@ export class HudOverlay {
 
     // 6. Update Matrix & Segmented LED Meters
     this.updateDomTelemetry(data);
+    this.renderDurations.push(performance.now()-renderStarted);
+    if(this.renderDurations.length>10000)this.renderDurations.splice(0,this.renderDurations.length-10000);
   }
 
   // Ref 1: Corner brackets, concentric calibration rings, millimeter ticks

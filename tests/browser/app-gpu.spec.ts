@@ -49,6 +49,10 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   await testInfo.attach('Application GPU smoke report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
   expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');
   expect(report.gpuValidation.sample.passed).toBe(true);expect(report.gpuValidation.resident.passed).toBe(true);
+  expect(report.sessionSeconds).toBeGreaterThanOrEqual(10);expect(report.measurementResets.length).toBeGreaterThan(0);
+  expect(report.timings.captureMs.count).toBeGreaterThan(0);expect(report.timings.gpuCompletionAndReadbackMs.count).toBeGreaterThan(0);
+  expect(report.timings.audioSubmissionMs.count).toBeGreaterThan(0);expect(report.timings.telemetryUpdateMs.count).toBeGreaterThan(0);
+  expect(report.timings.hudRenderMs.count).toBeGreaterThan(0);
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'480p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeHidden();await expect(page.locator('#main-canvas')).toBeVisible();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeVisible();
   await page.locator('#select-bitdepth').evaluate((element:HTMLSelectElement)=>{element.value='16';element.dispatchEvent(new Event('change',{bubbles:true}));});await expect(page.locator('#perf-badge')).toContainText('JS');await expect(page.locator('#gpu-main-canvas')).toBeHidden();

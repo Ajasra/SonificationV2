@@ -19,7 +19,7 @@ export interface MediaControllerOptions {
   getBusRate: () => number;
   getIsSyncMode: () => boolean;
   isMobileDevice: () => boolean;
-  onFrameProcessed: (data: ImageData, started?:number) => void | Promise<void>;
+  onFrameProcessed: (data: ImageData, started?:number, capturedAt?:number) => void | Promise<void>;
   onCameraStopped: () => void;
   scheduleFrame: (video: HTMLVideoElement, callback: () => void) => void;
   stopFrameLoop: () => void;
@@ -280,7 +280,7 @@ export class MediaController {
         const started=performance.now();
         this.opts.offscreenCtx.drawImage(cur, 0, 0, dims.w, dims.h);
         const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-        await this.opts.onFrameProcessed(inputBuffer,started);
+        await this.opts.onFrameProcessed(inputBuffer,started,performance.now());
       }
 
       if(generation===this.opts.getLoopGeneration() && this.loadedVideoElement===v)this.opts.scheduleFrame(cur, onFrame);
