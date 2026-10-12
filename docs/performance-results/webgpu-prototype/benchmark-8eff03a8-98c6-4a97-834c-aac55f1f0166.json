@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "runId": "8eff03a8-98c6-4a97-834c-aac55f1f0166",
+  "createdAt": "2026-10-11T16:19:18.354Z",
+  "build": {
+    "revision": "b7cef0116011ed7c403b071205fb3defaea3b316",
+    "dirty": true
+  },
+  "backend": "webgpu-resident",
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "gpuFidelity": {
+    "version": 1,
+    "limits": {
+      "maxAbsoluteError": 0.0001,
+      "rmsError": 0.00001
+    },
+    "cases": [
+      {
+        "rate": 8000,
+        "frames": 3,
+        "samples": 73987,
+        "maxAbsoluteError": 7.152557373046875e-7,
+        "rmsError": 1.2451433690809555e-7
+      },
+      {
+        "rate": 44100,
+        "frames": 8,
+        "samples": 5604099,
+        "maxAbsoluteError": 0.000001430511474609375,
+        "rmsError": 7.016904418574225e-7
+      },
+      {
+        "rate": 96000,
+        "frames": 3,
+        "samples": 73987,
+        "maxAbsoluteError": 0.000009655952453613281,
+        "rmsError": 0.0000027724924399088527
+      }
+    ],
+    "passed": true,
+    "scope": "sample comparison with parameter changes and retained frame/tile history; no full application or pixel acceptance"
+  },
+  "residentFidelity": null,
+  "error": "OperationError: Failed to execute 'copyExternalImageToTexture' on 'GPUQueue': Failed to import texture from video element that doesn't have back resource.",
+  "acceptance": "GPU startup or fidelity validation failed; performance run blocked"
+}

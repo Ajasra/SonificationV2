@@ -139,12 +139,22 @@ export class WebGpuTapeSat {
     const sourceWidth=source instanceof HTMLVideoElement ? source.videoWidth : source.width;
     const sourceHeight=source instanceof HTMLVideoElement ? source.videoHeight : source.height;
     if(sourceWidth!==width || sourceHeight!==height) throw new Error('Resident prototype requires source dimensions to match output; use a 1280×720 source.');
-    return this.execute(undefined,params,44100,profile,{source,context,width,height,diagnostic});
+    if(this.busy || this.disposed)throw new Error('Backend unavailable');
+    // Paused videos may have no importable GPU backing resource in Chromium.
+    // Own the snapshot through GPU completion; never read its pixels into JS.
+    const snapshotStarted=profile ? performance.now() : 0;
+    const bitmap=source instanceof HTMLVideoElement ? await createImageBitmap(source) : undefined;
+    const snapshotMs=profile ? performance.now()-snapshotStarted : 0;
+    try {
+      const result=await this.execute(undefined,params,44100,profile,{source:bitmap??source,context,width,height,diagnostic});
+      if(profile && this.lastTimings)this.lastTimings.gpuSourceSnapshotMs=snapshotMs;
+      return result;
+    }finally{bitmap?.close();}
   }
   async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100, profile = false): Promise<Float32Array> {
     return this.execute(samples,params,rate,profile);
   }
-  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLVideoElement | HTMLCanvasElement;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
+  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLCanvasElement | HTMLVideoElement | ImageBitmap;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
     if (this.busy || this.disposed) throw new Error('Backend unavailable');
     if (!Number.isFinite(rate) || rate <= 0 || Object.values(params).some(value => !Number.isFinite(value))) throw new Error('Invalid parameters');
     const n = resident ? resident.width*resident.height*3 : samples!.length;
