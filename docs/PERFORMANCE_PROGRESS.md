@@ -2,6 +2,8 @@
 
 Updated 2026-10-12. Branch: `codex/video-acceleration`.
 
+User MP4 byte-fallback report 95bb5341 passed all implemented fidelity fixtures. Over 60.0311 seconds: 29.1849 fps, complete-path p95 20.4 ms, 34 callback gaps (~1.904% proxy), zero long tasks. Benchmark latency passes; strict throughput >=29.4 fps narrowly fails. Full application, five-minute sustained and phone gates remain open. See [60-second byte-fallback analysis](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-60-SECOND.md). Keep production on JS until remaining gates close.
+
 User diagnostic 52a7e061 isolated sparse one-byte capture differences (280 synthetic and 248 source samples), while equal-byte compact history passed. Added automatic reference-RGBA upload fallback, GPU byte unpacking/serialization and retained texture probe diagnostics. Limits are unchanged; capture, filter, pixel and gather checks must pass again before measurement. Browser settings are preserved. GPU tests cover deliberately altered canvas readback and decoded-video runs in both capture modes. User MP4 performance remains pending.
 
 Resident fidelity follow-up: user report 455b4b8d-d2cd-46cf-987e-6cc5e89df075 passed the sample-only gate but failed resident samples (max ~0.0134), pixels (max 255), and compact gathers. Corrected swapchain diagnostic lifetime using an owned render texture. Installed Chrome exposed an AMD GCN-5 adapter here; real GPU tests reproduced the decoded-video RGB conversion mismatch and now pass with reference RGBA raster capture and a byte-frozen repeated-frame fixture. Added npm run test:gpu. The user's adapter/MP4 still needs verification; limits were not loosened.

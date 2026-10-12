@@ -2,6 +2,8 @@
 
 ## Status
 
+The user's [60-second MP4 fallback run](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-60-SECOND.md) passed the implemented sample/capture/render/gather fidelity checks using reference-bytes capture. It measured 29.18 fps and 20.4 ms complete elapsed path p95, with ~1.904% callback gaps. The latency budget passes in benchmark scope; throughput is slightly below the declared 29.4 fps minimum. Sustained, complete application and phone acceptance remain open.
+
 Sparse capture-byte mismatch fallback: user diagnostic 52a7e061 reported one-byte RGB differences in only 280 synthetic/248 source samples, while identical-byte compact checks passed. Resident preflight now retains the texture probe and selects reference-bytes capture when any raw capture mismatch exists. That route uploads the exact reference getImageData RGBA bytes to a storage buffer; a GPU byte-unpacking shader performs RGB serialization. It preserves any modifications present in those reference bytes. No browser settings are changed, and capture/sample/pixel limits remain unchanged. All fidelity checks rerun before timing; a continuing failure still blocks measurement.
 
 Reports include captureSelection.captureMode and the failed textureProbe. Reference-bytes mode performs CPU canvas readback and RGBA upload, both included in total/raster/preparation timings. Filtering, serialization, render and compact gathers remain GPU operations. Performance benefit is pending the user's next run; the mode is an accuracy-compatible fallback, not a zero-copy optimization. Tests simulate changed canvas readback, including an actual decoded-video measurement with fallback active.
