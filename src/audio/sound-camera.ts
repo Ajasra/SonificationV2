@@ -124,6 +124,11 @@ export class SoundCameraAudio {
   getAnalyser(): AnalyserNode | null {
     return this.analyserNode;
   }
+  dispose():void {
+    try{this.currentSource?.stop();this.currentSource?.disconnect();}catch{}
+    if(this.ctx && this.ctx.state!=='closed')void this.ctx.close().catch(()=>{});
+    this.ctx=null;this.currentSource=null;this.playbackBuffer=null;this.monitorGainNode=null;this.recordGainNode=null;this.analyserNode=null;this.streamDest=null;this.isRecording=false;
+  }
 
   getAudioMediaStream(): MediaStream | null {
     this.init();

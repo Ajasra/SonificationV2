@@ -182,7 +182,7 @@ body.is-fullscreen .reticle {
   opacity: 0.35;
 }
 
-body.is-fullscreen #main-canvas {
+body.is-fullscreen #main-canvas, body.is-fullscreen #gpu-main-canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;

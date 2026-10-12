@@ -2,6 +2,10 @@
 // Modular architecture: Photographic Studio aesthetic, Audio Rack / PCB hardware details, and Tactile Rotary Knobs
 import type { ColorSpace, CompandingLaw, FilterId, RawType, SonificationPreset } from './types/index.ts';
 import { SonificationPipeline } from './engine/pipeline.ts';
+import type {AppTapeSatGpu} from './engine/backends/app-tapesat.ts';
+import {eligibleTapeSat} from './engine/backends/gpu-eligibility.ts';
+import {summarize} from './benchmark/report.ts';
+import {BUILD_INFO} from './build-info.ts';
 import { PresetManager } from './presets/preset-manager.ts';
 import { FILTER_DESCRIPTORS } from './engine/filters/factory.ts';
 import { SoundCameraAudio } from './audio/sound-camera.ts';
@@ -38,6 +42,8 @@ class SonificationApp {
   // DOM Elements
   private canvas = document.getElementById('main-canvas') as HTMLCanvasElement;
   private ctx = this.canvas.getContext('2d')!;
+  private gpuEnabled=new URLSearchParams(location.search).get('gpu')==='tapesat';
+  private gpu:AppTapeSatGpu | undefined;
   private offscreenCanvas = document.createElement('canvas');
   private offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
   private scopeCanvas = document.getElementById('scope-canvas') as HTMLCanvasElement;
@@ -84,6 +90,14 @@ class SonificationApp {
   private frameCount = 0;
   private currentFps = 0;
   private cachedImageData: ImageData | null = null;
+  private processingFrame=false;
+  private measureStart=0;
+  private measureKey='';
+  private frameMeasurements:number[]=[];
+  private measuredGpuFrames=0;
+  private measuredJsFrames=0;
+  private missedCallbacks=0;
+  private lastPresented:number | undefined;
 
   // Sub-controllers
   private qrModalController!: QrModalController;
@@ -96,6 +110,8 @@ class SonificationApp {
 
   private stopFrameLoop(): void {
     this.loopGeneration++;
+    this.gpu?.reset();
+    this.measureStart=0;this.measureKey='';this.frameMeasurements=[];this.measuredGpuFrames=0;this.measuredJsFrames=0;this.missedCallbacks=0;this.lastPresented=undefined;
     if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
     if (this.videoFrameId !== null) this.frameVideo?.cancelVideoFrameCallback(this.videoFrameId);
     this.animFrameId = null;
@@ -106,7 +122,10 @@ class SonificationApp {
   private scheduleFrame(video: HTMLVideoElement, callback: () => void): void {
     this.frameVideo = video;
     if (typeof video.requestVideoFrameCallback === 'function' && video.isConnected) {
-      this.videoFrameId = video.requestVideoFrameCallback(callback);
+      this.videoFrameId = video.requestVideoFrameCallback((_now,metadata)=>{
+        if(this.gpuEnabled && this.measureStart && performance.now()>=this.measureStart && this.lastPresented!==undefined)this.missedCallbacks+=Math.max(0,metadata.presentedFrames-this.lastPresented-1);
+        this.lastPresented=metadata.presentedFrames;callback();
+      });
     } else {
       this.animFrameId = requestAnimationFrame(callback);
     }
@@ -135,7 +154,18 @@ class SonificationApp {
     this.initMasterKnob();
     this.initCollapsibleCards();
     this.initControllers();
+    if(this.gpuEnabled){
+      this.mediaController.setResolution('720p');this.resolutionSlider?.setValue('720p');
+      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
+    }
     this.bindEvents();
+    if(this.gpuEnabled){
+      this.perfBadge.setAttribute('role','button');this.perfBadge.tabIndex=0;this.perfBadge.style.cursor='pointer';
+      this.perfBadge.title='Experimental GPU session. Click to download application performance after warmup.';
+      const download=()=>this.downloadApplicationReport();
+      this.perfBadge.addEventListener('click',download);
+      this.perfBadge.addEventListener('keydown',event=>{if(event.key==='Enter' || event.key===' '){event.preventDefault();download();}});
+    }
     void this.resolveSharedPresetHash();
 
     const releaseCamera = () => {
@@ -146,6 +176,7 @@ class SonificationApp {
       if (button) button.textContent = 'Live camera';
     };
     window.addEventListener('pagehide', releaseCamera);
+    window.addEventListener('pagehide',()=>this.audioEngine.dispose());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) releaseCamera();
       else if (this.mediaController?.getLoadedVideo()) this.mediaController.startVideoFileLoop();
@@ -242,6 +273,8 @@ class SonificationApp {
 
     this.mediaController = new MediaController({
       canvas: this.canvas,
+      measureSourceHash:this.gpuEnabled,
+      resumeLiveCamera:()=>this.startLiveLoop(),
       offscreenCanvas: this.offscreenCanvas,
       offscreenCtx: this.offscreenCtx,
       pipeline: this.pipeline,
@@ -253,9 +286,9 @@ class SonificationApp {
       getBusRate: () => this.presetController.getCurrentBusRate(),
       getIsSyncMode: () => this.isSyncMode,
       isMobileDevice: () => this.mobileController ? this.mobileController.isMobileDevice() : false,
-      onFrameProcessed: (data) => {
+      onFrameProcessed: (data,started) => {
         this.inputImageBuffer = data;
-        this.processAndBlit();
+        return this.processAndBlit(started);
       },
       onCameraStopped: () => {
         const btnCam = document.getElementById('btn-toggle-camera');
@@ -896,7 +929,7 @@ class SonificationApp {
     this.stopFrameLoop();
     const generation = this.loopGeneration;
 
-    const onFrame = () => {
+    const onFrame = async () => {
       if (generation !== this.loopGeneration || !this.cameraManager.isActive()) return;
 
       const video = this.cameraManager.getVideoElement();
@@ -911,12 +944,13 @@ class SonificationApp {
           this.canvas.height = dims.h;
         }
 
+        const started=performance.now();
         this.offscreenCtx.drawImage(video, 0, 0, dims.w, dims.h);
         this.inputImageBuffer = this.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-        this.processAndBlit();
+        await this.processAndBlit(started);
       }
 
-      this.scheduleFrame(video, onFrame);
+      if(generation===this.loopGeneration && this.cameraManager.isActive())this.scheduleFrame(video, onFrame);
     };
 
     const video = this.cameraManager.getVideoElement();
@@ -929,8 +963,16 @@ class SonificationApp {
     }
   }
 
-  private processAndBlit(): void {
+  private async processAndBlit(started=performance.now()): Promise<void> {
+    if(this.processingFrame)return;
+    this.processingFrame=true;
+    try{await this.processCapturedFrame(started);}finally{this.processingFrame=false;}
+  }
+  private async processCapturedFrame(started:number):Promise<void> {
     if (!this.inputImageBuffer) return;
+    if(this.gpuEnabled && this.offlineVideoRecorder.getIsRunning())return;
+    const generation=this.loopGeneration;
+    const input=this.inputImageBuffer;
 
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -940,9 +982,28 @@ class SonificationApp {
     }
 
     if (this.currentViewMode === 'source') {
+      this.gpu?.showCpu();
       this.ctx.putImageData(this.inputImageBuffer, 0, 0);
       return;
     }
+
+    const preset=this.gpu ? structuredClone(this.activePreset) : this.activePreset;
+    const eligible=this.currentViewMode==='developed' && this.isSyncMode && !this.videoRecorder.getIsRecording() && !this.offlineVideoRecorder.getIsRunning() &&
+      (this.cameraManager.isActive() || !!this.mediaController?.getLoadedVideo()) && (this.presetController?.getCurrentBusRate()||44100)===44100 ? eligibleTapeSat(preset,w,h) : undefined;
+    if(this.gpu && eligible){
+      const state=this.pipeline.tapeSatState(preset,w,h,eligible.id);
+      const compact=await this.gpu.process(input,eligible.params,state);
+      if(generation!==this.loopGeneration)return;
+      if(compact){
+        this.pipeline.tapeSatState(preset,w,h,eligible.id,{version:1,sampleRate:44100,bumpLp:compact[8192],toneLp:compact[8193]});
+        if(JSON.stringify(this.activePreset)!==JSON.stringify(preset) || this.currentViewMode!=='developed' || this.videoRecorder.getIsRecording()){this.gpu.showCpu();return;}
+        this.gpu.showGpu();
+        this.audioEngine.playFrameSamples(compact.subarray(0,4096));
+        this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:compact.subarray(4096,6144),scopeSamples:compact.subarray(0,4096),rawAudioSamples:compact.subarray(6144,8192),analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});
+        this.updateFramePerformance(performance.now()-started,'GPU');return;
+      }
+    }
+    this.gpu?.showCpu();
 
     if (!this.cachedImageData || this.cachedImageData.width !== w || this.cachedImageData.height !== h) {
       this.cachedImageData = this.ctx.createImageData(w, h);
@@ -985,6 +1046,7 @@ class SonificationApp {
         width: w,
         height: h,
         audioSamples: res.audioSamples,
+        scopeSamples: undefined,
         rawAudioSamples: res.rawAudioSamples,
         analyser: this.audioEngine.getAnalyser(),
         seed: this.presetController?.getCurrentSeed() || 4821,
@@ -995,6 +1057,15 @@ class SonificationApp {
       this.renderOscilloscope();
     }
 
+    this.updateFramePerformance(this.gpuEnabled ? performance.now()-started : res.executionTimeMs,'JS');
+  }
+
+  private updateFramePerformance(elapsed:number,backend:'JS'|'GPU'):void {
+    if(this.gpuEnabled){
+      const key=JSON.stringify([this.activePreset,this.currentViewMode,this.canvas.width,this.canvas.height,this.audioEngine.getMuted(),this.hudOverlay.isEnabled(),this.videoRecorder.getIsRecording()]);
+      if(key!==this.measureKey){this.measureKey=key;this.measureStart=performance.now()+10000;this.frameMeasurements=[];this.measuredGpuFrames=0;this.measuredJsFrames=0;this.missedCallbacks=0;}
+      if(performance.now()>=this.measureStart){this.frameMeasurements.push(elapsed);if(backend==='GPU')this.measuredGpuFrames++;else this.measuredJsFrames++;}
+    }
     this.frameCount++;
     const now = performance.now();
     if (now - this.lastTime >= 500) {
@@ -1002,9 +1073,27 @@ class SonificationApp {
       this.frameCount = 0;
       this.lastTime = now;
       if (this.perfBadge) {
-        this.perfBadge.textContent = `${this.currentFps} FPS | ${res.executionTimeMs.toFixed(1)} ms`;
+        this.perfBadge.textContent = `${this.currentFps} FPS | ${elapsed.toFixed(1)} ms${this.gpuEnabled ? ` | ${backend}` : ''}`;
       }
     }
+  }
+
+  private downloadApplicationReport():void {
+    const now=performance.now(),seconds=this.measureStart ? Math.max(0,(now-this.measureStart)/1000) : 0;
+    const report={
+      schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:BUILD_INFO,
+      source:this.mediaController.getSourceInfo(),backend:'experimental-app-tapesat',
+      scope:'reference capture, GPU or JS processing, GPU completion, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation',
+      preset:this.activePreset,width:this.canvas.width,height:this.canvas.height,warmupSeconds:10,
+      measuredSeconds:seconds,measuredFrames:this.frameMeasurements.length,processedFps:seconds ? this.frameMeasurements.length/seconds : 0,
+      gpuFrames:this.measuredGpuFrames,jsFrames:this.measuredJsFrames,missedPresentedCallbacks:this.missedCallbacks,
+      timings:{framePathMs:summarize(this.frameMeasurements)},audioMuted:this.audioEngine.getMuted(),audioVolume:this.audioEngine.getVolume(),
+      hudEnabled:this.hudOverlay.isEnabled(),audioContextState:this.audioEngine.getAnalyser()?.context.state??null,
+      sourcePaused:this.mediaController.getLoadedVideo()?.paused??null,gpuValidation:this.gpu?.validation??null,
+      environment:{userAgent:navigator.userAgent,hardwareConcurrency:navigator.hardwareConcurrency},
+      acceptance:'requires named-device application validation; recording/other presets/phone gates remain open',
+    };
+    const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`app-benchmark-${report.runId}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
   private renderOscilloscope(): void {

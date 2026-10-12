@@ -2,6 +2,8 @@
 
 Updated 2026-10-12. Branch: `codex/video-acceleration`.
 
+Application integration is implemented behind ?gpu=tapesat: separate GPU presentation canvas, reference-byte capture, live audio/HUD compact mapping, state handoff, serialized frames, source/device failure fallback and downloadable application reports. Normal startup remains JS. See [application integration](APPLICATION_GPU_INTEGRATION.md). Real installed-Chrome functional tests exercise audio/HUD, format/resolution fallback/recovery and source replacement; user MP4 full application performance and phones remain open. Compact readback grows from 24,576 to 32,776 bytes for raw HUD preview and state, so the earlier benchmark result does not automatically certify the current integrated path.
+
 Five-minute user MP4 report cfa78a3a closes the supported TapeSat benchmark gates: 30.0006 fps over 300.0272 seconds, complete-path p95 20.7 ms, zero presented-callback gaps/long tasks, implemented fidelity preflight passed using reference-bytes capture. See [five-minute analysis](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-300-SECOND.md). Advance to real application audio/HUD integration with JS fallback; production promotion, other presets and physical-phone acceptance remain open.
 
 User MP4 byte-fallback report 95bb5341 passed all implemented fidelity fixtures. Over 60.0311 seconds: 29.1849 fps, complete-path p95 20.4 ms, 34 callback gaps (~1.904% proxy), zero long tasks. Benchmark latency passes; strict throughput >=29.4 fps narrowly fails. Full application, five-minute sustained and phone gates remain open. See [60-second byte-fallback analysis](performance-results/webgpu-prototype/USER-BYTE-FALLBACK-60-SECOND.md). Keep production on JS until remaining gates close.

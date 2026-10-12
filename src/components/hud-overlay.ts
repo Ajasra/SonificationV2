@@ -7,6 +7,7 @@ export interface HudTelemetryData {
   width?: number;
   height?: number;
   audioSamples?: Float32Array;
+  scopeSamples?: Float32Array;
   rawAudioSamples?: Float32Array;
   analyser?: AnalyserNode | null;
   seed?: number;
@@ -410,7 +411,7 @@ export class HudOverlay {
     tCtx.save();
 
     const rawSamples = data.rawAudioSamples;
-    const postSamples = data.audioSamples;
+    const postSamples = data.scopeSamples ?? data.audioSamples;
     const cy = y + h / 2;
     const ampScale = h * 0.38;
 

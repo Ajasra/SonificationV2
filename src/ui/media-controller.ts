@@ -19,11 +19,13 @@ export interface MediaControllerOptions {
   getBusRate: () => number;
   getIsSyncMode: () => boolean;
   isMobileDevice: () => boolean;
-  onFrameProcessed: (data: ImageData) => void;
+  onFrameProcessed: (data: ImageData, started?:number) => void | Promise<void>;
   onCameraStopped: () => void;
   scheduleFrame: (video: HTMLVideoElement, callback: () => void) => void;
   stopFrameLoop: () => void;
   getLoopGeneration: () => number;
+  measureSourceHash?:boolean;
+  resumeLiveCamera?:()=>void;
 }
 
 export class MediaController {
@@ -31,6 +33,8 @@ export class MediaController {
   private loadedImageElement: HTMLImageElement | null = null;
   private liveResolution: '360p' | '480p' | '720p' | 'native' = '480p';
   private lastVideoTime = -1;
+  private sourceInfo:{name:string;bytes:number;sha256?:string} | null=null;
+  public getSourceInfo(){return this.sourceInfo;}
 
   private recTimerInterval: number | null = null;
   private recStartTime = 0;
@@ -144,6 +148,7 @@ export class MediaController {
   }
 
   public stopVideoFile(): void {
+    this.sourceInfo=null;
     this.opts.stopFrameLoop();
     this.hideVideoLoading();
     this.videoTimeline.detachVideo();
@@ -180,6 +185,10 @@ export class MediaController {
     host.appendChild(video);
 
     this.loadedVideoElement = video;
+    this.sourceInfo={name:file.name,bytes:file.size};
+    if(this.opts.measureSourceHash)void file.arrayBuffer().then(bytes=>crypto.subtle.digest('SHA-256',bytes)).then(digest=>{
+      if(this.loadedVideoElement===video && this.sourceInfo)this.sourceInfo.sha256=Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('');
+    }).catch(error=>console.warn('Source hash unavailable',error));
 
     let isStarted = false;
     const startPlayback = () => {
@@ -234,7 +243,7 @@ export class MediaController {
 
     this.lastVideoTime = -1;
 
-    const onFrame = () => {
+    const onFrame = async () => {
       if (generation !== this.opts.getLoopGeneration() || this.loadedVideoElement !== v) return;
       const cur = this.loadedVideoElement;
 
@@ -268,12 +277,13 @@ export class MediaController {
           this.opts.canvas.height = dims.h;
         }
 
+        const started=performance.now();
         this.opts.offscreenCtx.drawImage(cur, 0, 0, dims.w, dims.h);
         const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-        this.opts.onFrameProcessed(inputBuffer);
+        await this.opts.onFrameProcessed(inputBuffer,started);
       }
 
-      this.opts.scheduleFrame(cur, onFrame);
+      if(generation===this.opts.getLoopGeneration() && this.loadedVideoElement===v)this.opts.scheduleFrame(cur, onFrame);
     };
 
     this.opts.scheduleFrame(v, onFrame);
@@ -321,6 +331,14 @@ export class MediaController {
   }
 
   public saveFullResolutionSnapshot(): void {
+    if(!this.opts.measureSourceHash){this.renderFullResolutionSnapshot();return;}
+    this.opts.stopFrameLoop();
+    try{this.renderFullResolutionSnapshot();}finally{
+      if(this.opts.cameraManager.isActive())this.opts.resumeLiveCamera?.();
+      else if(this.loadedVideoElement)this.startVideoFileLoop();
+    }
+  }
+  private renderFullResolutionSnapshot():void {
     let fullW = this.opts.canvas.width;
     let fullH = this.opts.canvas.height;
     let sourceDrawable: CanvasImageSource = this.opts.canvas;
@@ -367,6 +385,7 @@ export class MediaController {
 
   public async startOfflineVideoRecording(): Promise<void> {
     if (!this.loadedVideoElement) return;
+    this.opts.stopFrameLoop();
 
     const v = this.loadedVideoElement;
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement | null;

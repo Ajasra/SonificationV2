@@ -12,6 +12,7 @@ import type { IDspFilter } from './filters/base.ts';
 import { createVideoFilterInstance } from './video-filters/factory.ts';
 import type { IVideoFilter } from './video-filters/base.ts';
 import { resolveChain } from './chain.ts';
+import { TapeSaturationFilter } from './filters/lofi/tapesat.ts';
 
 export interface PipelineResult {
   outputRgba: Uint8ClampedArray;
@@ -47,6 +48,13 @@ type Segment =
   | { kind: 'video'; filters: IVideoFilter[] };
 
 export class SonificationPipeline {
+  tapeSatState(preset:SonificationPreset,width:number,height:number,id:string,state?:ReturnType<TapeSaturationFilter['exportState']>) {
+    this.syncChain(preset,width,height);
+    const filter=this.instanceCache.get(`audio:${id}`)?.inst;
+    if(!(filter instanceof TapeSaturationFilter))throw new Error('TapeSat instance unavailable');
+    if(state)filter.importState(state);
+    return filter.exportState();
+  }
   constructor(
     private readonly audioFactory: typeof createFilterInstance = createFilterInstance,
     private readonly segmentProcessor?: (filters: IDspFilter[], samples: Float32Array) => void,

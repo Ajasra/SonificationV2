@@ -41,10 +41,14 @@ struct Size {width:u32,height:u32,pad:vec2<u32>}
 const gatherShader = `
 @group(0) @binding(0) var<storage,read> samples:array<f32>;
 @group(0) @binding(1) var<storage,read_write> compact:array<f32>;
+@group(0) @binding(2) var<storage,read> state:array<f32>;
+@group(0) @binding(3) var<storage,read> raw:array<f32>;
 @compute @workgroup_size(256) fn gather(@builtin(global_invocation_id) id:vec3<u32>){
  let i=id.x;let n=arrayLength(&samples);
  if(i<4096u){let index=i*max(1u,n/4096u);compact[i]=0.0;if(index<n){compact[i]=samples[index];}}
  else if(i<6144u){let index=i-4096u;compact[i]=0.0;if(index<n){compact[i]=samples[index];}}
+ else if(i<8192u){let index=i-6144u;compact[i]=0.0;if(index<n){compact[i]=raw[index];}}
+ else if(i<8194u){compact[i]=state[i-8192u];}
 }
 `;
 
@@ -144,6 +148,15 @@ export class WebGpuTapeSat {
     } catch (error) { device.destroy(); throw error; }
   }
   reset(): void { if (this.busy || this.disposed) throw new Error('Backend unavailable'); this.device.queue.writeBuffer(this.state, 0, new Float32Array(2)); }
+  seedState(bumpLp:number,toneLp:number):void {
+    if(this.busy || this.disposed || !Number.isFinite(bumpLp) || !Number.isFinite(toneLp))throw new Error('Invalid GPU state');
+    this.device.queue.writeBuffer(this.state,0,new Float32Array([bumpLp,toneLp]));
+  }
+  async processRgba(rgba:Uint8ClampedArray,context:GPUCanvasContext,params:Record<string,number>={}):Promise<Float32Array> {
+    const width=context.canvas.width,height=context.canvas.height;
+    if(rgba.length!==width*height*4)throw new Error('Reference RGBA size mismatch');
+    return this.execute(undefined,params,44100,false,{source:context.canvas as HTMLCanvasElement,rgba,context,width,height,diagnostic:false});
+  }
   dispose(): void { this.disposed = true; this.device.destroy(); }
   useReferenceBytes():void {if(this.busy || this.disposed)throw new Error('Backend unavailable');this.captureMode='reference-bytes';}
   configureCanvas(canvas: HTMLCanvasElement): GPUCanvasContext {
@@ -207,7 +220,7 @@ export class WebGpuTapeSat {
     let scopePending = true;
     try {
       const input = buffer(bytes), local = buffer(bytes), sums = buffer(Math.max(groups * 8, bytes * 2)), scratch = buffer(Math.max(groups * 8, bytes * 2));
-      const readBytes=resident && !resident.diagnostic ? 6144*4 : bytes;
+      const readBytes=resident && !resident.diagnostic ? 8194*4 : bytes;
       const read = buffer(readBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
       const rawRead=resident?.diagnostic ? buffer(bytes,GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST) : undefined;
       const pixelPitch=resident ? Math.ceil(resident.width*4/256)*256 : 0;
@@ -218,6 +231,7 @@ export class WebGpuTapeSat {
       const tanh = (z:number) => z < -3 ? -1 : z > 3 ? 1 : z*(27+z*z)/(27+9*z*z);
       const encoder = this.device.createCommandEncoder();
       let imageSize:GPUBuffer | undefined;
+      let rawPreview:GPUBuffer | undefined;
       if(resident){
         let imageResource:GPUTextureView | GPUBufferBinding;
         const pipeline=resident.rgba ? this.bytePipeline : this.imagePipeline;
@@ -237,6 +251,7 @@ export class WebGpuTapeSat {
         const bind=this.device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:imageResource},{binding:1,resource:{buffer:input}},{binding:2,resource:{buffer:this.lut}},{binding:3,resource:{buffer:imageSize}}]});
         const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(resident.width*resident.height/256));pass.end();
         if(rawRead)encoder.copyBufferToBuffer(input,0,rawRead,0,bytes);
+        if(!resident.diagnostic){rawPreview=buffer(2048*4);encoder.copyBufferToBuffer(input,0,rawPreview,0,Math.min(bytes,2048*4));}
       }
       for (let stage = 0; stage < 2; stage++) {
         const dispatch = (entry:string, stride:number, source:GPUBuffer, target:GPUBuffer, count:number) => {
@@ -277,8 +292,8 @@ export class WebGpuTapeSat {
       }
       if(resident && !resident.diagnostic){
         const compact=buffer(readBytes);
-        const bind=this.device.createBindGroup({layout:this.gatherPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:local}},{binding:1,resource:{buffer:compact}}]});
-        const pass=encoder.beginComputePass();pass.setPipeline(this.gatherPipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(24);pass.end();
+        const bind=this.device.createBindGroup({layout:this.gatherPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:local}},{binding:1,resource:{buffer:compact}},{binding:2,resource:{buffer:this.state}},{binding:3,resource:{buffer:rawPreview!}}]});
+        const pass=encoder.beginComputePass();pass.setPipeline(this.gatherPipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(33);pass.end();
         encoder.copyBufferToBuffer(compact,0,read,0,readBytes);
       }else encoder.copyBufferToBuffer(local,0,read,0,bytes);
       this.device.queue.submit([encoder.finish()]);

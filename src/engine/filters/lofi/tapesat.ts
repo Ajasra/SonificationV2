@@ -44,6 +44,10 @@ export class TapeSaturationFilter extends BaseDspFilter {
   }
 
   exportState() { return { version: 1, sampleRate: this.sampleRate, bumpLp: this.bumpLp, toneLp: this.toneLp }; }
+  importState(state:ReturnType<TapeSaturationFilter['exportState']>):void {
+    if(state.version!==1 || state.sampleRate!==this.sampleRate || !Number.isFinite(state.bumpLp) || !Number.isFinite(state.toneLp))throw new Error('Invalid TapeSat state');
+    this.bumpLp=state.bumpLp;this.toneLp=state.toneLp;
+  }
 
   processBlock(samples: Float32Array): void {
     const len = samples.length;

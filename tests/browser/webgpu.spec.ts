@@ -1,4 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test as base, expect, chromium } from '@playwright/test';
+// Isolate native GPU resources between tests, including codec-backed textures.
+const test=base.extend({context:async ({},use)=>{
+  const browser=await chromium.launch({headless:true,...(process.env.BENCHMARK_GPU_BROWSER==='chrome'?{channel:'chrome',args:['--enable-unsafe-webgpu']}: {})});
+  const context=await browser.newContext({baseURL:'http://127.0.0.1:5175'});
+  try{await use(context);}finally{await browser.close();}
+}});
 
 // Declared before measurement: f32 scan candidate gates, separate from WASM.
 // Adapter tests establish functionality; named-device FPS gates are separate.
@@ -106,4 +112,31 @@ test('capture fallback preserves altered reference canvas bytes',async ({page},t
   await testInfo.attach('Byte fallback fidelity',{body:JSON.stringify(result,null,2),contentType:'application/json'});
   expect(result.captureMode).toBe('reference-bytes');expect(result.textureProbe?.passed).toBe(false);expect(result.fidelity.passed).toBe(true);
   expect(result.fidelity.cases.every(value=>value.captureMaxError===0)).toBe(true);
+});
+
+test('GPU compact audio, raw HUD preview and JS state handoff preserve mapping',async ({page})=>{
+  await page.goto('/benchmark.html');const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);test.skip(!available,'No GPU adapter for handoff');
+  const result=await page.evaluate(async()=>{
+    const {WebGpuTapeSat}=await import('/src/engine/backends/webgpu-tapesat.ts');
+    const {SonificationPipeline}=await import('/src/engine/pipeline.ts');
+    const {imageToAudioStream}=await import('/src/engine/streams.ts');
+    const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
+    const preset={id:'handoff',name:'handoff',reader:{...stream},writer:{...stream},filters:[{id:'sat',type:'tapesat' as const,enabled:true,sampleRate:44100,params:{drive:2.5,bias:.1,bump:.4,bumpHz:80,tone:8000}}],videoFilters:[],equalize:false,blendMode:'NONE' as const,blendAmount:0};
+    const input=Uint8ClampedArray.from({length:65*47*4},(_,i)=>i%4===3?255:(i*37)%256);
+    const gold=new SonificationPipeline(),hybrid=new SonificationPipeline();gold.processFrame(input,65,47,preset);hybrid.processFrame(input,65,47,preset);
+    const expected=gold.processFrame(input,65,47,preset).audioSamples.slice();const raw=imageToAudioStream(input,stream);
+    const gpu=await WebGpuTapeSat.create(),canvas=document.createElement('canvas');canvas.width=65;canvas.height=47;document.body.append(canvas);const context=gpu.configureCanvas(canvas);
+    try{
+      const state=hybrid.tapeSatState(preset,65,47,'sat');gpu.seedState(state.bumpLp,state.toneLp);
+      const compact=await gpu.processRgba(input,context,preset.filters[0].params);let mappedMax=0,rawMax=0;
+      for(let i=0;i<4096;i++)mappedMax=Math.max(mappedMax,Math.abs(compact[i]-expected[i*Math.max(1,Math.floor(expected.length/4096))]));
+      for(let i=0;i<2048;i++){mappedMax=Math.max(mappedMax,Math.abs(compact[4096+i]-expected[i]));rawMax=Math.max(rawMax,Math.abs(compact[6144+i]-raw[i]));}
+      hybrid.tapeSatState(preset,65,47,'sat',{version:1,sampleRate:44100,bumpLp:compact[8192],toneLp:compact[8193]});
+      const continued=hybrid.processFrame(input,65,47,preset).audioSamples,expectedContinuation=gold.processFrame(input,65,47,preset).audioSamples;let continuationMax=0;
+      for(let i=0;i<continued.length;i++)continuationMax=Math.max(continuationMax,Math.abs(continued[i]-expectedContinuation[i]));
+      return {length:compact.length,mappedMax,rawMax,continuationMax};
+    }finally{context.unconfigure();gpu.dispose();}
+  });
+  expect(result.length).toBe(8194);expect(result.rawMax).toBe(0);expect(result.mappedMax).toBeLessThanOrEqual(1e-4);expect(result.continuationMax).toBeLessThanOrEqual(1e-4);
 });

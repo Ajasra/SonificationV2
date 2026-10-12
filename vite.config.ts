@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+import {execFileSync} from 'node:child_process';
 
 export default defineConfig({
+  define:{__APP_BUILD__:JSON.stringify({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),dirty:execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim().length>0})},
   plugins: [
     basicSsl(),
   ],
