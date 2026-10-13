@@ -8,14 +8,15 @@ import fs from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 
-const defaultVideo=String.raw`C:\Users\user\Desktop\Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4`;
+const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const defaultVideo=path.join(repoRoot,'test_60fps.mov');
 const argv=process.argv.slice(2);
 const usage=`Usage: npm run benchmark:app-gpu -- [options]
 
 Runs the real 720p WebGPU application benchmark in Chrome and saves its JSON report.
 
 Options:
-  --video <path>       Video file (default: the Desktop MP4 used in recent runs)
+  --video <path>       Video file (default: test_60fps.mov in the repository root)
   --duration <seconds> Measured duration, excluding the app's warmup (default: 60)
   --output-dir <path>  Report directory (default: ~/Downloads)
   --headed             Show the Chrome window
@@ -59,7 +60,6 @@ const outputDir=path.resolve(option('--output-dir',path.join(os.homedir(),'Downl
 const headed=argv.includes('--headed');
 if(!Number.isInteger(durationSeconds)||durationSeconds<5||durationSeconds>3600)throw new Error('--duration must be an integer from 5 to 3600 seconds.');
 
-const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const sourceHasher=createHash('sha256');
 try{for await(const chunk of createReadStream(videoPath))sourceHasher.update(chunk);}catch(error){throw new Error(`Cannot read video ${videoPath}: ${error.message}\n\n${usage}`);}
 const expectedSourceHash=sourceHasher.digest('hex');
@@ -152,7 +152,7 @@ try{
     server.kill('SIGTERM');
     if(!await waitForExit(server,2000)&&process.platform==='win32'){
       const killer=spawn('taskkill.exe',['/PID',String(server.pid),'/T','/F'],{stdio:'ignore'});
-      await new Promise(resolve=>killer.once('exit',resolve));
+      await waitForExit(killer,3000);
       await waitForExit(server,2000);
     }
   }

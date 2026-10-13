@@ -19,6 +19,7 @@ export interface MediaControllerOptions {
   getBusRate: () => number;
   getIsSyncMode: () => boolean;
   isMobileDevice: () => boolean;
+  isFrameProcessing: () => boolean;
   onFrameProcessed: (captureInput:()=>{data:ImageData;durationMs:number}, started?:number, capturedAt?:number) => void | Promise<void>;
   onCameraStopped: () => void;
   scheduleFrame: (video: HTMLVideoElement, callback: () => void) => void;
@@ -251,6 +252,9 @@ export class MediaController {
       // Processing can take longer than one frame; waiting for it before
       // registering again leaves an avoidable gap and drops later callbacks.
       this.opts.scheduleFrame(cur, onFrame);
+
+      // Keep the shared source canvas stable while the prior frame is processed.
+      if (this.opts.isFrameProcessing()) return;
 
       // If temporarily paused or rebuffering, do not abandon the loop
       if (cur.paused && !cur.ended) {

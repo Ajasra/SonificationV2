@@ -295,6 +295,7 @@ class SonificationApp {
       getBusRate: () => this.presetController.getCurrentBusRate(),
       getIsSyncMode: () => this.isSyncMode,
       isMobileDevice: () => this.mobileController ? this.mobileController.isMobileDevice() : false,
+      isFrameProcessing: () => this.processingFrame,
       onFrameProcessed: (captureInput,started,capturedAt) => {
         return this.processAndBlit(started,capturedAt,captureInput);
       },
@@ -954,6 +955,7 @@ class SonificationApp {
       // This keeps sampling aligned with the source clock without queuing frame
       // processing; processAndBlit remains single-flight and drops busy frames.
       this.scheduleFrame(video, onFrame);
+      if (this.processingFrame) return;
       if (video.readyState >= 2) {
         const dims = this.mediaController.getTargetDimensions(video.videoWidth || 640, video.videoHeight || 480);
         if (this.offscreenCanvas.width !== dims.w || this.offscreenCanvas.height !== dims.h) {
