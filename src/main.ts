@@ -294,9 +294,8 @@ class SonificationApp {
       getBusRate: () => this.presetController.getCurrentBusRate(),
       getIsSyncMode: () => this.isSyncMode,
       isMobileDevice: () => this.mobileController ? this.mobileController.isMobileDevice() : false,
-      onFrameProcessed: (data,started,capturedAt) => {
-        this.inputImageBuffer = data;
-        return this.processAndBlit(started,capturedAt);
+      onFrameProcessed: (captureInput,started,capturedAt) => {
+        return this.processAndBlit(started,capturedAt,captureInput);
       },
       onCameraStopped: () => {
         const btnCam = document.getElementById('btn-toggle-camera');
@@ -963,8 +962,9 @@ class SonificationApp {
 
         const started=performance.now();
         this.offscreenCtx.drawImage(video, 0, 0, dims.w, dims.h);
-        this.inputImageBuffer = this.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-        await this.processAndBlit(started,performance.now());
+        const capturedAt=performance.now();
+        const captureInput=()=>{const captureStarted=performance.now();const data=this.offscreenCtx.getImageData(0,0,dims.w,dims.h);this.inputImageBuffer=data;return {data,durationMs:performance.now()-captureStarted};};
+        await this.processAndBlit(started,capturedAt,captureInput);
       }
 
       if(generation===this.loopGeneration && this.cameraManager.isActive())this.scheduleFrame(video, onFrame);
@@ -980,16 +980,17 @@ class SonificationApp {
     }
   }
 
-  private async processAndBlit(started=performance.now(),capturedAt=started): Promise<void> {
+  private async processAndBlit(started=performance.now(),capturedAt=started,captureInput=()=>({data:this.inputImageBuffer!,durationMs:0})): Promise<void> {
     if(this.processingFrame)return;
     this.processingFrame=true;
-    try{await this.processCapturedFrame(started,capturedAt);}finally{this.processingFrame=false;}
+    try{await this.processCapturedFrame(started,capturedAt,captureInput);}finally{this.processingFrame=false;}
   }
-  private async processCapturedFrame(started:number,capturedAt:number):Promise<void> {
-    if (!this.inputImageBuffer) return;
+  private async processCapturedFrame(started:number,capturedAt:number,captureInput:()=>{data:ImageData;durationMs:number}):Promise<void> {
     if(this.gpuEnabled && this.offlineVideoRecorder.getIsRunning())return;
     const generation=this.loopGeneration;
-    const input=this.inputImageBuffer;
+    let input:ImageData|undefined;
+    let captureReadMs=0;
+    const getInput=()=>{if(!input){const captured=captureInput();input=captured.data;this.inputImageBuffer=input;captureReadMs=captured.durationMs;}return input;};
 
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -1000,7 +1001,7 @@ class SonificationApp {
 
     if (this.currentViewMode === 'source') {
       this.gpu?.showCpu();
-      this.ctx.putImageData(this.inputImageBuffer, 0, 0);
+      this.ctx.putImageData(getInput(), 0, 0);
       return;
     }
 
@@ -1010,7 +1011,7 @@ class SonificationApp {
     if(this.gpu && eligible){
       const gpuStarted=performance.now();
       const state=this.pipeline.tapeSatState(preset,w,h,eligible.id);
-      const compact=await this.gpu.process(input,eligible.params,state);
+      const compact=await this.gpu.process(this.offscreenCanvas,getInput,eligible.params,state);
       const gpuMs=performance.now()-gpuStarted;
       if(generation!==this.loopGeneration)return;
       if(compact){
@@ -1023,7 +1024,7 @@ class SonificationApp {
         const telemetryStarted=performance.now();
         this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:compact.subarray(4096,6144),scopeSamples:compact.subarray(0,4096),rawAudioSamples:compact.subarray(6144,8192),analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});
         const telemetryMs=performance.now()-telemetryStarted;
-        this.updateFramePerformance(performance.now()-started,'GPU',{captureMs:Math.max(0,capturedAt-started),prepareMs:Math.max(0,gpuStarted-capturedAt),gpuMs,audioMs,telemetryMs});return;
+        this.updateFramePerformance(performance.now()-started,'GPU',{captureMs:Math.max(0,capturedAt-started)+captureReadMs,prepareMs:Math.max(0,gpuStarted-capturedAt),gpuMs,audioMs,telemetryMs});return;
       }
     }
     this.gpu?.showCpu();
@@ -1033,7 +1034,7 @@ class SonificationApp {
     }
 
     const res = this.pipeline.processFrame(
-      this.inputImageBuffer.data,
+      getInput().data,
       w,
       h,
       this.activePreset,
@@ -1042,7 +1043,7 @@ class SonificationApp {
 
     if (this.currentViewMode === 'exposure') {
       const d = this.cachedImageData.data;
-      const s = this.inputImageBuffer.data;
+      const s = getInput().data;
       for (let i = 0; i < d.length; i += 4) {
         const diffR = Math.abs(d[i] - s[i]);
         const diffG = Math.abs(d[i + 1] - s[i + 1]);

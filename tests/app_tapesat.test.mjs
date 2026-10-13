@@ -35,19 +35,25 @@ test('pipeline state handoff preserves TapeSat continuity within f32 limits',()=
   p.filters[0].sampleRate=48000;assert.equal(b.tapeSatState(p,65,47,'sat').toneLp,0);
 });
 
-function controllerHarness(){
-  let creates=0,disposed=0,rejectFrame=false,resolveCreate;
-  const runtime={dispose(){disposed++;},configureCanvas(){return {unconfigure(){}};},useReferenceBytes(){},seedState(){},async processRgba(){if(rejectFrame)throw new Error('device lost');return new Float32Array(8194);}};
+function controllerHarness(captureMode='reference-bytes'){
+  let creates=0,disposed=0,rejectFrame=false,resolveCreate,rgbaCalls=0,imageCalls=0;
+  const runtime={captureMode,adapterInfo:{vendor:'',architecture:'',device:'',description:''},dispose(){disposed++;},configureCanvas(){return {unconfigure(){}};},seedState(){},async processRgba(){rgbaCalls++;if(rejectFrame)throw new Error('device lost');return new Float32Array(8194);},async processImage(){imageCalls++;if(rejectFrame)throw new Error('device lost');return new Float32Array(8194);}};
   const exports={};const code=ts.transpileModule(fs.readFileSync('src/engine/backends/app-tapesat.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-  vm.runInNewContext(code,{exports,console:{warn(){}},document:{createElement:()=>({style:{},getContext:()=>({putImageData(){}})})},require:name=>name.includes('webgpu-tapesat')?{WebGpuTapeSat:{create:()=>{creates++;return new Promise(resolve=>resolveCreate=()=>resolve(runtime));}}}:name.includes('gpu-fidelity')?{checkGpuFidelity:async()=>({passed:true}),checkResidentFidelity:async()=>({passed:true})}:{resolveChain:()=>[]}});
+  vm.runInNewContext(code,{exports,console:{warn(){}},document:{createElement:()=>({style:{},getContext:()=>({putImageData(){}})})},require:name=>name.includes('webgpu-tapesat')?{WebGpuTapeSat:{create:()=>{creates++;return new Promise(resolve=>resolveCreate=()=>resolve(runtime));}}}:name.includes('gpu-fidelity')?{checkGpuFidelity:async()=>({passed:true}),selectResidentCapture:async()=>({fidelity:{passed:true},textureProbe:null,captureMode:runtime.captureMode})}:{resolveChain:()=>[]}});
   const controller=new exports.AppTapeSatGpu({style:{},insertAdjacentElement(){}});
-  return {controller,resolve(){resolveCreate();},fail(){rejectFrame=true;},get creates(){return creates;},get disposed(){return disposed;}};
+  return {controller,resolve(){resolveCreate();},fail(){rejectFrame=true;},get creates(){return creates;},get disposed(){return disposed;},get rgbaCalls(){return rgbaCalls;},get imageCalls(){return imageCalls;}};
 }
 test('source cancellation disposes a late-created GPU device',async()=>{
-  const h=controllerHarness();const pending=h.controller.process({}, {}, {bumpLp:0,toneLp:0});h.controller.reset();h.resolve();assert.equal(await pending,undefined);assert.equal(h.disposed,1);
+  const h=controllerHarness();const pending=h.controller.process({},()=>({data:{data:new Uint8ClampedArray()},durationMs:0}),{}, {bumpLp:0,toneLp:0});h.controller.reset();h.resolve();assert.equal(await pending,undefined);assert.equal(h.disposed,1);
 });
 test('GPU processing failure falls back once and source reset permits retry',async()=>{
-  const h=controllerHarness();h.fail();const pending=h.controller.process({}, {}, {bumpLp:0,toneLp:0});h.resolve();assert.equal(await pending,undefined);
-  assert.equal(await h.controller.process({}, {}, {bumpLp:0,toneLp:0}),undefined);assert.equal(h.creates,1);assert.equal(h.disposed,1);
-  h.controller.reset();const next=h.controller.process({}, {}, {bumpLp:0,toneLp:0});h.resolve();assert.equal(await next,undefined);assert.equal(h.creates,2);
+  const capture=()=>({data:{data:new Uint8ClampedArray()},durationMs:0});
+  const h=controllerHarness();h.fail();const pending=h.controller.process({},capture,{}, {bumpLp:0,toneLp:0});h.resolve();assert.equal(await pending,undefined);
+  assert.equal(await h.controller.process({},capture,{}, {bumpLp:0,toneLp:0}),undefined);assert.equal(h.creates,1);assert.equal(h.disposed,1);
+  h.controller.reset();const next=h.controller.process({},capture,{}, {bumpLp:0,toneLp:0});h.resolve();assert.equal(await next,undefined);assert.equal(h.creates,2);
+});
+test('proven texture capture skips per-frame CPU pixel readback',async()=>{
+  const h=controllerHarness('texture'),source={},capture=()=>{throw new Error('CPU pixel readback should be skipped');};
+  const pending=h.controller.process(source,capture,{}, {bumpLp:0,toneLp:0});h.resolve();
+  assert.equal((await pending).length,8194);assert.equal(h.imageCalls,1);assert.equal(h.rgbaCalls,0);
 });

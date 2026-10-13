@@ -1,5 +1,5 @@
 import {WebGpuTapeSat} from './webgpu-tapesat.ts';
-import {checkGpuFidelity,checkResidentFidelity} from '../../benchmark/gpu-fidelity.ts';
+import {checkGpuFidelity,selectResidentCapture} from '../../benchmark/gpu-fidelity.ts';
 
 export {eligibleTapeSat} from './gpu-eligibility.ts';
 
@@ -22,27 +22,28 @@ export class AppTapeSatGpu {
     this.initializing=undefined;this.failed=false;this.showCpu();
     this.validation=undefined;
   }
-  private async initialize(input:ImageData):Promise<boolean>{
+  private async initialize(source:HTMLCanvasElement):Promise<boolean>{
     const epoch=this.epoch,runtime=await WebGpuTapeSat.create();
     if(epoch!==this.epoch){runtime.dispose();return false;}
-    this.runtime=runtime;this.context=runtime.configureCanvas(this.canvas);runtime.useReferenceBytes();
+    this.runtime=runtime;this.context=runtime.configureCanvas(this.canvas);
     const sample=await checkGpuFidelity(runtime,()=>epoch!==this.epoch);
     if(epoch!==this.epoch)return false;
-    const source=document.createElement('canvas');source.width=1280;source.height=720;source.getContext('2d')!.putImageData(input,0,0);
-    const resident=await checkResidentFidelity(runtime,this.context,source,()=>epoch!==this.epoch);
+    const selection=await selectResidentCapture(runtime,this.context,source,()=>epoch!==this.epoch);
     if(epoch!==this.epoch)return false;
-    this.validation={sample,resident,captureMode:'reference-bytes',adapter:{vendor:runtime.adapterInfo.vendor,architecture:runtime.adapterInfo.architecture,device:runtime.adapterInfo.device,description:runtime.adapterInfo.description}};
-    if(!sample.passed || !resident.passed)throw new Error('Application GPU fidelity gate failed');
+    this.validation={sample,resident:selection.fidelity,textureProbe:selection.textureProbe,captureMode:selection.captureMode,adapter:{vendor:runtime.adapterInfo.vendor,architecture:runtime.adapterInfo.architecture,device:runtime.adapterInfo.device,description:runtime.adapterInfo.description}};
+    if(!sample.passed || !selection.fidelity.passed)throw new Error('Application GPU fidelity gate failed');
     return true;
   }
-  async process(input:ImageData,params:Record<string,number>,state:{bumpLp:number;toneLp:number}):Promise<Float32Array | undefined>{
+  async process(source:HTMLCanvasElement,captureInput:()=>ImageData,params:Record<string,number>,state:{bumpLp:number;toneLp:number}):Promise<Float32Array | undefined>{
     if(this.failed)return;
     const epoch=this.epoch;
     try{
-      this.initializing??=this.initialize(input);
+      this.initializing??=this.initialize(source);
       if(!await this.initializing || epoch!==this.epoch)return;
       this.runtime!.seedState(state.bumpLp,state.toneLp);
-      const result=await this.runtime!.processRgba(input.data,this.context!,params);
+      const result=this.runtime!.captureMode==='texture'
+        ? await this.runtime!.processImage(source,this.context!,params)
+        : await this.runtime!.processRgba(captureInput().data,this.context!,params);
       if(epoch!==this.epoch)return;
       return result;
     }catch(error){

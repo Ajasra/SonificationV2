@@ -37,3 +37,7 @@ test('canvas source uses reference raster and invalid dimensions fail before sna
   const h=harness();await h.gpu.processImage(h.canvas,{canvas:h.canvas});assert.equal(h.drawn,h.canvas);assert.equal(h.received,h.raster);assert.equal(h.snapshots,0);
   h.video.videoWidth=640;await assert.rejects(h.gpu.processImage(h.video,{canvas:h.canvas}),/source dimensions/);assert.equal(h.snapshots,0);
 });
+test('fidelity-approved texture mode submits an owned canvas directly',async()=>{
+  const h=harness();h.gpu.captureMode='texture';await h.gpu.processImage(h.canvas,{canvas:h.canvas});
+  assert.equal(h.received,h.canvas);assert.equal(h.drawn,undefined);assert.equal(h.snapshots,0);
+});

@@ -43,6 +43,9 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   const downloading=page.waitForEvent('download');await page.locator('#perf-badge').click();const downloaded=await downloading;
   const report=JSON.parse(await fs.readFile((await downloaded.path())!,'utf8'));
   await testInfo.attach('Application GPU smoke report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
+  console.log('Application GPU capture mode:',report.gpuValidation.captureMode);
+  console.log('Texture probe capture errors:',report.gpuValidation.textureProbe?.cases?.map((item:{source:string;captureMaxError:number;maxPixelError:number})=>({source:item.source,captureMaxError:item.captureMaxError,maxPixelError:item.maxPixelError}))??'no fallback probe');
+  expect(['texture','reference-bytes']).toContain(report.gpuValidation.captureMode);
   expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');
   expect(report.gpuValidation.sample.passed).toBe(true);expect(report.gpuValidation.resident.passed).toBe(true);
   expect(report.preset.id).toBe('experimental-gpu-tapesat');

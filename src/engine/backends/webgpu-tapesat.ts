@@ -174,6 +174,11 @@ export class WebGpuTapeSat {
     const sourceHeight=source instanceof HTMLVideoElement ? source.videoHeight : source.height;
     if(sourceWidth!==width || sourceHeight!==height) throw new Error('Resident prototype requires source dimensions to match output; use a 1280×720 source.');
     if(this.busy || this.disposed)throw new Error('Backend unavailable');
+    // A 2D canvas is already an owned, stable source. When the texture probe
+    // proved byte-equivalent capture, send it directly to the GPU and avoid
+    // the additional CPU raster copy used to own video/image snapshots.
+    if(source instanceof HTMLCanvasElement && this.captureMode==='texture')
+      return this.execute(undefined,params,44100,profile,{source,context,width,height,diagnostic});
     // Paused videos may have no importable GPU backing resource in Chromium.
     // Own the snapshot through GPU completion; never read its pixels into JS.
     const snapshotStarted=profile ? performance.now() : 0;

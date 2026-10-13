@@ -19,7 +19,7 @@ export interface MediaControllerOptions {
   getBusRate: () => number;
   getIsSyncMode: () => boolean;
   isMobileDevice: () => boolean;
-  onFrameProcessed: (data: ImageData, started?:number, capturedAt?:number) => void | Promise<void>;
+  onFrameProcessed: (captureInput:()=>{data:ImageData;durationMs:number}, started?:number, capturedAt?:number) => void | Promise<void>;
   onCameraStopped: () => void;
   scheduleFrame: (video: HTMLVideoElement, callback: () => void) => void;
   stopFrameLoop: (reason?:string) => void;
@@ -88,7 +88,7 @@ export class MediaController {
     }
     this.opts.offscreenCtx.drawImage(cur, 0, 0, dims.w, dims.h);
     const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-    this.opts.onFrameProcessed(inputBuffer);
+    this.opts.onFrameProcessed(()=>({data:inputBuffer,durationMs:0}));
   }
 
   public getLoadedVideo(): HTMLVideoElement | null {
@@ -279,8 +279,9 @@ export class MediaController {
 
         const started=performance.now();
         this.opts.offscreenCtx.drawImage(cur, 0, 0, dims.w, dims.h);
-        const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-        await this.opts.onFrameProcessed(inputBuffer,started,performance.now());
+        const capturedAt=performance.now();
+        const captureInput=()=>{const captureStarted=performance.now();return {data:this.opts.offscreenCtx.getImageData(0,0,dims.w,dims.h),durationMs:performance.now()-captureStarted};};
+        await this.opts.onFrameProcessed(captureInput,started,capturedAt);
       }
 
       if(generation===this.opts.getLoopGeneration() && this.loadedVideoElement===v)this.opts.scheduleFrame(cur, onFrame);
@@ -318,7 +319,7 @@ export class MediaController {
 
     this.opts.offscreenCtx.drawImage(img, 0, 0, dims.w, dims.h);
     const inputBuffer = this.opts.offscreenCtx.getImageData(0, 0, dims.w, dims.h);
-    this.opts.onFrameProcessed(inputBuffer);
+    this.opts.onFrameProcessed(()=>({data:inputBuffer,durationMs:0}));
   }
 
   public triggerShutterSnapshot(): void {

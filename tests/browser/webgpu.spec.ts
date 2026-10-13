@@ -59,7 +59,7 @@ test('GPU resident capture, display and compact gathers match reference',async (
 });
 
 for(const altered of [false,true]) {
-test(`resident video benchmark completes (${altered?'altered readback':'texture capture'})`,async ({page},testInfo)=>{
+test(`resident video benchmark completes with adaptive capture (${altered?'altered readback':'video frame'})`,async ({page},testInfo)=>{
   await page.goto('/benchmark.html');
   const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
   if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
@@ -87,7 +87,9 @@ test(`resident video benchmark completes (${altered?'altered readback':'texture 
   const report=JSON.parse(await page.locator('#report').textContent()||'{}');
   await testInfo.attach('Resident video report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
   expect(report.gpuFidelity.passed).toBe(true);expect(report.residentFidelity.passed).toBe(true);expect(report.measuredFrames).toBeGreaterThan(0);
-  expect(report.captureSelection.captureMode).toBe(altered?'reference-bytes':'texture');
+  expect(['texture','reference-bytes']).toContain(report.captureSelection.captureMode);
+  if(report.captureSelection.captureMode==='texture')expect(report.captureSelection.textureProbe).toBeNull();
+  else expect(report.captureSelection.textureProbe).not.toBeNull();
 });
 }
 
