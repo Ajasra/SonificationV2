@@ -950,6 +950,10 @@ class SonificationApp {
       if (generation !== this.loopGeneration || !this.cameraManager.isActive()) return;
 
       const video = this.cameraManager.getVideoElement();
+      // Register the next presentation callback before awaiting GPU/audio work.
+      // This keeps sampling aligned with the source clock without queuing frame
+      // processing; processAndBlit remains single-flight and drops busy frames.
+      this.scheduleFrame(video, onFrame);
       if (video.readyState >= 2) {
         const dims = this.mediaController.getTargetDimensions(video.videoWidth || 640, video.videoHeight || 480);
         if (this.offscreenCanvas.width !== dims.w || this.offscreenCanvas.height !== dims.h) {
@@ -968,7 +972,6 @@ class SonificationApp {
         await this.processAndBlit(started,capturedAt,captureInput);
       }
 
-      if(generation===this.loopGeneration && this.cameraManager.isActive())this.scheduleFrame(video, onFrame);
     };
 
     const video = this.cameraManager.getVideoElement();

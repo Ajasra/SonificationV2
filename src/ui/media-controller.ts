@@ -247,9 +247,13 @@ export class MediaController {
       if (generation !== this.opts.getLoopGeneration() || this.loadedVideoElement !== v) return;
       const cur = this.loadedVideoElement;
 
+      // Keep the decoder callback chain on the video's presentation clock.
+      // Processing can take longer than one frame; waiting for it before
+      // registering again leaves an avoidable gap and drops later callbacks.
+      this.opts.scheduleFrame(cur, onFrame);
+
       // If temporarily paused or rebuffering, do not abandon the loop
       if (cur.paused && !cur.ended) {
-        this.opts.scheduleFrame(cur, onFrame);
         return;
       }
 
@@ -284,7 +288,6 @@ export class MediaController {
         await this.opts.onFrameProcessed(captureInput,started,capturedAt);
       }
 
-      if(generation===this.opts.getLoopGeneration() && this.loadedVideoElement===v)this.opts.scheduleFrame(cur, onFrame);
     };
 
     this.opts.scheduleFrame(v, onFrame);
