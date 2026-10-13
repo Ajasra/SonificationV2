@@ -139,6 +139,20 @@ for (const aType of ['moogladder', 'wavefolder', 'echo', 'tapesat', 'tapewow']) 
   console.log(`  * ${benchA.name.padEnd(20)}: ${benchA.avgMs.toFixed(2)} ms/frame  (${benchA.fps.toFixed(1)} FPS)`);
 }
 
+console.log('\n--- 2b. P06 Pointwise candidate filters (921,600 samples) ---');
+const pointwiseAudioResults = [];
+for (const type of ['amplify', 'shiftr', 'wavefolder']) {
+  const inst = createFilterInstance(type, 44100);
+  inst.setParams(defaultParams(FILTER_DESCRIPTORS[type]));
+  const block = new Float32Array(audioBuffer);
+  const result = benchmarkFunction(`P06 ${type}`, () => {
+    block.set(audioBuffer);
+    inst.processBlock(block);
+  }, 25, 5);
+  pointwiseAudioResults.push(result);
+  console.log(`  * ${result.name.padEnd(20)}: ${result.avgMs.toFixed(2)} ms/frame  (${result.fps.toFixed(1)} FPS)`);
+}
+
 // 3. Full Pipeline Scenarios
 console.log('\n--- 3. Sonification Pipeline (Full Scenarios @ 640x480) ---');
 
@@ -169,6 +183,20 @@ const resA = benchmarkFunction('Pipeline: 3x Audio DSP', () => {
   pipeA.processFrame(img480, W_480, H_480, audioChainPreset, out480);
 }, 20, 5);
 console.log(`  * ${resA.name.padEnd(24)}: ${resA.avgMs.toFixed(2)} ms/frame  (${resA.fps.toFixed(1)} FPS)`);
+
+const pointwisePreset = {
+  id: 'bench-pointwise-audio', name: 'Amplify -> Shiftr -> Wavefolder', reader: streamCfg, writer: streamCfg,
+  equalize: false, blendMode: 'NONE', blendAmount: 0, videoFilters: [],
+  filters: ['amplify', 'shiftr', 'wavefolder'].map((type, index) => ({
+    id: `p${index}`, type, enabled: true, sampleRate: 44100, params: defaultParams(FILTER_DESCRIPTORS[type]),
+  })),
+  chain: ['amplify', 'shiftr', 'wavefolder'].map((_, index) => ({ kind: 'audio', id: `p${index}` })),
+};
+const pointwisePipeline = new SonificationPipeline();
+const pointwisePipelineResult = benchmarkFunction('Pipeline: P06 pointwise audio', () => {
+  pointwisePipeline.processFrame(img480, W_480, H_480, pointwisePreset, out480);
+}, 20, 5);
+console.log(`  * ${pointwisePipelineResult.name.padEnd(28)}: ${pointwisePipelineResult.avgMs.toFixed(2)} ms/frame  (${pointwisePipelineResult.fps.toFixed(1)} FPS)`);
 
 // Scenario B: Video Rack Chain (4 active video filters: procamp + colorizer + cvislicer + crtbloom)
 const videoChainPreset = {
@@ -266,7 +294,8 @@ const report = {
   environment: 'Node.js ' + process.version,
   resolution: `${W_480}x${H_480}`,
   videoFilters: videoResults,
-  pipeline: [resA, resB, resC],
+  pointwiseAudio: pointwiseAudioResults,
+  pipeline: [resA, pointwisePipelineResult, resB, resC],
 };
 
 fs.writeFileSync('benchmark_baseline.json', JSON.stringify(report, null, 2));
