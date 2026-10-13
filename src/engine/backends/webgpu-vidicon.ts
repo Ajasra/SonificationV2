@@ -27,10 +27,16 @@ export class WebGpuVidicon {
   private readonly paramsBuffer:GPUBuffer;
   private pixels?:GPUBuffer;
   private trail?:GPUBuffer;
-  private readback?:GPUBuffer;
+  private readbacks:GPUBuffer[]=[];
   private width=0;
   private height=0;
   private disposed=false;
+  private nextSlot=0;
+  private readonly slotBusy=[false,false];
+  private readonly slotWaiters:Array<Array<(slot:number)=>void>>=[[],[]];
+  private active=0;
+  private highWater=0;
+  private pending=0;
 
   private constructor(device:GPUDevice){
     this.device=device;
@@ -43,20 +49,39 @@ export class WebGpuVidicon {
   reset(width:number,height:number):void{
     if(this.disposed)throw new Error('WebGPU Vidicon disposed');const bytes=width*height*4,trailBytes=width*height*3*4;
     if(!Number.isInteger(width)||!Number.isInteger(height)||width<=0||height<=0)throw new Error('Invalid Vidicon dimensions');
-    this.pixels?.destroy();this.trail?.destroy();this.readback?.destroy();this.width=width;this.height=height;
+    if(this.active)throw new Error('Drain Vidicon submissions before resetting its history');
+    this.pixels?.destroy();this.trail?.destroy();for(const buffer of this.readbacks)buffer.destroy();this.readbacks=[];this.width=width;this.height=height;
     this.pixels=this.device.createBuffer({size:bytes,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST|GPUBufferUsage.COPY_SRC});
     this.trail=this.device.createBuffer({size:trailBytes,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
-    this.readback=this.device.createBuffer({size:bytes,usage:GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST});
+    for(let i=0;i<2;i++)this.readbacks.push(this.device.createBuffer({size:bytes,usage:GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST}));
   }
+  private acquireSlot():Promise<number>{
+    const slot=this.nextSlot;this.nextSlot=(this.nextSlot+1)&1;
+    if(!this.slotBusy[slot]){this.slotBusy[slot]=true;this.active++;this.highWater=Math.max(this.highWater,this.active);return Promise.resolve(slot);}
+    if(this.pending>=1)throw new Error('One Vidicon frame is already pending; caller must replace or drop newer frames');
+    this.pending++;
+    return new Promise(resolve=>this.slotWaiters[slot].push(resolve));
+  }
+  private releaseSlot(slot:number):void{
+    const next=this.slotWaiters[slot].shift();
+    if(next){this.pending--;next(slot);return;}
+    this.slotBusy[slot]=false;this.active--;
+  }
+  get maxInFlight():number{return this.highWater;}
+  get queuedFrames():number{return this.pending;}
   async processFrame(rgba:Uint8ClampedArray,width:number,height:number,params:VidiconParams):Promise<Uint8ClampedArray>{
     if(this.disposed)throw new Error('WebGPU Vidicon disposed');const bytes=width*height*4;if(rgba.length!==bytes)throw new Error('Vidicon input dimensions mismatch');
     if(width!==this.width||height!==this.height)this.reset(width,height);
+    const slot=await this.acquireSlot();
+    try{
     let tr=1,tg=1,tb=1;if(params.tint===1){tr=.78;tg=1;tb=.4;}else if(params.tint===2){tr=1;tg=.75;tb=.45;}
     this.device.queue.writeBuffer(this.paramsBuffer,0,new Float32Array([params.decay,params.threshold,params.glowGain/255,tr,tg,tb]));
     this.device.queue.writeBuffer(this.pixels!,0,rgba.buffer,rgba.byteOffset,bytes);
     const bind=this.device.createBindGroup({layout:this.pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:this.pixels!}},{binding:1,resource:{buffer:this.trail!}},{binding:2,resource:{buffer:this.paramsBuffer}}]});
-    const encoder=this.device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(this.pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(width*height/256));pass.end();encoder.copyBufferToBuffer(this.pixels!,0,this.readback!,0,bytes);this.device.queue.submit([encoder.finish()]);
-    await this.readback!.mapAsync(GPUMapMode.READ);const output=new Uint8ClampedArray(this.readback!.getMappedRange().slice(0));this.readback!.unmap();return output;
+    const readback=this.readbacks[slot];
+    const encoder=this.device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(this.pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(Math.ceil(width*height/256));pass.end();encoder.copyBufferToBuffer(this.pixels!,0,readback,0,bytes);this.device.queue.submit([encoder.finish()]);
+    await readback.mapAsync(GPUMapMode.READ);const output=new Uint8ClampedArray(readback.getMappedRange().slice(0));readback.unmap();return output;
+    }finally{this.releaseSlot(slot);}
   }
-  dispose():void{if(this.disposed)return;this.disposed=true;this.pixels?.destroy();this.trail?.destroy();this.readback?.destroy();this.paramsBuffer.destroy();this.device.destroy();}
+  dispose():void{if(this.disposed)return;if(this.active)throw new Error('Wait for Vidicon submissions before disposal');this.disposed=true;this.pixels?.destroy();this.trail?.destroy();for(const buffer of this.readbacks)buffer.destroy();this.paramsBuffer.destroy();this.device.destroy();}
 }

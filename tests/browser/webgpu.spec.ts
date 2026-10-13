@@ -213,3 +213,38 @@ test('Vidicon GPU history preserves a 20-frame sequence and bounded state reset'
   await testInfo.attach('Vidicon GPU temporal prototype',{body:JSON.stringify(result,null,2),contentType:'application/json'});console.log('Vidicon CPU/GPU sequence:',JSON.stringify(result));
   expect(result.maxByteError).toBeLessThanOrEqual(1);expect(result.resizeError).toBeLessThanOrEqual(1);expect(result.frames).toBe(20);
 });
+
+test('two-slot Vidicon readback preserves submission and ordered commit',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);test.skip(!available,'No WebGPU adapter for two-slot readback prototype');
+  const result=await page.evaluate(async()=>{
+    const {VidiconFilter}=await import('/src/engine/video-filters/optic/vidicon.ts');const {WebGpuVidicon}=await import('/src/engine/backends/webgpu-vidicon.ts');
+    const width=1280,height=720,params={decay:.88,threshold:110,glowGain:1.3,tint:1},base=new Uint8ClampedArray(width*height*4);
+    for(let i=0;i<base.length;i++)base[i]=i%4===3?255:(i*37)%256;
+    const makeFrame=(frame:number)=>{const input=base.slice(),x=(frame*47)%(width-80),y=(frame*23)%(height-60);for(let py=y;py<y+60;py++)for(let px=x;px<x+80;px++){const i=(py*width+px)*4;input[i]=255;input[i+1]=230;input[i+2]=80;}return input;};
+    const cpu=new VidiconFilter();cpu.init(width,height);cpu.setParams(params);const expected:Uint8ClampedArray[]=[];
+    for(let frame=0;frame<20;frame++){const pixels=makeFrame(frame);cpu.processFrame(pixels,{width,height,timeMs:frame*33,audioRms:0,audioPeak:0});expected.push(pixels);}
+    const serial=await WebGpuVidicon.create(),ring=await WebGpuVidicon.create(),bounded=await WebGpuVidicon.create();serial.reset(width,height);ring.reset(width,height);bounded.reset(width,height);let serialErrors=0,ringErrors=0,completionOrder:number[]=[];
+    const startSerial=performance.now();
+    try{
+      for(let frame=0;frame<20;frame++){const output=await serial.processFrame(makeFrame(frame),width,height,params);for(let i=0;i<output.length;i++)if(output[i]!==expected[frame][i])serialErrors++;}
+      const serialMs=performance.now()-startSerial,startRing=performance.now(),callbackPairs:Array<Array<{sequence:number;output:Uint8ClampedArray}>>=[];
+      for(let first=0;first<20;first+=2){
+        const pair=await Promise.all([first,first+1].map(async sequence=>({sequence,output:await ring.processFrame(makeFrame(sequence),width,height,params)})));
+        callbackPairs.push(pair);
+        const committed=pair.slice().sort((a,b)=>a.sequence-b.sequence);
+        for(const item of committed)for(let i=0;i<item.output.length;i++)if(item.output[i]!==expected[item.sequence][i])ringErrors++;
+      }
+      const ringMs=performance.now()-startRing;
+      for(const pair of callbackPairs){const callbacks=pair.map(async item=>{await new Promise(resolve=>setTimeout(resolve,item.sequence%2===0?12:0));completionOrder.push(item.sequence);});await Promise.all(callbacks);}
+      let pairInversions=0;for(let i=0;i<completionOrder.length;i+=2)if(completionOrder[i]>completionOrder[i+1])pairInversions++;
+      const p0=bounded.processFrame(makeFrame(0),width,height,params),p1=bounded.processFrame(makeFrame(1),width,height,params),p2=bounded.processFrame(makeFrame(2),width,height,params);
+      let fourthRejected=false;try{await bounded.processFrame(makeFrame(3),width,height,params);}catch(error){fourthRejected=String(error).includes('already pending');}
+      await Promise.all([p0,p1,p2]);const queuedFrames=bounded.queuedFrames,boundedMaxInFlight=bounded.maxInFlight;
+      return {frames:20,serialMs,ringMs,serialErrors,ringErrors,maxInFlight:ring.maxInFlight,completionOrder,pairInversions,ownedReadbackSlots:2,queuedFrames,boundedMaxInFlight,fourthRejected};
+    }finally{serial.dispose();ring.dispose();bounded.dispose();}
+  });
+  await testInfo.attach('Two-slot readback sequence',{body:JSON.stringify(result,null,2),contentType:'application/json'});console.log('Vidicon ring comparison:',JSON.stringify(result));
+  expect(result.serialErrors).toBe(0);expect(result.ringErrors).toBe(0);expect(result.maxInFlight).toBeLessThanOrEqual(2);expect(result.maxInFlight).toBe(2);expect(result.pairInversions).toBe(10);
+  expect(result.queuedFrames).toBe(0);expect(result.boundedMaxInFlight).toBe(2);expect(result.fourthRejected).toBe(true);
+});
