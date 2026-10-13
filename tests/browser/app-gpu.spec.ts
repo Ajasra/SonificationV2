@@ -21,18 +21,14 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(message.text().includes('Experimental GPU fallback'))console.log(message.text());});
   const setup=await page.evaluate(async()=>{
-    const {PresetManager}=await import('/src/presets/preset-manager.ts');
-    const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
-    const preset={id:'app-gpu-test',name:'GPU TapeSat test',reader:{...stream},writer:{...stream},filters:[{id:'sat',type:'tapesat' as const,enabled:true,sampleRate:44100,params:{drive:2.5,bias:.1,bump:.4,bumpHz:80,tone:8000}}],videoFilters:[],equalize:false,blendMode:'NONE' as const,blendAmount:0};
-    const hash=new PresetManager().encodePresetToHash(preset);
     const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d')!;
     const streamVideo=canvas.captureStream(30),chunks:BlobPart[]=[];const recorder=new MediaRecorder(streamVideo,{mimeType:'video/webm;codecs=vp8'});
     recorder.ondataavailable=event=>chunks.push(event.data);const stopped=new Promise<void>(resolve=>recorder.onstop=()=>resolve());
     let frame=0;const timer=setInterval(()=>{ctx.fillStyle=`rgb(${frame++%255},128,240)`;ctx.fillRect(0,0,1280,720);},33);
     recorder.start();await new Promise(resolve=>setTimeout(resolve,1000));recorder.stop();await stopped;clearInterval(timer);streamVideo.getTracks().forEach(track=>track.stop());
-    return {hash,bytes:Array.from(new Uint8Array(await new Blob(chunks).arrayBuffer()))};
+    return {bytes:Array.from(new Uint8Array(await new Blob(chunks).arrayBuffer()))};
   });
-  await page.goto(`/?gpu=tapesat${setup.hash}`);
+  await page.goto('/?gpu=tapesat');
   await page.locator('#card-input .rack-card-header').click();
   await page.locator('#card-sound .rack-card-header').click();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();
@@ -49,6 +45,7 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   await testInfo.attach('Application GPU smoke report',{body:JSON.stringify(report,null,2),contentType:'application/json'});
   expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');
   expect(report.gpuValidation.sample.passed).toBe(true);expect(report.gpuValidation.resident.passed).toBe(true);
+  expect(report.preset.id).toBe('experimental-gpu-tapesat');
   expect(report.sessionSeconds).toBeGreaterThanOrEqual(10);expect(report.measurementResets.length).toBeGreaterThan(0);
   expect(report.timings.captureMs.count).toBeGreaterThan(0);expect(report.timings.gpuCompletionAndReadbackMs.count).toBeGreaterThan(0);
   expect(report.timings.audioSubmissionMs.count).toBeGreaterThan(0);expect(report.timings.telemetryUpdateMs.count).toBeGreaterThan(0);

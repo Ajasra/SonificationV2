@@ -398,6 +398,15 @@ class SonificationApp {
     }
     if (hashPreset) {
       this.activePreset = hashPreset;
+    } else if(this.gpuEnabled){
+      const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
+      this.activePreset={
+        id:'experimental-gpu-tapesat',name:'Experimental GPU TapeSat',
+        description:'Single-filter TapeSat preset for the opt-in 720p WebGPU path.',
+        reader:{...stream},writer:{...stream},equalize:false,blendMode:'NONE',blendAmount:0,
+        filters:[{id:'gpu-tapesat',type:'tapesat',enabled:true,sampleRate:44100,params:{drive:2.5,bias:0.1,bump:0.4,bumpHz:80,tone:8000}}],
+        videoFilters:[],
+      };
     } else {
       this.activePreset = JSON.parse(JSON.stringify(this.presetManager.getAllPresets()[0]));
     }
