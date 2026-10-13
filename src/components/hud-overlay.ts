@@ -46,7 +46,8 @@ export class HudOverlay {
 
   constructor(
     container: HTMLElement,
-    hudCanvas: HTMLCanvasElement
+    hudCanvas: HTMLCanvasElement,
+    enabledOverride?: boolean
   ) {
     this.container = container;
     this.hudCanvas = hudCanvas;
@@ -55,7 +56,7 @@ export class HudOverlay {
     this.trailCanvas = document.createElement('canvas');
     this.trailCtx = this.trailCanvas.getContext('2d', { alpha: true, willReadFrequently: true })!;
 
-    this.initDefaultState();
+    this.initDefaultState(enabledOverride);
     this.initSegmentedMeters();
     this.handleResize();
 
@@ -66,7 +67,8 @@ export class HudOverlay {
     }
   }
 
-  private initDefaultState(): void {
+  private initDefaultState(enabledOverride?: boolean): void {
+    if(enabledOverride!==undefined){this.enabled=enabledOverride;return;}
     const isMobile =
       window.innerWidth <= 900 ||
       /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

@@ -15,4 +15,13 @@ node scripts/benchmark-app-gpu.mjs --duration 10
 node scripts/benchmark-app-gpu.mjs --video "D:\\media\\clip.mp4" --duration 60
 ```
 
+Use `--gpu-validation on|off` to compare per-frame WebGPU error scopes and `--hud on|off` to compare HUD cost. Both default to `on`, matching the normal desktop GPU path. For a controlled validation comparison, keep the HUD on in both runs:
+
+```powershell
+node scripts/benchmark-app-gpu.mjs --gpu-validation on --hud on
+node scripts/benchmark-app-gpu.mjs --gpu-validation off --hud on
+```
+
+Then compare the HUD with whichever validation setting performs better. Each run report records both switches so the comparison can be audited. Turning off per-frame scopes leaves the startup GPU fidelity checks enabled; use the browser error log and report fidelity fields to reject a run with GPU errors or drift.
+
 Use `--headed` to watch Chrome, or `--output-dir "D:\\reports"` to choose a report folder. The runner verifies that the report's video SHA-256 and build revision match the selected input and current checkout, and prints the primary timing and fidelity fields. It does not claim that a run meets the 30 fps acceptance target; evaluate `processedFps`, frame-path latency, and missed presented callbacks over the full requested duration.

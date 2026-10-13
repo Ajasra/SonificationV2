@@ -18,6 +18,8 @@ Runs the real 720p WebGPU application benchmark in Chrome and saves its JSON rep
 Options:
   --video <path>       Video file (default: test_60fps.mov in the repository root)
   --duration <seconds> Measured duration, excluding the app's warmup (default: 60)
+  --gpu-validation <on|off> Per-frame WebGPU validation scope (default: on)
+  --hud <on|off>        HUD rendering state (default: on)
   --output-dir <path>  Report directory (default: ~/Downloads)
   --headed             Show the Chrome window
   --help               Show this help
@@ -56,9 +58,13 @@ async function closeBrowser(browser,browserServer){
 if(argv.includes('--help')){console.log(usage);process.exit(0);}
 const videoPath=path.resolve(option('--video',defaultVideo));
 const durationSeconds=Number(option('--duration','60'));
+const gpuValidation=option('--gpu-validation','on');
+const hud=option('--hud','on');
 const outputDir=path.resolve(option('--output-dir',path.join(os.homedir(),'Downloads')));
 const headed=argv.includes('--headed');
 if(!Number.isInteger(durationSeconds)||durationSeconds<5||durationSeconds>3600)throw new Error('--duration must be an integer from 5 to 3600 seconds.');
+if(!['on','off'].includes(gpuValidation))throw new Error('--gpu-validation must be on or off.');
+if(!['on','off'].includes(hud))throw new Error('--hud must be on or off.');
 
 const sourceHasher=createHash('sha256');
 try{for await(const chunk of createReadStream(videoPath))sourceHasher.update(chunk);}catch(error){throw new Error(`Cannot read video ${videoPath}: ${error.message}\n\n${usage}`);}
@@ -96,7 +102,7 @@ try{
   const pageErrors=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')pageErrors.push(message.text());});
-  await page.goto(`${baseUrl}/?gpu=tapesat&gpu-profile=1`,{waitUntil:'domcontentloaded'});
+  await page.goto(`${baseUrl}/?gpu=tapesat&gpu-profile=1&gpu-validation=${gpuValidation}&gpu-hud=${hud}`,{waitUntil:'domcontentloaded'});
   await page.locator('#card-input .rack-card-header').click();
   await page.locator('#card-sound .rack-card-header').click();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();
@@ -115,15 +121,24 @@ try{
   const initialBadge=await page.locator('#perf-badge').textContent()??'';
   if(!initialBadge.includes('| GPU |'))throw new Error(`GPU backend did not activate within 30 seconds. Badge: ${initialBadge}\n${pageErrors.join('\n')}`);
   await page.locator('#gpu-main-canvas').waitFor({state:'visible'});
-  console.log(`Running ${durationSeconds}s measured 720p session on ${path.basename(videoPath)}.`);
+  console.log(`Running ${durationSeconds}s measured 720p session on ${path.basename(videoPath)} (GPU validation ${gpuValidation}, HUD ${hud}).`);
 
   const measureDeadline=Date.now()+(durationSeconds+150)*1000;
-  await page.waitForFunction(target=>{
-    const badge=document.querySelector('#perf-badge')?.textContent??'';
-    if(!badge.includes('| GPU |'))return false;
-    const match=badge.match(/\/\s*([\d.]+)s measured/);
-    return Boolean(match)&&Number(match[1])>=target;
-  },durationSeconds,{timeout:Math.max(1000,measureDeadline-Date.now()),polling:500});
+  try{
+    await page.waitForFunction(target=>{
+      const badge=document.querySelector('#perf-badge')?.textContent??'';
+      if(!badge.includes('| GPU |'))return false;
+      const match=badge.match(/\/\s*([\d.]+)s measured/);
+      return Boolean(match)&&Number(match[1])>=target;
+    },durationSeconds,{timeout:Math.max(1000,measureDeadline-Date.now()),polling:500});
+  }catch(error){
+    const state=await page.evaluate(()=>({
+      badge:document.querySelector('#perf-badge')?.textContent??null,
+      video:[...document.querySelectorAll('video')].map(element=>({paused:element.paused,ended:element.ended,readyState:element.readyState,currentTime:element.currentTime,duration:element.duration,videoWidth:element.videoWidth,videoHeight:element.videoHeight})),
+      visibility:document.visibilityState,
+    })).catch(()=>null);
+    throw new Error(`${error.message}\nBenchmark state: ${JSON.stringify(state)}\nPage errors: ${pageErrors.join('\n')}`);
+  }
 
   const downloadEvent=page.waitForEvent('download');
   await page.locator('#perf-badge').click();
@@ -136,6 +151,8 @@ try{
   if(report.source?.sha256!==expectedSourceHash)problems.push(`source hash mismatch (${report.source?.sha256??'missing'})`);
   if(report.build?.revision!==expectedRevision)problems.push(`build revision mismatch (${report.build?.revision??'missing'} vs ${expectedRevision})`);
   if(!report.gpuInternalTimings?.gpuValidationErrorScopeMs||!report.gpuInternalTimings?.gpuReadbackMapMs)problems.push('new error-scope/readback timing fields are missing');
+  if(report.gpuPerFrameValidation!==(gpuValidation==='on'))problems.push(`per-frame validation mismatch (${report.gpuPerFrameValidation} vs ${gpuValidation})`);
+  if(report.hudEnabled!==(hud==='on'))problems.push(`HUD state mismatch (${report.hudEnabled} vs ${hud})`);
   if(pageErrors.length)problems.push(`${pageErrors.length} browser console/page errors`);
   console.log(JSON.stringify({
     report:reportPath,revision:report.build?.revision,dirty:report.build?.dirty,sourceSha256:report.source?.sha256,
@@ -143,7 +160,7 @@ try{
     framePathMs:report.timings?.framePathMs,gpuCompletionAndReadbackMs:report.timings?.gpuCompletionAndReadbackMs,
     gpuValidationErrorScopeMs:report.gpuInternalTimings?.gpuValidationErrorScopeMs,gpuReadbackMapMs:report.gpuInternalTimings?.gpuReadbackMapMs,
     captureMode:report.gpuValidation?.captureMode,fidelityPassed:Boolean(report.gpuValidation?.sample?.passed&&report.gpuValidation?.resident?.passed),
-    audioMuted:report.audioMuted,audioContextState:report.audioContextState,problems,
+    gpuPerFrameValidation:report.gpuPerFrameValidation,hudEnabled:report.hudEnabled,audioMuted:report.audioMuted,audioContextState:report.audioContextState,problems,
   },null,2));
   if(problems.length)process.exitCode=1;
 }finally{
@@ -157,3 +174,6 @@ try{
     }
   }
 }
+if(process.exitCode===undefined)process.exitCode=0;
+await new Promise(resolve=>process.stdout.write('',resolve));
+process.exit(process.exitCode);

@@ -164,10 +164,10 @@ export class WebGpuTapeSat {
     if(this.busy || this.disposed || !Number.isFinite(bumpLp) || !Number.isFinite(toneLp))throw new Error('Invalid GPU state');
     this.device.queue.writeBuffer(this.state,0,new Float32Array([bumpLp,toneLp]));
   }
-  async processRgba(rgba:Uint8ClampedArray,context:GPUCanvasContext,params:Record<string,number>={},profile=false):Promise<Float32Array> {
+  async processRgba(rgba:Uint8ClampedArray,context:GPUCanvasContext,params:Record<string,number>={},profile=false,perFrameValidation=true):Promise<Float32Array> {
     const width=context.canvas.width,height=context.canvas.height;
     if(rgba.length!==width*height*4)throw new Error('Reference RGBA size mismatch');
-    return this.execute(undefined,params,44100,profile,{source:context.canvas as HTMLCanvasElement,rgba,context,width,height,diagnostic:false});
+    return this.execute(undefined,params,44100,profile,{source:context.canvas as HTMLCanvasElement,rgba,context,width,height,diagnostic:false},perFrameValidation);
   }
   dispose(): void { this.disposed = true; this.device.destroy(); }
   useReferenceBytes():void {if(this.busy || this.disposed)throw new Error('Backend unavailable');this.captureMode='reference-bytes';}
@@ -178,7 +178,7 @@ export class WebGpuTapeSat {
     context.configure({device:this.device,format:this.format,alphaMode:'opaque',colorSpace:'srgb',usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.COPY_DST});
     return context;
   }
-  async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false, referenceRgba?:Uint8ClampedArray):Promise<Float32Array> {
+  async processImage(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap, context: GPUCanvasContext, params:Record<string,number>={}, profile=false, diagnostic=false, referenceRgba?:Uint8ClampedArray, perFrameValidation=true):Promise<Float32Array> {
     const canvas=context.canvas;
     if(!(canvas instanceof HTMLCanvasElement)) throw new Error('HTML canvas required');
     const width=canvas.width,height=canvas.height;
@@ -190,7 +190,7 @@ export class WebGpuTapeSat {
     // proved byte-equivalent capture, send it directly to the GPU and avoid
     // the additional CPU raster copy used to own video/image snapshots.
     if(source instanceof HTMLCanvasElement && this.captureMode==='texture')
-      return this.execute(undefined,params,44100,profile,{source,context,width,height,diagnostic});
+      return this.execute(undefined,params,44100,profile,{source,context,width,height,diagnostic},perFrameValidation);
     // Paused videos may have no importable GPU backing resource in Chromium.
     // Own the snapshot through GPU completion; never read its pixels into JS.
     const snapshotStarted=profile ? performance.now() : 0;
@@ -206,7 +206,7 @@ export class WebGpuTapeSat {
       const rgba=this.captureMode==='reference-bytes' ? referenceRgba??this.rasterContext.getImageData(0,0,width,height).data : undefined;
       if(rgba && rgba.length!==width*height*4)throw new Error('Reference RGBA size mismatch');
       const rasterMs=profile ? performance.now()-rasterStarted : 0;
-      const result=await this.execute(undefined,params,44100,profile,{source:this.rasterCanvas,rgba,context,width,height,diagnostic});
+      const result=await this.execute(undefined,params,44100,profile,{source:this.rasterCanvas,rgba,context,width,height,diagnostic},perFrameValidation);
       if(profile && this.lastTimings){this.lastTimings.gpuSourceSnapshotMs=snapshotMs;this.lastTimings.gpuRasterCaptureMs=rasterMs;}
       return result;
     }finally{bitmap?.close();}
@@ -214,7 +214,7 @@ export class WebGpuTapeSat {
   async process(samples: Float32Array, params: Record<string, number> = {}, rate = 44100, profile = false): Promise<Float32Array> {
     return this.execute(samples,params,rate,profile);
   }
-  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLCanvasElement | HTMLVideoElement | ImageBitmap;rgba?:Uint8ClampedArray;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean}):Promise<Float32Array> {
+  private async execute(samples:Float32Array | undefined, params:Record<string,number>,rate:number,profile:boolean,resident?:{source:HTMLCanvasElement | HTMLVideoElement | ImageBitmap;rgba?:Uint8ClampedArray;context:GPUCanvasContext;width:number;height:number;diagnostic:boolean},perFrameValidation=true):Promise<Float32Array> {
     if (this.busy || this.disposed) throw new Error('Backend unavailable');
     if (!Number.isFinite(rate) || rate <= 0 || Object.values(params).some(value => !Number.isFinite(value))) throw new Error('Invalid parameters');
     const n = resident ? resident.width*resident.height*3 : samples!.length;
@@ -233,8 +233,8 @@ export class WebGpuTapeSat {
       const entry=reusable ? old : {buffer:this.device.createBuffer({size,usage}),size,usage};
       this.pool[poolIndex++]=entry;return entry.buffer;
     };
-    this.device.pushErrorScope('validation');
-    let scopePending = true;
+    if(perFrameValidation)this.device.pushErrorScope('validation');
+    let scopePending = perFrameValidation;
     try {
       const blockCount=Math.ceil(groups/256),hierarchical=blockCount<=256;
       const input = buffer(bytes), local = buffer(bytes), sums = buffer(groups * 8), scratch = buffer(groups * 8);
@@ -326,10 +326,13 @@ export class WebGpuTapeSat {
       }else encoder.copyBufferToBuffer(local,0,read,0,bytes);
       this.device.queue.submit([encoder.finish()]);
       const submitted = profile ? performance.now() : 0;
-      scopePending = false;
-      const validation = await this.device.popErrorScope();
-      const validationResolved = profile ? performance.now() : 0;
-      if (validation) throw new Error(`WebGPU validation: ${validation.message}`);
+      let validationResolved=submitted;
+      if(perFrameValidation){
+        scopePending = false;
+        const validation = await this.device.popErrorScope();
+        validationResolved = profile ? performance.now() : 0;
+        if (validation) throw new Error(`WebGPU validation: ${validation.message}`);
+      }
       await read.mapAsync(GPUMapMode.READ);
       const mapped = profile ? performance.now() : 0;
       const result = new Float32Array(read.getMappedRange().slice(0)); read.unmap();

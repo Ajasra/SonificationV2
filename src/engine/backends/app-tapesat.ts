@@ -13,7 +13,7 @@ export class AppTapeSatGpu {
   private failed=false;
   private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuValidationErrorScopeMs:number[];gpuReadbackMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuValidationErrorScopeMs:[],gpuReadbackMapMs:[],gpuMappedCopyMs:[]};
   validation:unknown;
-  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false){
+  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true){
     this.canvas.id='gpu-main-canvas';this.canvas.width=1280;this.canvas.height=720;this.canvas.style.display='none';
     referenceCanvas.insertAdjacentElement('afterend',this.canvas);
   }
@@ -64,8 +64,8 @@ export class AppTapeSatGpu {
       if(!await this.initializing || epoch!==this.epoch)return;
       this.runtime!.seedState(state.bumpLp,state.toneLp);
       const result=this.runtime!.captureMode==='texture'
-        ? await this.runtime!.processImage(source,this.context!,params,this.profileInternalTimings)
-        : await this.runtime!.processRgba(captureInput().data,this.context!,params,this.profileInternalTimings);
+        ? await this.runtime!.processImage(source,this.context!,params,this.profileInternalTimings,false,undefined,this.perFrameValidation)
+        : await this.runtime!.processRgba(captureInput().data,this.context!,params,this.profileInternalTimings,this.perFrameValidation);
       this.collectInternalTimings();
       if(epoch!==this.epoch)return;
       return result;
