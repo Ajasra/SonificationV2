@@ -142,3 +142,39 @@ test('GPU compact audio, raw HUD preview and JS state handoff preserve mapping',
   });
   expect(result.length).toBe(8194);expect(result.rawMax).toBe(0);expect(result.mappedMax).toBeLessThanOrEqual(1e-4);expect(result.continuationMax).toBeLessThanOrEqual(1e-4);
 });
+
+test('Procamp GPU prototype preserves pixels and benchmarks transfers against CPU',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');
+  const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);
+  test.skip(!available,'No WebGPU adapter for Procamp prototype');
+  const result=await page.evaluate(async()=>{
+    const {ProcAmpFilter}=await import('/src/engine/video-filters/color/procamp.ts');
+    const {WebGpuProcAmp}=await import('/src/engine/backends/webgpu-procamp.ts');
+    const width=1280,height=720,source=new Uint8ClampedArray(width*height*4);
+    for(let i=0;i<source.length;i++)source[i]=i%4===3?255:(i*37)%256;
+    const params={pedestal:0,videoGain:1,saturation:1.1,chromaPhase:0,whiteClip:240};
+    const cpuFilter=new ProcAmpFilter();cpuFilter.setParams(params);const gold=source.slice();cpuFilter.processFrame(gold,{width,height,timeMs:0,audioRms:.2,audioPeak:.25});
+    const gpu=await WebGpuProcAmp.create(),cpuMs:number[]=[],gpuMs:number[]=[];let maxByteError=0,differentBytes=0,comparedBytes=0,cpuChecked=false,gpuChecked=false;
+    const order=['cpu','gpu','gpu','cpu','cpu','gpu'] as const;
+    try{
+      for(const mode of order)for(let frame=0;frame<5;frame++){
+        if(mode==='cpu'){
+          const input=source.slice(),filter=new ProcAmpFilter();filter.setParams(params);const start=performance.now();filter.processFrame(input,{width,height,timeMs:0,audioRms:.2,audioPeak:.25});cpuMs.push(performance.now()-start);
+          if(!cpuChecked){for(let i=0;i<input.length;i++){const error=Math.abs(input[i]-gold[i]);maxByteError=Math.max(maxByteError,error);if(error!==0)differentBytes++;comparedBytes++;}cpuChecked=true;}
+        }else{
+          const start=performance.now(),output=await gpu.processFrame(source,width,height,params,.25);gpuMs.push(performance.now()-start);
+          if(!gpuChecked){for(let i=0;i<output.length;i++){const error=Math.abs(output[i]-gold[i]);maxByteError=Math.max(maxByteError,error);if(error!==0)differentBytes++;comparedBytes++;}gpuChecked=true;}
+        }
+      }
+      const p95=(values:number[])=>values.slice().sort((a,b)=>a-b)[Math.ceil(values.length*.95)-1];
+      return {width,height,comparedBytes,maxByteError,differentBytes,
+        cpu:{count:cpuMs.length,p95:p95(cpuMs),mean:cpuMs.reduce((a,b)=>a+b,0)/cpuMs.length},
+        gpu:{count:gpuMs.length,p95:p95(gpuMs),mean:gpuMs.reduce((a,b)=>a+b,0)/gpuMs.length}};
+    }finally{gpu.dispose();}
+  });
+  await testInfo.attach('Procamp GPU prototype comparison',{body:JSON.stringify(result,null,2),contentType:'application/json'});
+  console.log('Procamp CPU/GPU comparison:',JSON.stringify(result));
+  expect(result.maxByteError).toBeLessThanOrEqual(1);
+  expect(result.gpu.count).toBe(15);expect(result.cpu.count).toBe(15);
+});
