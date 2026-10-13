@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "runId": "29cf6ea7-1e3c-4684-92e4-c84f42fb1c6f",
+  "createdAt": "2026-10-13T16:23:05.360Z",
+  "build": {
+    "revision": "970f8350646832e6f0c19b6d022b8543ed3b8fca",
+    "dirty": true
+  },
+  "source": {
+    "name": "test_60fps.mov",
+    "bytes": 121329868,
+    "sha256": "d86a2c31d29b1e175d4ddf165b1107809b50c60e2b40f0b8c5dadaca87da77e7"
+  },
+  "backend": "experimental-app-tapesat",
+  "scope": "reference capture, GPU or JS processing, GPU completion, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "experimental-gpu-tapesat",
+    "name": "Experimental GPU TapeSat",
+    "description": "Single-filter TapeSat preset for the opt-in 720p WebGPU path.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "gpu-tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 80.02370000000298,
+  "measuredSeconds": 60.02370000000298,
+  "measuredFrames": 1761,
+  "processedFps": 29.33841132752417,
+  "gpuFrames": 1761,
+  "jsFrames": 0,
+  "missedPresentedCallbacks": 903,
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 11.21560000000149,
+      "reason": "settings-changed"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 1761,
+      "p50": 10.800000004470348,
+      "p95": 23.399999998509884,
+      "p99": 67.39999999850988
+    },
+    "captureMs": {
+      "count": 1761,
+      "p50": 0.20000000298023224,
+      "p95": 1.3000000044703484,
+      "p99": 1.8999999985098839
+    },
+    "preparationMs": {
+      "count": 1761,
+      "p50": 0.10000000149011612,
+      "p95": 0.29999999701976776,
+      "p99": 0.5
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 1761,
+      "p50": 10.399999998509884,
+      "p95": 21.299999997019768,
+      "p99": 65.39999999850988
+    },
+    "audioSubmissionMs": {
+      "count": 1761,
+      "p50": 0.09999999403953552,
+      "p95": 0.20000000298023224,
+      "p99": 0.5
+    },
+    "telemetryUpdateMs": {
+      "count": 1761,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0.10000000149011612
+    },
+    "otherFrameWorkMs": {
+      "count": 1761,
+      "p50": 0,
+      "p95": 0.10000000149011612,
+      "p99": 0.29999998956918716
+    },
+    "hudRenderMs": {
+      "count": 2008,
+      "p50": 2.5,
+      "p95": 15.700000002980232,
+      "p99": 29.399999998509884
+    }
+  },
+  "audioMuted": false,
+  "audioVolume": 0.25,
+  "hudEnabled": true,
+  "gpuPerFrameValidation": true,
+  "gpuFusedApplyFinish": false,
+  "audioContextState": "running",
+  "sourcePaused": false,
+  "gpuValidation": {
+    "sample": {
+      "version": 1,
+      "limits": {
+        "maxAbsoluteError": 0.0001,
+        "rmsError": 0.00001
+      },
+      "cases": [
+        {
+          "rate": 8000,
+          "frames": 3,
+          "samples": 73987,
+          "maxAbsoluteError": 9.5367431640625e-7,
+          "rmsError": 1.5099490889061294e-7
+        },
+        {
+          "rate": 44100,
+          "frames": 8,
+          "samples": 5604099,
+          "maxAbsoluteError": 8.344650268554688e-7,
+          "rmsError": 2.7505219125738126e-7
+        },
+        {
+          "rate": 96000,
+          "frames": 3,
+          "samples": 73987,
+          "maxAbsoluteError": 0.00000762939453125,
+          "rmsError": 0.0000021083079969014806
+        }
+      ],
+      "passed": true,
+      "scope": "sample comparison with parameter changes and retained frame/tile history; no full application or pixel acceptance"
+    },
+    "resident": {
+      "version": 2,
+      "limits": {
+        "maxAbsoluteError": 0.0001,
+        "rmsError": 0.00001,
+        "maxPixelByteError": 1,
+        "captureMaxError": 0
+      },
+      "cases": [
+        {
+          "source": "synthetic-rgb-bytes",
+          "samples": 2764800,
+          "captureMaxError": 0,
+          "captureDifferingSamples": 0,
+          "maxAbsoluteError": 2.384185791015625e-7,
+          "maxErrorIndex": 16,
+          "rmsError": 7.602089779308153e-8,
+          "maxPixelError": 0,
+          "differingBytes": 0,
+          "compactMaxError": 2.384185791015625e-7,
+          "firstSamples": {
+            "input": [
+              -1,
+              -0.9921568632125854,
+              -0.003921568859368563,
+              0.16078431904315948,
+              -0.5843137502670288,
+              0.21568627655506134,
+              -0.686274528503418,
+              -0.1764705926179886,
+              0.43529412150382996,
+              0.4745098054409027,
+              0.23137255012989044,
+              0.6549019813537598
+            ],
+            "captured": [
+              -1,
+              -0.9921568632125854,
+              -0.003921568859368563,
+              0.16078431904315948,
+              -0.5843137502670288,
+              0.21568627655506134,
+              -0.686274528503418,
+              -0.1764705926179886,
+              0.43529412150382996,
+              0.4745098054409027,
+              0.23137255012989044,
+              0.6549019813537598
+            ],
+            "expected": [
+              -0.8482060432434082,
+              -1.1229478120803833,
+              -0.3730953633785248,
+              0.10211382806301117,
+              -0.7283759117126465,
+              0.046875618398189545,
+              -0.792106032371521,
+              -0.5624690055847168,
+              0.2506120800971985,
+              0.5282292366027832,
+              0.465422660112381,
+              0.6420254111289978
+            ],
+            "actual": [
+              -0.8482060432434082,
+              -1.1229476928710938,
+              -0.3730953335762024,
+              0.10211384296417236,
+              -0.7283759713172913,
+              0.046875644475221634,
+              -0.792106032371521,
+              -0.5624690651893616,
+              0.2506120800971985,
+              0.5282291769981384,
+              0.46542268991470337,
+              0.6420254111289978
+            ]
+          }
+        },
+        {
+          "source": "provided-source-frame",
+          "samples": 2764800,
+          "captureMaxError": 0,
+          "captureDifferingSamples": 0,
+          "maxAbsoluteError": 5.960464477539062e-7,
+          "maxErrorIndex": 1018655,
+          "rmsError": 1.721618985166345e-7,
+          "maxPixelError": 1,
+          "differingBytes": 45,
+          "compactMaxError": 4.76837158203125e-7,
+          "firstSamples": {
+            "input": [
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325
+            ],
+            "captured": [
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325,
+              0.6627451181411743,
+              0.6549019813537598,
+              0.6941176652908325
+            ],
+            "expected": [
+              0.5013107061386108,
+              0.6629083156585693,
+              0.7213278412818909,
+              0.7386953234672546,
+              0.7454134821891785,
+              0.7542155981063843,
+              0.7556377649307251,
+              0.7571825385093689,
+              0.7642578482627869,
+              0.7650564908981323,
+              0.7663314938545227,
+              0.773250937461853
+            ],
+            "actual": [
+              0.5013106465339661,
+              0.6629082560539246,
+              0.7213279008865356,
+              0.7386952042579651,
+              0.7454134225845337,
+              0.7542155981063843,
+              0.7556377053260803,
+              0.7571825385093689,
+              0.7642578482627869,
+              0.7650564312934875,
+              0.7663315534591675,
+              0.773250937461853
+            ]
+          }
+        }
+      ],
+      "passed": true,
+      "scope": "exact RGB capture samples, filtered samples, owned render texture bytes and compact gather comparison"
+    },
+    "textureProbe": null,
+    "captureMode": "texture",
+    "requestedCaptureMode": "auto",
+    "adapter": {
+      "vendor": "amd",
+      "architecture": "gcn-5",
+      "device": "",
+      "description": ""
+    }
+  },
+  "benchmarkConditions": {
+    "profileRequested": false,
+    "audioRequested": "active",
+    "hudRequested": "on",
+    "captureModeRequested": "auto",
+    "declaredSourceFps": 60,
+    "deviceLabel": "AMD-GCN5-headless-Chrome"
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "acceptance": "requires named-device application validation; recording/other presets/phone gates remain open"
+}
