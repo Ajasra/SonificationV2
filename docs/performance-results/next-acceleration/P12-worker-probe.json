@@ -1,0 +1,10 @@
+{
+  "test": "persistent Shiftr DSP worker probe",
+  "browser": "headless Chrome / Playwright",
+  "fixture": { "sampleRate": 44100, "samplesPerBlock": 307200, "blocks": 5, "transferredBytes": 12288000, "filter": "Shiftr", "defaultParameters": true },
+  "runs": [
+    { "cpuP95Ms": 7.1, "workerRoundTripP95Ms": 19.4, "perBlockMaxAbsoluteError": [0, 0, 0, 0, 0], "timerSamples": 14, "maxTimerLagMs": 24.4, "pendingAtEnd": 0 },
+    { "cpuP95Ms": 6.8, "workerRoundTripP95Ms": 32.9, "perBlockMaxAbsoluteError": [0, 0, 0, 0, 0], "timerSamples": 15, "maxTimerLagMs": 22.2, "pendingAtEnd": 0 }
+  ],
+  "verdict": "Reject for throughput on this fixture; keep worker responsiveness as an unproven app-level hypothesis."
+}

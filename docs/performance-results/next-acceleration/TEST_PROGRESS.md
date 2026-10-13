@@ -14,10 +14,10 @@ This ledger records executed proposal tests and conservative decisions. Raw repo
 | P07 Spatial video kernels | Procamp WebGPU prototype exact across 3 parameter sets; three focused 720p runs GPU upload/dispatch/readback p95 6.2–6.9 vs CPU 9.9–10.3 ms. Full-suite load had 29.1 ms GPU p95. | Conditional only in resident GPU video segment; reject one-node app island pending visible app stability and rack tests. |
 | P08 Temporal video kernels | Vidicon GPU history matches 20 frames + param edit + resize exactly; three 720p runs GPU p95 6.5–6.8 vs CPU 8.6–9.7 ms. | Conditional Vidicon for persistent GPU session; FrameDelay deferred (56.25 MiB ring at 720p, not tested). |
 | P09 Recurrent CPU filters | Synthetic 720p WASM comparison plus CPU 640x480 benchmark: Moog 37.7 ms, TapeWow 12.7 ms; WASM Moog/TapeWow loses on 720p. | Keep JS; Moog is high-value arena candidate, no more ports before P05. |
-| P10 GPU TapeWow | No GPU port. | Not tested. |
-| P11 Segment planner | No planner implementation; current eligibility is a static single-filter TapeSat gate. | Not tested. |
-| P12 Worker scheduler | No worker prototype. | Not tested. |
-| P13 Export/device rollout | No physical phone or export comparison in this pass. | Not tested. |
+| P10 GPU TapeWow | A seeded single-invocation WebGPU prototype was compared with the JS recurrence at 44.1 kHz over 2,764,800 samples; a 4,096-sample dry-pass identity check was included. | Reject this prototype: identity error was 1.0 and candidate RMS error 0.7213 (max 2.0), so timing is invalid for speed claims. CPU p95 27.2 ms and GPU map path p95 12.5 ms are diagnostic only. Requires shader/runtime debugging and a representative audio block/rack test before reconsideration. |
+| P11 Segment planner | No production planner. Existing static eligibility and measured isolated route candidates reviewed against the three legal route classes. | Defer: no matched visible-app cost matrix or validated state migration across backends; a planner would only encode unsupported assumptions. P00 equal app-level JS/WASM controls remain prerequisite. |
+| P12 Worker scheduler | Persistent Shiftr worker probe, two runs of 5 serial 307,200-sample blocks, exact output, 12.3 MB logical transfer/run. | Reject for throughput on probe (JS p95 6.8–7.1 ms, worker round-trip p95 19.4–32.9 ms); sparse responsiveness samples show no gain. No app worker/scheduler adoption. |
+| P13 Export/device rollout | Desktop benchmark-browser flow decoded a generated 720p30 WebM and exported its attributed JSON report. | Limited local smoke test passed. Offline MP4 output parity/abort/history isolation, 300-second sessions and physical phone matrix remain untested; no rollout decision. |
 
 ## P09 exploratory WASM numbers
 
