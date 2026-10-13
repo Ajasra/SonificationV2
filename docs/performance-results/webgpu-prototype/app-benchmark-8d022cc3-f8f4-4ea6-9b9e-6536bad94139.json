@@ -1,0 +1,350 @@
+{
+  "schemaVersion": 1,
+  "runId": "8d022cc3-f8f4-4ea6-9b9e-6536bad94139",
+  "createdAt": "2026-10-13T06:53:59.199Z",
+  "build": {
+    "revision": "f103cbf8db997f2e3648a12edf2c8070cc4cf440",
+    "dirty": true
+  },
+  "source": {
+    "name": "Engineering_Agency__How_Immortality_Bypasses_the_Combinatorial_.mp4",
+    "bytes": 83259418,
+    "sha256": "17ccc6c177541e8d16fe971349c788da9d3dc2b940add5ec199d4deee24d1465"
+  },
+  "backend": "experimental-app-tapesat",
+  "scope": "reference capture, GPU or JS processing, GPU completion, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "experimental-gpu-tapesat",
+    "name": "Experimental GPU TapeSat",
+    "description": "Single-filter TapeSat preset for the opt-in 720p WebGPU path.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "gpu-tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 90.96580000000074,
+  "measuredSeconds": 61.546699999999255,
+  "measuredFrames": 1530,
+  "processedFps": 24.8591719783517,
+  "gpuFrames": 1530,
+  "jsFrames": 0,
+  "missedPresentedCallbacks": 124,
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 5.8335,
+      "reason": "frame-loop-stopped"
+    },
+    {
+      "atSeconds": 5.965900000000373,
+      "reason": "frame-loop-stopped"
+    },
+    {
+      "atSeconds": 7.479400000000372,
+      "reason": "frame-loop-restarted"
+    },
+    {
+      "atSeconds": 25.50990000000037,
+      "reason": "frame-loop-stopped"
+    },
+    {
+      "atSeconds": 25.67,
+      "reason": "frame-loop-stopped"
+    },
+    {
+      "atSeconds": 27.44960000000149,
+      "reason": "frame-loop-restarted"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 1530,
+      "p50": 23.300000000745058,
+      "p95": 31.800000000745058,
+      "p99": 86.80000000074506
+    },
+    "captureMs": {
+      "count": 1530,
+      "p50": 8.200000001117587,
+      "p95": 11.300000000745058,
+      "p99": 23.700000001117587
+    },
+    "preparationMs": {
+      "count": 1530,
+      "p50": 0.09999999962747097,
+      "p95": 0.2000000011175871,
+      "p99": 0.40000000037252903
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 1530,
+      "p50": 14.800000000745058,
+      "p95": 22.40000000037253,
+      "p99": 63.09999999962747
+    },
+    "audioSubmissionMs": {
+      "count": 1530,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0.09999999962747097
+    },
+    "telemetryUpdateMs": {
+      "count": 1530,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0.09999999962747097
+    },
+    "otherFrameWorkMs": {
+      "count": 1530,
+      "p50": 0,
+      "p95": 0.10000000149011612,
+      "p99": 0.2000000011175871
+    },
+    "hudRenderMs": {
+      "count": 10000,
+      "p50": 2.199999999254942,
+      "p95": 3,
+      "p99": 3.5
+    }
+  },
+  "audioMuted": true,
+  "audioVolume": 0.8,
+  "hudEnabled": true,
+  "audioContextState": null,
+  "sourcePaused": false,
+  "gpuValidation": {
+    "sample": {
+      "version": 1,
+      "limits": {
+        "maxAbsoluteError": 0.0001,
+        "rmsError": 0.00001
+      },
+      "cases": [
+        {
+          "rate": 8000,
+          "frames": 3,
+          "samples": 73987,
+          "maxAbsoluteError": 7.152557373046875e-7,
+          "rmsError": 1.2451433690809555e-7
+        },
+        {
+          "rate": 44100,
+          "frames": 8,
+          "samples": 5604099,
+          "maxAbsoluteError": 0.000001430511474609375,
+          "rmsError": 7.016904418574225e-7
+        },
+        {
+          "rate": 96000,
+          "frames": 3,
+          "samples": 73987,
+          "maxAbsoluteError": 0.000009655952453613281,
+          "rmsError": 0.0000027724924399088527
+        }
+      ],
+      "passed": true,
+      "scope": "sample comparison with parameter changes and retained frame/tile history; no full application or pixel acceptance"
+    },
+    "resident": {
+      "version": 2,
+      "limits": {
+        "maxAbsoluteError": 0.0001,
+        "rmsError": 0.00001,
+        "maxPixelByteError": 1,
+        "captureMaxError": 0
+      },
+      "cases": [
+        {
+          "source": "synthetic-rgb-bytes",
+          "samples": 2764800,
+          "captureMaxError": 0,
+          "captureDifferingSamples": 0,
+          "maxAbsoluteError": 3.5762786865234375e-7,
+          "maxErrorIndex": 93744,
+          "rmsError": 1.0880031629655188e-7,
+          "maxPixelError": 0,
+          "differingBytes": 0,
+          "compactMaxError": 2.384185791015625e-7,
+          "firstSamples": {
+            "input": [
+              -1,
+              -0.9921568632125854,
+              -0.003921568859368563,
+              0.16078431904315948,
+              -0.5843137502670288,
+              0.21568627655506134,
+              -0.686274528503418,
+              -0.1764705926179886,
+              0.43529412150382996,
+              0.4745098054409027,
+              0.23137255012989044,
+              0.6549019813537598
+            ],
+            "captured": [
+              -1,
+              -0.9921568632125854,
+              -0.003921568859368563,
+              0.16078431904315948,
+              -0.5843137502670288,
+              0.21568627655506134,
+              -0.686274528503418,
+              -0.1764705926179886,
+              0.43529412150382996,
+              0.4745098054409027,
+              0.23137255012989044,
+              0.6549019813537598
+            ],
+            "expected": [
+              -0.8482060432434082,
+              -1.1229478120803833,
+              -0.3730953633785248,
+              0.10211382806301117,
+              -0.7283759117126465,
+              0.046875618398189545,
+              -0.792106032371521,
+              -0.5624690055847168,
+              0.2506120800971985,
+              0.5282292366027832,
+              0.465422660112381,
+              0.6420254111289978
+            ],
+            "actual": [
+              -0.8482060432434082,
+              -1.1229476928710938,
+              -0.3730953335762024,
+              0.10211384296417236,
+              -0.7283759713172913,
+              0.046875644475221634,
+              -0.792106032371521,
+              -0.5624690651893616,
+              0.2506120800971985,
+              0.5282291769981384,
+              0.4654226303100586,
+              0.6420254111289978
+            ]
+          }
+        },
+        {
+          "source": "provided-source-frame",
+          "samples": 2764800,
+          "captureMaxError": 0,
+          "captureDifferingSamples": 0,
+          "maxAbsoluteError": 0.0000011920928955078125,
+          "maxErrorIndex": 5500,
+          "rmsError": 4.021975036626803e-7,
+          "maxPixelError": 1,
+          "differingBytes": 14,
+          "compactMaxError": 0.0000011920928955078125,
+          "firstSamples": {
+            "input": [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            "captured": [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            "expected": [
+              -0.8482060432434082,
+              -1.1233153343200684,
+              -1.2150591611862183,
+              -1.2481054067611694,
+              -1.2623335123062134,
+              -1.270500659942627,
+              -1.2766879796981812,
+              -1.2822014093399048,
+              -1.287459373474121,
+              -1.2925959825515747,
+              -1.2976545095443726,
+              -1.3026494979858398
+            ],
+            "actual": [
+              -0.8482060432434082,
+              -1.1233153343200684,
+              -1.2150590419769287,
+              -1.2481052875518799,
+              -1.2623333930969238,
+              -1.2705005407333374,
+              -1.2766878604888916,
+              -1.2822014093399048,
+              -1.287459373474121,
+              -1.2925958633422852,
+              -1.297654390335083,
+              -1.3026493787765503
+            ]
+          }
+        }
+      ],
+      "passed": true,
+      "scope": "exact RGB capture samples, filtered samples, owned render texture bytes and compact gather comparison"
+    },
+    "captureMode": "reference-bytes",
+    "adapter": {
+      "vendor": "",
+      "architecture": "",
+      "device": "",
+      "description": ""
+    }
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 15
+  },
+  "acceptance": "requires named-device application validation; recording/other presets/phone gates remain open"
+}
