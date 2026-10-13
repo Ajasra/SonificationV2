@@ -1,0 +1,11 @@
+# P04 — Ordered readback ring decision
+
+Status: **conditional keep for sustained GPU sessions if the app-level 30 fps cohort confirms the gain and latency budget.** `WebGpuVidicon` now has two independent map/readback buffers while the shared input and temporal-history resources advance through WebGPU's ordered queue. Serial control awaits each map before submitting the next frame; ring mode submits pairs and awaits their separate mapped results.
+
+Four headless Chrome runs processed the same 20-frame changing Vidicon sequence at 1280×720. Sequence output and temporal history matched the CPU reference exactly; the two-slot run reached a maximum of two active submissions. Total serial/ring times were 199.6/164.9, 195.6/165.7, 197.8/168.1 and 202.9/163.3 ms. The ring saves 34–40 ms per 20-frame batch (roughly 15–19%). Per-run measurements and limitations are [here](readback-ring-ab.json).
+
+The test delayed result callbacks by sequence so each pair completed in reverse order, then committed by sequence. It passed all ten pair inversions. The GPU maps themselves were not observed completing out of order. The API allows at most two active slots and one pending request; an additional frame is rejected so the application scheduler can replace or drop pending work rather than accumulate an unbounded queue. Reset throws while submissions are active, forcing the owner to drain before state is replaced. Disposal also requires an empty queue.
+
+The ring adds one 720p readback buffer (3,686,400 bytes) beyond the serial implementation. Combined with the Vidicon history, input and two readbacks, owned GPU buffer payload is about 22.1 MB (21.1 MiB), excluding driver allocations. No physical memory or mobile pressure was tested.
+
+Application route: use an ordered processing session with generation/sequence IDs, a two-frame submission cap and one replaceable pending source frame. Preserve image/audio/state commit order; discard old-generation results only after completion and resource release. Drain before reset, resize or device/session retirement. Add this only to a route whose measured map/sync cost is material; P00/P01 720p application runs show that map/completion can be significant, but this prototype does not include application capture, audio, HUD or presentation. Validate frame age ≤33.3 ms and visible output/audio order before adoption.

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "proposal": "P04-two-slot-readback",
+  "createdAt": "2026-10-14",
+  "revision": "2e1975a",
+  "scope": "headless Chrome 1280x720 Vidicon 20-frame sequence; serial await/map control vs two-slot mapped readback ring",
+  "deviceLabel": "AMD GCN-5",
+  "runs": [
+    {"serialMs":199.6,"ringMs":164.9,"frames":20,"maxInFlight":2,"outputErrors":0,"callbackPairInversions":10},
+    {"serialMs":195.6,"ringMs":165.7,"frames":20,"maxInFlight":2,"outputErrors":0,"callbackPairInversions":10},
+    {"serialMs":197.8,"ringMs":168.1,"frames":20,"maxInFlight":2,"outputErrors":0,"callbackPairInversions":10},
+    {"serialMs":202.9,"ringMs":163.3,"frames":20,"maxInFlight":2,"outputErrors":0,"callbackPairInversions":10,"onePendingGuard":true}
+  ],
+  "resourceAccounting": {"readbackSlots":2,"additionalReadbackBufferBytes":3686400,"stateBufferBytes":11059200,"sourceBufferBytes":3686400,"readbackTotalBytes":7372800},
+  "limits": [
+    "GPU submissions and state remain queue ordered; callback inversion was induced after readback to test commit ordering, not an observed reversed map completion.",
+    "No source/preset generation change or device-loss cancellation test.",
+    "No live application audio, capture, HUD, browser presentation, physical device, or 30 fps test.",
+    "The backend bounds itself to two active slots and one queued request, but an app scheduler must replace/drop that pending request explicitly."
+  ]
+}
