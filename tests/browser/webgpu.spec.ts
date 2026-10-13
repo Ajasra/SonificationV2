@@ -158,6 +158,12 @@ test('Procamp GPU prototype preserves pixels and benchmarks transfers against CP
     const gpu=await WebGpuProcAmp.create(),cpuMs:number[]=[],gpuMs:number[]=[];let maxByteError=0,differentBytes=0,comparedBytes=0,cpuChecked=false,gpuChecked=false;
     const order=['cpu','gpu','gpu','cpu','cpu','gpu'] as const;
     try{
+      const scenarios=[params,{pedestal:-12,videoGain:2.1,saturation:2,chromaPhase:37,whiteClip:200},{pedestal:24,videoGain:.55,saturation:.3,chromaPhase:-87,whiteClip:255}];
+      for(const scenario of scenarios){
+        const filter=new ProcAmpFilter();filter.setParams(scenario);const expected=source.slice();filter.processFrame(expected,{width,height,timeMs:0,audioRms:.2,audioPeak:.4});
+        const actual=await gpu.processFrame(source,width,height,scenario,.4);
+        for(let i=0;i<actual.length;i++){const error=Math.abs(actual[i]-expected[i]);maxByteError=Math.max(maxByteError,error);if(error!==0)differentBytes++;comparedBytes++;}
+      }
       for(const mode of order)for(let frame=0;frame<5;frame++){
         if(mode==='cpu'){
           const input=source.slice(),filter=new ProcAmpFilter();filter.setParams(params);const start=performance.now();filter.processFrame(input,{width,height,timeMs:0,audioRms:.2,audioPeak:.25});cpuMs.push(performance.now()-start);
