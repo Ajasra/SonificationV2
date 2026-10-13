@@ -55,6 +55,24 @@ test('fixture PRNG is reproducible, serializable and rejects zero seeds', () => 
   assert.throws(() => new FixtureRandom(0)); assert.throws(() => new FixtureRandom(-1));
 });
 
+test('WASM-owned pipeline arena matches copied segment output and reuses its view', async () => {
+  const runtime = await WasmDspRuntime.fromBytes(bytes);
+  try {
+    const inputSamples = input(32771), expected = new Float32Array(inputSamples), arena = runtime.getSampleBuffer(inputSamples.length);
+    assert.equal(arena.buffer, runtime.exports.memory.buffer);
+    assert.equal(runtime.getSampleBuffer(100).buffer, arena.buffer);
+    arena.set(inputSamples);
+    const copiedFilter = runtime.createFilter('tapesat', 44100, 4821);
+    const arenaFilter = runtime.createFilter('tapesat', 44100, 4821);
+    runtime.processSegment([copiedFilter], expected);
+    arena.set(inputSamples);
+    runtime.processSegment([arenaFilter], arena);
+    compare(arena, expected);
+    compare(arenaFilter.exportState().values, copiedFilter.exportState().values, 0, 0);
+    copiedFilter.dispose(); arenaFilter.dispose();
+  } finally { runtime.dispose(); }
+});
+
 test('committed WASM artifact matches pinned source/build metadata', () => {
   const hash = value => createHash('sha256').update(value).digest('hex');
   for (const variant of ['scalar', 'simd']) {

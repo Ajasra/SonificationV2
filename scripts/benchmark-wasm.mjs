@@ -45,10 +45,11 @@ try {
         filters: types.map(type => ({ id: type, type, enabled: true, sampleRate: 44100,
           params: Object.fromEntries(FILTER_DESCRIPTORS[type].params.map(p => [p.name, p.value])) })),
       };
-      for (const backend of ['js', 'wasm-scalar', 'wasm-simd']) {
+      for (const backend of ['js', 'wasm-scalar', 'wasm-scalar-arena', 'wasm-simd']) {
         const runtime = backend === 'js' ? undefined : await WasmDspRuntime.load(`/wasm/dsp-${backend === 'wasm-simd' ? 'simd' : 'scalar'}.wasm`);
         try {
-          const pipeline = runtime ? new SonificationPipeline(runtime.createFilter, runtime.processSegment) :
+          const pipeline = runtime ? new SonificationPipeline(runtime.createFilter, runtime.processSegment,
+            backend === 'wasm-scalar-arena' ? runtime.getSampleBuffer : undefined) :
             new SonificationPipeline((type, rate) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
           const target = outputCtx.createImageData(1280, 720);
           const samples = { drawMs: [], readbackMs: [], pipelineMs: [], dspMs: [], outputSubmitMs: [], completeCpuPathMs: [] };

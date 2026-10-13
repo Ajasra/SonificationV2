@@ -66,6 +66,16 @@ export class WasmDspRuntime {
   }
   assertActive(): void { if (this.disposed) throw new Error('DSP WASM runtime disposed'); }
   releaseFilter(filter: WasmFilter): void { this.nodes.delete(filter); }
+  /** Borrowed single-owner sample arena; the view remains valid until runtime disposal. */
+  getSampleBuffer = (length: number): Float32Array => {
+    this.assertActive();
+    if (!Number.isInteger(length) || length < 0) throw new Error('Invalid sample arena length');
+    if (length > this.capacity) {
+      const replacement = this.allocate(length * 4);
+      this.exports.free(this.samplesPointer); this.samplesPointer = replacement; this.capacity = length;
+    }
+    return new Float32Array(this.exports.memory.buffer, this.samplesPointer, length);
+  };
   createFilter = (type: FilterId, rate = 44100, seed = 4821): WasmFilter => {
     this.assertActive();
     if (!(type in definitions)) throw new Error(`Unsupported scalar WASM filter: ${type}`);
@@ -80,20 +90,18 @@ export class WasmDspRuntime {
       if (!(filter instanceof WasmFilter) || filter.owner !== this) throw new Error('Mixed WASM runtime segment');
       filter.assertAlive(); return filter;
     });
-    if (samples.length > this.capacity) {
-      const replacement = this.allocate(samples.length * 4);
-      this.exports.free(this.samplesPointer); this.samplesPointer = replacement; this.capacity = samples.length;
-    }
+    const arena = this.getSampleBuffer(samples.length);
     if (nodes.length > this.handlesCapacity) {
       const replacement = this.allocate(nodes.length * 4);
       this.exports.free(this.handlesPointer); this.handlesPointer = replacement; this.handlesCapacity = nodes.length;
     }
     const memory = this.exports.memory.buffer;
-    const view = new Float32Array(memory, this.samplesPointer, samples.length);
-    view.set(samples);
+    const inArena = samples.buffer === memory && samples.byteOffset === arena.byteOffset;
+    const view = inArena ? samples : arena;
+    if (!inArena) view.set(samples);
     new Uint32Array(memory, this.handlesPointer, nodes.length).set(nodes.map(node => node.handle));
     this.exports.dsp_process_chain(this.handlesPointer, nodes.length, this.samplesPointer, samples.length, 8192);
-    samples.set(view);
+    if (!inArena) samples.set(view);
   };
   dispose(): void {
     if (this.disposed) return;

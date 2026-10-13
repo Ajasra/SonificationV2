@@ -58,6 +58,7 @@ export class SonificationPipeline {
   constructor(
     private readonly audioFactory: typeof createFilterInstance = createFilterInstance,
     private readonly segmentProcessor?: (filters: IDspFilter[], samples: Float32Array) => void,
+    private readonly sampleBufferFactory?: (length: number) => Float32Array,
   ) {}
   // Compiled chain, rebuilt only when structure (order / type / enabled / size) changes
   private segments: Segment[] = [];
@@ -73,7 +74,7 @@ export class SonificationPipeline {
 
   // Preallocated working buffers and zero-allocation chunk views
   private workRgbaBuffer = new Uint8ClampedArray(0);
-  private workAudioBuffer = new Float32Array(0);
+  private workAudioBuffer: Float32Array<ArrayBufferLike> = new Float32Array(0);
   private rawAudioPreviewBuffer = new Float32Array(2048);
   private chunkViews: Float32Array[] = [];
   private lastChunkSamples = 0;
@@ -87,7 +88,8 @@ export class SonificationPipeline {
       this.workRgbaBuffer = new Uint8ClampedArray(rgbaBytes);
     }
     if (this.workAudioBuffer.length < audioSamples) {
-      this.workAudioBuffer = new Float32Array(audioSamples);
+      this.workAudioBuffer = this.sampleBufferFactory?.(audioSamples) ?? new Float32Array(audioSamples);
+      if (this.workAudioBuffer.length < audioSamples) throw new Error('Audio buffer factory returned an undersized view');
       this.lastChunkSamples = 0;
     }
 
