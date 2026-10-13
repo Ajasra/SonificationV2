@@ -55,6 +55,8 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   expect(report.timings.hudRenderMs.count).toBeGreaterThan(0);
   expect(report.gpuInternalTimings.gpuPrepareSubmitMs.count).toBeGreaterThan(0);
   expect(report.gpuInternalTimings.gpuValidationCompletionMapMs.count).toBeGreaterThan(0);
+  expect(report.gpuInternalTimings.gpuValidationErrorScopeMs.count).toBeGreaterThan(0);
+  expect(report.gpuInternalTimings.gpuReadbackMapMs.count).toBeGreaterThan(0);
   expect(report.gpuInternalTimings.gpuMappedCopyMs.count).toBeGreaterThan(0);
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'480p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeHidden();await expect(page.locator('#main-canvas')).toBeVisible();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeVisible();

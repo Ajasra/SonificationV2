@@ -328,6 +328,7 @@ export class WebGpuTapeSat {
       const submitted = profile ? performance.now() : 0;
       scopePending = false;
       const validation = await this.device.popErrorScope();
+      const validationResolved = profile ? performance.now() : 0;
       if (validation) throw new Error(`WebGPU validation: ${validation.message}`);
       await read.mapAsync(GPUMapMode.READ);
       const mapped = profile ? performance.now() : 0;
@@ -344,7 +345,7 @@ export class WebGpuTapeSat {
         }
         pixelRead.unmap();this.lastDiagnosticPixels=rgba;
       }
-      if (profile) this.lastTimings = { gpuPrepareSubmitMs: submitted-started, gpuValidationCompletionMapMs: mapped-submitted, gpuMappedCopyMs: performance.now()-mapped };
+      if (profile) this.lastTimings = { gpuPrepareSubmitMs: submitted-started, gpuValidationCompletionMapMs: mapped-submitted, gpuValidationErrorScopeMs: validationResolved-submitted, gpuReadbackMapMs: mapped-validationResolved, gpuMappedCopyMs: performance.now()-mapped };
       return result;
     } finally {
       if (scopePending) await this.device.popErrorScope();

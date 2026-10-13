@@ -11,7 +11,7 @@ export class AppTapeSatGpu {
   private initializing:Promise<boolean> | undefined;
   private epoch=0;
   private failed=false;
-  private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuMappedCopyMs:[]};
+  private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuValidationErrorScopeMs:number[];gpuReadbackMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuValidationErrorScopeMs:[],gpuReadbackMapMs:[],gpuMappedCopyMs:[]};
   validation:unknown;
   constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false){
     this.canvas.id='gpu-main-canvas';this.canvas.width=1280;this.canvas.height=720;this.canvas.style.display='none';
@@ -26,7 +26,7 @@ export class AppTapeSatGpu {
   }
   getInternalTimingSummary():Record<string,ReturnType<typeof summarize>> | undefined {
     if(!this.profileInternalTimings)return;
-    return {gpuPrepareSubmitMs:summarize(this.internalTimings.gpuPrepareSubmitMs),gpuValidationCompletionMapMs:summarize(this.internalTimings.gpuValidationCompletionMapMs),gpuMappedCopyMs:summarize(this.internalTimings.gpuMappedCopyMs)};
+    return {gpuPrepareSubmitMs:summarize(this.internalTimings.gpuPrepareSubmitMs),gpuValidationCompletionMapMs:summarize(this.internalTimings.gpuValidationCompletionMapMs),gpuValidationErrorScopeMs:summarize(this.internalTimings.gpuValidationErrorScopeMs),gpuReadbackMapMs:summarize(this.internalTimings.gpuReadbackMapMs),gpuMappedCopyMs:summarize(this.internalTimings.gpuMappedCopyMs)};
   }
   private collectInternalTimings():void {
     const timings=this.runtime?.lastTimings;
