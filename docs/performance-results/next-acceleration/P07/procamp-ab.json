@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "proposal": "P07-Procamp",
+  "createdAt": "2026-10-14",
+  "revision": "7f0aa0ef",
+  "scope": "headless Chrome WebGPU single-filter prototype; 1280x720 storage-buffer upload, compute dispatch and mapped readback vs CPU Procamp pixel loop",
+  "deviceLabel": "AMD GCN-5",
+  "source": "deterministic RGBA bytes: alpha=255, RGB=(i*37)%256",
+  "correctness": {
+    "scenarios": 3,
+    "parameters": [
+      {"pedestal":0,"videoGain":1,"saturation":1.1,"chromaPhase":0,"whiteClip":240,"audioPeak":0.4},
+      {"pedestal":-12,"videoGain":2.1,"saturation":2,"chromaPhase":37,"whiteClip":200,"audioPeak":0.4},
+      {"pedestal":24,"videoGain":0.55,"saturation":0.3,"chromaPhase":-87,"whiteClip":255,"audioPeak":0.4}
+    ],
+    "comparedBytes": 18432000,
+    "maxByteError": 0,
+    "differentBytes": 0
+  },
+  "matchedRuns": [
+    {"cpuP95Ms":9.9,"cpuMeanMs":7.133,"gpuP95Ms":6.7,"gpuMeanMs":5.52,"samplesPerMode":15},
+    {"cpuP95Ms":10.1,"cpuMeanMs":7.233,"gpuP95Ms":6.2,"gpuMeanMs":5.373,"samplesPerMode":15},
+    {"cpuP95Ms":10.3,"cpuMeanMs":7.28,"gpuP95Ms":6.9,"gpuMeanMs":5.407,"samplesPerMode":15}
+  ],
+  "separateFullSuiteObservation": {"cpuP95Ms":12,"gpuP95Ms":29.1,"note":"Earlier test before varied-parameter correctness loops, run after other GPU tests in the same browser suite; retained as context showing sensitivity to preceding GPU load."},
+  "limitations": [
+    "CPU filter-only and GPU upload+dispatch+readback measured; no decode, canvas capture, HUD, audio consumer, export or visible presentation.",
+    "15 timed frames per mode per invocation; benchmark is a focused harness, not full app acceptance.",
+    "A single Procamp island still crosses CPU/GPU for every frame. No multi-filter GPU-resident video rack has been tested.",
+    "Only AMD GCN-5 headless Chrome was exercised; no phone or second adapter."
+  ]
+}
