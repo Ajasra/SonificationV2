@@ -40,7 +40,17 @@ async function closeBrowser(browser,browserServer){
   if(browser){
     await Promise.race([browser.close().catch(()=>{}),delay(5000)]);
   }
-  if(browserServer)await browserServer.kill().catch(()=>{});
+  if(!browserServer)return;
+  const killing=browserServer.kill().then(()=>true,()=>true);
+  if(await Promise.race([killing,delay(5000).then(()=>false)]))return;
+  const browserProcess=browserServer.process();
+  if(browserProcess?.pid){
+    if(process.platform==='win32'){
+      const killer=spawn('taskkill.exe',['/PID',String(browserProcess.pid),'/T','/F'],{stdio:'ignore'});
+      await Promise.race([new Promise(resolve=>killer.once('exit',resolve)),delay(3000)]);
+    }else browserProcess.kill('SIGKILL');
+  }
+  await Promise.race([killing,delay(1000)]);
 }
 if(argv.includes('--help')){console.log(usage);process.exit(0);}
 const videoPath=path.resolve(option('--video',defaultVideo));
