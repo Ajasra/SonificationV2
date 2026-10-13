@@ -41,6 +41,7 @@ export class HudOverlay {
 
   // Internal RAF loop state
   private rafId: number | null = null;
+  private lastRenderAt = Number.NEGATIVE_INFINITY;
   private latestData: HudTelemetryData = {};
 
   constructor(
@@ -144,12 +145,15 @@ export class HudOverlay {
 
   private startLoop(): void {
     if (this.rafId !== null) return;
-    const tick = () => {
+    const tick = (now: number) => {
       if (!this.enabled) {
         this.rafId = null;
         return;
       }
-      this.render(this.latestData);
+      if (now - this.lastRenderAt >= 1000 / 30) {
+        this.render(this.latestData);
+        this.lastRenderAt = now;
+      }
       this.rafId = requestAnimationFrame(tick);
     };
     this.rafId = requestAnimationFrame(tick);
