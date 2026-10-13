@@ -22,7 +22,7 @@ export interface MediaControllerOptions {
   onFrameProcessed: (data: ImageData, started?:number, capturedAt?:number) => void | Promise<void>;
   onCameraStopped: () => void;
   scheduleFrame: (video: HTMLVideoElement, callback: () => void) => void;
-  stopFrameLoop: () => void;
+  stopFrameLoop: (reason?:string) => void;
   getLoopGeneration: () => number;
   measureSourceHash?:boolean;
   resumeLiveCamera?:()=>void;
@@ -149,7 +149,7 @@ export class MediaController {
 
   public stopVideoFile(): void {
     this.sourceInfo=null;
-    this.opts.stopFrameLoop();
+    this.opts.stopFrameLoop('media-source-stopped-or-replaced');
     this.hideVideoLoading();
     this.videoTimeline.detachVideo();
     if (this.loadedVideoElement) {
@@ -236,7 +236,7 @@ export class MediaController {
   }
 
   public startVideoFileLoop(): void {
-    this.opts.stopFrameLoop();
+    this.opts.stopFrameLoop('video-loop-start');
     const generation = this.opts.getLoopGeneration();
     const v = this.loadedVideoElement;
     if (!v) return;
@@ -332,7 +332,7 @@ export class MediaController {
 
   public saveFullResolutionSnapshot(): void {
     if(!this.opts.measureSourceHash){this.renderFullResolutionSnapshot();return;}
-    this.opts.stopFrameLoop();
+    this.opts.stopFrameLoop('snapshot-export');
     try{this.renderFullResolutionSnapshot();}finally{
       if(this.opts.cameraManager.isActive())this.opts.resumeLiveCamera?.();
       else if(this.loadedVideoElement)this.startVideoFileLoop();
@@ -385,7 +385,7 @@ export class MediaController {
 
   public async startOfflineVideoRecording(): Promise<void> {
     if (!this.loadedVideoElement) return;
-    this.opts.stopFrameLoop();
+    this.opts.stopFrameLoop('offline-recording-start');
 
     const v = this.loadedVideoElement;
     const btnRec = document.getElementById('btn-record-video') as HTMLButtonElement | null;

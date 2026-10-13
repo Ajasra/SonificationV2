@@ -112,11 +112,13 @@ class SonificationApp {
   private mediaController!: MediaController;
   private presetController!: PresetController;
 
-  private stopFrameLoop(): void {
+  private stopFrameLoop(reason='unspecified'): void {
+    const hadActiveLoop=this.frameVideo!==null || this.animFrameId!==null || this.videoFrameId!==null || this.processingFrame;
+    if(!hadActiveLoop)return;
     this.loopGeneration++;
     this.gpu?.reset();
     this.closeMeasuredWindow();
-    if(this.sessionStart)this.resetHistory.push({atSeconds:(performance.now()-this.sessionStart)/1000,reason:'frame-loop-stopped'});
+    if(this.sessionStart)this.resetHistory.push({atSeconds:(performance.now()-this.sessionStart)/1000,reason});
     this.measureStart=0;this.lastPresented=undefined;
     if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
     if (this.videoFrameId !== null) this.frameVideo?.cancelVideoFrameCallback(this.videoFrameId);
@@ -140,7 +142,7 @@ class SonificationApp {
   private async flipCamera(): Promise<void> {
     if (this.cameraBusy || !this.cameraManager.isActive()) return;
     this.cameraBusy = true;
-    this.stopFrameLoop();
+    this.stopFrameLoop('camera-facing-change');
     try {
       await this.cameraManager.toggleFacingMode();
       if (this.cameraManager.isActive()) this.startLiveLoop();
@@ -175,7 +177,7 @@ class SonificationApp {
     void this.resolveSharedPresetHash();
 
     const releaseCamera = () => {
-      this.stopFrameLoop();
+      this.stopFrameLoop('page-hidden');
       this.cameraManager.stop();
       this.updateCamToggleUI(false);
       const button = document.getElementById('btn-toggle-camera');
@@ -305,7 +307,7 @@ class SonificationApp {
         document.getElementById('btn-flip-camera')?.classList.add('hidden');
       },
       scheduleFrame: (v, cb) => this.scheduleFrame(v, cb),
-      stopFrameLoop: () => this.stopFrameLoop(),
+      stopFrameLoop: reason => this.stopFrameLoop(reason),
       getLoopGeneration: () => this.loopGeneration,
     });
 
@@ -925,7 +927,7 @@ class SonificationApp {
   private async toggleLiveCameraFeed(): Promise<void> {
     if (this.cameraBusy) return;
     if (this.cameraManager.isActive()) {
-      this.stopFrameLoop();
+      this.stopFrameLoop('camera-stopped');
       this.cameraManager.stop();
       this.updateCamToggleUI(false);
       const btnCam = document.getElementById('btn-toggle-camera');
@@ -941,7 +943,7 @@ class SonificationApp {
   }
 
   private startLiveLoop(): void {
-    this.stopFrameLoop();
+    this.stopFrameLoop('live-loop-start');
     const generation = this.loopGeneration;
 
     const onFrame = async () => {
