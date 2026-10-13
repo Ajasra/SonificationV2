@@ -46,7 +46,7 @@ class SonificationApp {
   private gpuProfileEnabled=this.gpuEnabled && new URLSearchParams(location.search).get('gpu-profile')==='1';
   private gpu:AppTapeSatGpu | undefined;
   private offscreenCanvas = document.createElement('canvas');
-  private offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
+  private offscreenCtx = this.offscreenCanvas.getContext('2d')!;
   private scopeCanvas = document.getElementById('scope-canvas') as HTMLCanvasElement;
   private scopeCtx = this.scopeCanvas?.getContext('2d');
   private hudCanvas = document.getElementById('hud-canvas') as HTMLCanvasElement;
