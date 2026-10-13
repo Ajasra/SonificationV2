@@ -27,6 +27,14 @@ function option(name,fallback){
   const index=argv.indexOf(name);
   return index<0?fallback:argv[index+1];
 }
+function waitForExit(child,timeoutMs){
+  if(child.exitCode!==null)return Promise.resolve(true);
+  return new Promise(resolve=>{
+    const onExit=()=>{clearTimeout(timer);resolve(true);};
+    const timer=setTimeout(()=>{child.off('exit',onExit);resolve(child.exitCode!==null);},timeoutMs);
+    child.once('exit',onExit);
+  });
+}
 if(argv.includes('--help')){console.log(usage);process.exit(0);}
 const videoPath=path.resolve(option('--video',defaultVideo));
 const durationSeconds=Number(option('--duration','60'));
@@ -121,5 +129,12 @@ try{
   if(problems.length)process.exitCode=1;
 }finally{
   await browser?.close().catch(()=>{});
-  server.kill();
+  if(server.exitCode===null){
+    server.kill('SIGTERM');
+    if(!await waitForExit(server,2000)&&process.platform==='win32'){
+      const killer=spawn('taskkill.exe',['/PID',String(server.pid),'/T','/F'],{stdio:'ignore'});
+      await new Promise(resolve=>killer.once('exit',resolve));
+      await waitForExit(server,2000);
+    }
+  }
 }
