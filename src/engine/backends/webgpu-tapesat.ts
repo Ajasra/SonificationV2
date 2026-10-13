@@ -61,6 +61,7 @@ struct Params { n:u32, groups:u32, stride:u32, stage:u32, drive:f32, bias:f32, d
 @group(0) @binding(3) var<storage,read_write> summaries:array<vec2<f32>>;
 @group(0) @binding(4) var<storage,read_write> scanned:array<vec2<f32>>;
 @group(0) @binding(5) var<storage,read_write> state:array<f32>;
+@group(0) @binding(6) var<storage,read_write> blockSummaries:array<vec2<f32>>;
 fn value(i:u32)->f32 {
  if(p.stage==1u){return input[i];}
  let z=p.drive*(input[i]+p.bias); let zz=z*z;
@@ -83,18 +84,29 @@ var<workgroup> prefix:array<vec2<f32>,256>;
  if(i>=p.stride){let left=summaries[i-p.stride];v=vec2<f32>(v.x*left.x,v.y+v.x*left.y);}
  scanned[i]=v;
 }
+@compute @workgroup_size(256) fn scanBlocks(@builtin(workgroup_id) block:vec3<u32>,@builtin(local_invocation_index) lane:u32){
+ let i=block.x*256u+lane;var v=vec2<f32>(1.0,0.0);if(i<p.groups){v=summaries[i];}
+ prefix[lane]=v;workgroupBarrier();
+ for(var stride=1u;stride<256u;stride*=2u){v=prefix[lane];if(lane>=stride){let left=prefix[lane-stride];v=vec2<f32>(v.x*left.x,v.y+v.x*left.y);}workgroupBarrier();prefix[lane]=v;workgroupBarrier();}
+ if(i<p.groups){scanned[i]=prefix[lane];}if(lane==255u){blockSummaries[block.x]=prefix[lane];}
+}
+@compute @workgroup_size(256) fn scanBlockTotals(@builtin(local_invocation_index) lane:u32){
+ let count=(p.groups+255u)/256u;var v=vec2<f32>(1.0,0.0);if(lane<count){v=blockSummaries[lane];}
+ prefix[lane]=v;workgroupBarrier();
+ for(var stride=1u;stride<256u;stride*=2u){v=prefix[lane];if(lane>=stride){let left=prefix[lane-stride];v=vec2<f32>(v.x*left.x,v.y+v.x*left.y);}workgroupBarrier();prefix[lane]=v;workgroupBarrier();}
+ if(lane<count){blockSummaries[lane]=prefix[lane];}
+}
 @compute @workgroup_size(256) fn apply(@builtin(global_invocation_id) id:vec3<u32>){
  let i=id.x; if(i>=p.n){return;} let g=i/256u;
- var carry=state[p.stage]; if(g>0u){let v=summaries[g-1u];carry=v.y+v.x*carry;}
  let a=select(p.bumpA,p.toneA,p.stage==1u);
- let s=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;
- scanned[i]=vec2<f32>(s,0.0);
+ if(p.stride==0u){var carry=state[p.stage];if(g>0u){let v=summaries[g-1u];carry=v.y+v.x*carry;}let s=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;scanned[i]=vec2<f32>(s,0.0);}
+ else{let block=g/256u;var carry=state[p.stage];if(block>0u){let v=blockSummaries[block-1u];carry=v.y+v.x*carry;}if(g%256u>0u){let v=scanned[g-1u];carry=v.y+v.x*carry;}local[i]=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;}
 }
 @compute @workgroup_size(256) fn finish(@builtin(global_invocation_id) id:vec3<u32>){
- let i=id.x;if(i>=p.n){return;}let s=scanned[i].x;
+ let i=id.x;if(i>=p.n){return;}var s=scanned[i].x;if(p.stride!=0u){s=local[i];}
  local[i]=select(value(i)+p.bump*s,s,p.stage==1u);
 }
-@compute @workgroup_size(1) fn save(){state[p.stage]=scanned[p.n-1u].x;}
+@compute @workgroup_size(1) fn save(){var s=scanned[p.n-1u].x;if(p.stride!=0u){s=local[p.n-1u];}state[p.stage]=s;}
 `;
 
 export class WebGpuTapeSat {
@@ -136,7 +148,7 @@ export class WebGpuTapeSat {
       const info = await module.getCompilationInfo();
       const errors = info.messages.filter(message => message.type === 'error');
       if (errors.length) throw new Error(errors.map(message => message.message).join('\n'));
-      const entries = await Promise.all(['tiles', 'scan', 'apply', 'finish', 'save'].map(async entryPoint =>
+      const entries = await Promise.all(['tiles', 'scan', 'scanBlocks', 'scanBlockTotals', 'apply', 'finish', 'save'].map(async entryPoint =>
         [entryPoint, await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint } })] as const));
       const runtime = new WebGpuTapeSat(device, adapter, Object.fromEntries(entries));
       runtime.imagePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:imageShader}),entryPoint:'encode'}});
@@ -224,7 +236,10 @@ export class WebGpuTapeSat {
     this.device.pushErrorScope('validation');
     let scopePending = true;
     try {
-      const input = buffer(bytes), local = buffer(bytes), sums = buffer(Math.max(groups * 8, bytes * 2)), scratch = buffer(Math.max(groups * 8, bytes * 2));
+      const blockCount=Math.ceil(groups/256),hierarchical=blockCount<=256;
+      const input = buffer(bytes), local = buffer(bytes), sums = buffer(groups * 8), scratch = buffer(groups * 8);
+      const blockSummaries=buffer(Math.max(blockCount*8,8));
+      const legacyOutput=hierarchical?undefined:buffer(bytes*2);
       const readBytes=resident && !resident.diagnostic ? 8194*4 : bytes;
       const read = buffer(readBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
       const rawRead=resident?.diagnostic ? buffer(bytes,GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST) : undefined;
@@ -266,17 +281,25 @@ export class WebGpuTapeSat {
           this.device.queue.writeBuffer(uniform,0,data);
           const pipeline = this.pipelines[entry];
           // Auto layouts omit bindings unused by each entry point.
-          const used:Record<string,number[]> = {tiles:[0,1,2,3],scan:[0,3,4],apply:[0,2,3,4,5],finish:[0,1,2,4],save:[0,4,5]};
-          const all=[uniform,input,local,source,target,this.state];
+          const used:Record<string,number[]> = {tiles:[0,1,2,3],scan:[0,3,4],scanBlocks:[0,3,4,6],scanBlockTotals:[0,6],apply:[0,2,3,4,5,6],finish:[0,1,2,4],save:[0,2,4,5]};
+          const all=[uniform,input,local,source,target,this.state,blockSummaries];
           const bind=this.device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:used[entry].map(binding=>({binding,resource:{buffer:all[binding]}}))});
           const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(count);pass.end();
         };
         dispatch('tiles',0,sums,scratch,groups);
-        let source=sums,target=scratch;
-        for(let stride=1;stride<groups;stride*=2){dispatch('scan',stride,source,target,Math.ceil(groups/64));[source,target]=[target,source];}
-        dispatch('apply',0,source,target,Math.ceil(n/256));
-        dispatch('finish',0,source,target,Math.ceil(n/256));
-        dispatch('save',0,source,target,1);
+        if(hierarchical){
+          dispatch('scanBlocks',0,sums,scratch,blockCount);
+          dispatch('scanBlockTotals',0,sums,scratch,1);
+          dispatch('apply',1,sums,scratch,Math.ceil(n/256));
+          dispatch('save',1,sums,scratch,1);
+          dispatch('finish',1,sums,scratch,Math.ceil(n/256));
+        }else{
+          let source=sums,target=scratch;
+          for(let stride=1;stride<groups;stride*=2){dispatch('scan',stride,source,target,Math.ceil(groups/64));[source,target]=[target,source];}
+          dispatch('apply',0,source,legacyOutput!,Math.ceil(n/256));
+          dispatch('finish',0,source,legacyOutput!,Math.ceil(n/256));
+          dispatch('save',0,source,legacyOutput!,1);
+        }
         encoder.copyBufferToBuffer(local,0,input,0,bytes);
       }
       if(resident){
