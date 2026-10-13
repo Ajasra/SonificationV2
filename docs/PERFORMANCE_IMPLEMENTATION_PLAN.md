@@ -1,5 +1,7 @@
 # Video acceleration implementation and testing plan
 
+Continuation: [Next acceleration experiments, 2026-10-13](NEXT_ACCELERATION_TEST_PLAN.md) turns the current WASM/GPU evidence into a sequential proposal queue. Use it for the next test/benchmark/decision slices; retain this document as the original scope and invariants.
+
 Status: Stages 0–1 are in progress. Scalar/SIMD WASM prototypes are implemented and remain experimental; no backend promotion or performance acceptance is complete. Updated 2026-10-11. See [PERFORMANCE_PROGRESS.md](PERFORMANCE_PROGRESS.md) and [WASM_PROTOTYPE.md](WASM_PROTOTYPE.md) for implemented work and verification.
 
 ## Goal and scope

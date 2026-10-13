@@ -1131,6 +1131,7 @@ class SonificationApp {
   private downloadApplicationReport():void {
     const now=performance.now();
     const seconds=(this.measuredWindowMs+Math.max(0,this.measureStart?now-Math.max(this.measureStart,this.sessionStart||now):0))/1000;
+    const declaredSourceFps=Number(this.gpuQuery.get('gpu-source-fps'));
     const report={
       schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:BUILD_INFO,
       source:this.mediaController.getSourceInfo(),backend:'experimental-app-tapesat',
@@ -1143,6 +1144,7 @@ class SonificationApp {
       timings:{framePathMs:summarize(this.frameMeasurements),captureMs:summarize(this.stageMeasurements.map(s=>s.captureMs)),preparationMs:summarize(this.stageMeasurements.map(s=>s.prepareMs)),gpuCompletionAndReadbackMs:summarize(this.stageMeasurements.map(s=>s.gpuMs)),audioSubmissionMs:summarize(this.stageMeasurements.map(s=>s.audioMs)),telemetryUpdateMs:summarize(this.stageMeasurements.map(s=>s.telemetryMs)),otherFrameWorkMs:summarize(this.stageMeasurements.map(s=>s.otherMs)),hudRenderMs:this.hudOverlay.getRenderTimingSummary()},audioMuted:this.audioEngine.getMuted(),audioVolume:this.audioEngine.getVolume(),
       hudEnabled:this.hudOverlay.isEnabled(),gpuPerFrameValidation:this.gpuPerFrameValidation,gpuFusedApplyFinish:this.gpuFusedApplyFinish,audioContextState:this.audioEngine.getAnalyser()?.context.state??null,
       sourcePaused:this.mediaController.getLoadedVideo()?.paused??null,gpuValidation:this.gpu?.validation??null,
+      benchmarkConditions:{profileRequested:this.gpuProfileEnabled,audioRequested:this.gpuQuery.get('gpu-audio')??'unspecified',hudRequested:this.gpuQuery.get('gpu-hud')??'default',declaredSourceFps:Number.isFinite(declaredSourceFps)&&declaredSourceFps>0?declaredSourceFps:null,deviceLabel:this.gpuQuery.get('gpu-device-label')?.trim()||null},
       ...(this.gpuProfileEnabled?{gpuInternalTimings:this.gpu?.getInternalTimingSummary()??null}:{}),
       environment:{userAgent:navigator.userAgent,hardwareConcurrency:navigator.hardwareConcurrency},
       acceptance:'requires named-device application validation; recording/other presets/phone gates remain open',
