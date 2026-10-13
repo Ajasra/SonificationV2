@@ -28,7 +28,15 @@ export class AppTapeSatGpu {
     this.runtime=runtime;this.context=runtime.configureCanvas(this.canvas);
     const sample=await checkGpuFidelity(runtime,()=>epoch!==this.epoch);
     if(epoch!==this.epoch)return false;
-    const selection=await selectResidentCapture(runtime,this.context,source,()=>epoch!==this.epoch);
+    // Keep fidelity probing off the live readback canvas. Importing that
+    // willReadFrequently surface into WebGPU can change its backing and make
+    // subsequent CPU readbacks much slower, even when texture mode is rejected.
+    const probeCanvas=document.createElement('canvas');
+    probeCanvas.width=source.width;probeCanvas.height=source.height;
+    const probeContext=probeCanvas.getContext('2d',{willReadFrequently:true,colorSpace:'srgb'});
+    if(!probeContext)throw new Error('GPU fidelity probe canvas unavailable');
+    probeContext.drawImage(source,0,0);
+    const selection=await selectResidentCapture(runtime,this.context,probeCanvas,()=>epoch!==this.epoch);
     if(epoch!==this.epoch)return false;
     this.validation={sample,resident:selection.fidelity,textureProbe:selection.textureProbe,captureMode:selection.captureMode,adapter:{vendor:runtime.adapterInfo.vendor,architecture:runtime.adapterInfo.architecture,device:runtime.adapterInfo.device,description:runtime.adapterInfo.description}};
     if(!sample.passed || !selection.fidelity.passed)throw new Error('Application GPU fidelity gate failed');

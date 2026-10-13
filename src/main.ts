@@ -1012,7 +1012,10 @@ class SonificationApp {
       const gpuStarted=performance.now();
       const state=this.pipeline.tapeSatState(preset,w,h,eligible.id);
       const compact=await this.gpu.process(this.offscreenCanvas,getInput,eligible.params,state);
-      const gpuMs=performance.now()-gpuStarted;
+      // In reference-byte mode the lazy pixel read is performed inside
+      // gpu.process(). Keep it attributed to capture instead of counting it
+      // again as GPU completion/readback time.
+      const gpuMs=Math.max(0,performance.now()-gpuStarted-captureReadMs);
       if(generation!==this.loopGeneration)return;
       if(compact){
         this.pipeline.tapeSatState(preset,w,h,eligible.id,{version:1,sampleRate:44100,bumpLp:compact[8192],toneLp:compact[8193]});

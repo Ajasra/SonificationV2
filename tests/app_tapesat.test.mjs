@@ -36,12 +36,12 @@ test('pipeline state handoff preserves TapeSat continuity within f32 limits',()=
 });
 
 function controllerHarness(captureMode='reference-bytes'){
-  let creates=0,disposed=0,rejectFrame=false,resolveCreate,rgbaCalls=0,imageCalls=0;
+  let creates=0,disposed=0,rejectFrame=false,resolveCreate,rgbaCalls=0,imageCalls=0,probeSource;
   const runtime={captureMode,adapterInfo:{vendor:'',architecture:'',device:'',description:''},dispose(){disposed++;},configureCanvas(){return {unconfigure(){}};},seedState(){},async processRgba(){rgbaCalls++;if(rejectFrame)throw new Error('device lost');return new Float32Array(8194);},async processImage(){imageCalls++;if(rejectFrame)throw new Error('device lost');return new Float32Array(8194);}};
   const exports={};const code=ts.transpileModule(fs.readFileSync('src/engine/backends/app-tapesat.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-  vm.runInNewContext(code,{exports,console:{warn(){}},document:{createElement:()=>({style:{},getContext:()=>({putImageData(){}})})},require:name=>name.includes('webgpu-tapesat')?{WebGpuTapeSat:{create:()=>{creates++;return new Promise(resolve=>resolveCreate=()=>resolve(runtime));}}}:name.includes('gpu-fidelity')?{checkGpuFidelity:async()=>({passed:true}),selectResidentCapture:async()=>({fidelity:{passed:true},textureProbe:null,captureMode:runtime.captureMode})}:{resolveChain:()=>[]}});
+  vm.runInNewContext(code,{exports,console:{warn(){}},document:{createElement:()=>({width:0,height:0,style:{},getContext:()=>({putImageData(){},drawImage(source){probeSource=source;}})})},require:name=>name.includes('webgpu-tapesat')?{WebGpuTapeSat:{create:()=>{creates++;return new Promise(resolve=>resolveCreate=()=>resolve(runtime));}}}:name.includes('gpu-fidelity')?{checkGpuFidelity:async()=>({passed:true}),selectResidentCapture:async(gpu,context,source)=>{probeSource=source;return {fidelity:{passed:true},textureProbe:null,captureMode:runtime.captureMode};}}:{resolveChain:()=>[]}});
   const controller=new exports.AppTapeSatGpu({style:{},insertAdjacentElement(){}});
-  return {controller,resolve(){resolveCreate();},fail(){rejectFrame=true;},get creates(){return creates;},get disposed(){return disposed;},get rgbaCalls(){return rgbaCalls;},get imageCalls(){return imageCalls;}};
+  return {controller,resolve(){resolveCreate();},fail(){rejectFrame=true;},get creates(){return creates;},get disposed(){return disposed;},get rgbaCalls(){return rgbaCalls;},get imageCalls(){return imageCalls;},get probeSource(){return probeSource;}};
 }
 test('source cancellation disposes a late-created GPU device',async()=>{
   const h=controllerHarness();const pending=h.controller.process({},()=>({data:{data:new Uint8ClampedArray()},durationMs:0}),{}, {bumpLp:0,toneLp:0});h.controller.reset();h.resolve();assert.equal(await pending,undefined);assert.equal(h.disposed,1);
@@ -56,4 +56,9 @@ test('proven texture capture skips per-frame CPU pixel readback',async()=>{
   const h=controllerHarness('texture'),source={},capture=()=>{throw new Error('CPU pixel readback should be skipped');};
   const pending=h.controller.process(source,capture,{}, {bumpLp:0,toneLp:0});h.resolve();
   assert.equal((await pending).length,8194);assert.equal(h.imageCalls,1);assert.equal(h.rgbaCalls,0);
+});
+test('fidelity probing uses a detached copy instead of the live readback canvas',async()=>{
+  const h=controllerHarness(),source={width:1280,height:720},capture=()=>({data:{data:new Uint8ClampedArray()},durationMs:0});
+  const pending=h.controller.process(source,capture,{}, {bumpLp:0,toneLp:0});h.resolve();
+  await pending;assert.notEqual(h.probeSource,source);
 });
