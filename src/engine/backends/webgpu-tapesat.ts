@@ -164,10 +164,10 @@ export class WebGpuTapeSat {
     if(this.busy || this.disposed || !Number.isFinite(bumpLp) || !Number.isFinite(toneLp))throw new Error('Invalid GPU state');
     this.device.queue.writeBuffer(this.state,0,new Float32Array([bumpLp,toneLp]));
   }
-  async processRgba(rgba:Uint8ClampedArray,context:GPUCanvasContext,params:Record<string,number>={}):Promise<Float32Array> {
+  async processRgba(rgba:Uint8ClampedArray,context:GPUCanvasContext,params:Record<string,number>={},profile=false):Promise<Float32Array> {
     const width=context.canvas.width,height=context.canvas.height;
     if(rgba.length!==width*height*4)throw new Error('Reference RGBA size mismatch');
-    return this.execute(undefined,params,44100,false,{source:context.canvas as HTMLCanvasElement,rgba,context,width,height,diagnostic:false});
+    return this.execute(undefined,params,44100,profile,{source:context.canvas as HTMLCanvasElement,rgba,context,width,height,diagnostic:false});
   }
   dispose(): void { this.disposed = true; this.device.destroy(); }
   useReferenceBytes():void {if(this.busy || this.disposed)throw new Error('Backend unavailable');this.captureMode='reference-bytes';}

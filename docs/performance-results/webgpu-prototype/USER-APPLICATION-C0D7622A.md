@@ -31,3 +31,7 @@ Average throughput remains below the 29.4 fps acceptance threshold. Median frame
 ## Next work
 
 Keep the hierarchical scan. Investigate long frame tails next, focusing on the GPU completion/readback interval and capture p95 rather than further reducing median scan work. A profile-only run can split GPU command preparation from submit-to-map completion, but those internal timings are diagnostic and must not replace complete frame path, processed FPS or callback gaps for acceptance. Preserve the exact texture fallback and fidelity limits.
+
+## Next diagnostic run
+
+Use `http://127.0.0.1:5175/?gpu=tapesat&gpu-profile=1` with the same video and settings. The downloaded report adds `gpuInternalTimings` with p50/p95/p99 for command preparation/submission, validation/completion/map wait, and mapped copy. This profile is opt-in; ordinary application reports omit it. Compare the internal timings with `timings.framePathMs`, `timings.gpuCompletionAndReadbackMs`, `processedFps`, and `missedPresentedCallbacks`. The internal breakdown diagnoses the long tail and is not a standalone performance acceptance result.

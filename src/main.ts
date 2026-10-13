@@ -43,6 +43,7 @@ class SonificationApp {
   private canvas = document.getElementById('main-canvas') as HTMLCanvasElement;
   private ctx = this.canvas.getContext('2d')!;
   private gpuEnabled=new URLSearchParams(location.search).get('gpu')==='tapesat';
+  private gpuProfileEnabled=this.gpuEnabled && new URLSearchParams(location.search).get('gpu-profile')==='1';
   private gpu:AppTapeSatGpu | undefined;
   private offscreenCanvas = document.createElement('canvas');
   private offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
@@ -164,7 +165,7 @@ class SonificationApp {
     this.initControllers();
     if(this.gpuEnabled){
       this.mediaController.setResolution('720p');this.resolutionSlider?.setValue('720p');
-      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
+      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas,this.gpuProfileEnabled);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
     }
     this.bindEvents();
     if(this.gpuEnabled){
@@ -1132,6 +1133,7 @@ class SonificationApp {
       timings:{framePathMs:summarize(this.frameMeasurements),captureMs:summarize(this.stageMeasurements.map(s=>s.captureMs)),preparationMs:summarize(this.stageMeasurements.map(s=>s.prepareMs)),gpuCompletionAndReadbackMs:summarize(this.stageMeasurements.map(s=>s.gpuMs)),audioSubmissionMs:summarize(this.stageMeasurements.map(s=>s.audioMs)),telemetryUpdateMs:summarize(this.stageMeasurements.map(s=>s.telemetryMs)),otherFrameWorkMs:summarize(this.stageMeasurements.map(s=>s.otherMs)),hudRenderMs:this.hudOverlay.getRenderTimingSummary()},audioMuted:this.audioEngine.getMuted(),audioVolume:this.audioEngine.getVolume(),
       hudEnabled:this.hudOverlay.isEnabled(),audioContextState:this.audioEngine.getAnalyser()?.context.state??null,
       sourcePaused:this.mediaController.getLoadedVideo()?.paused??null,gpuValidation:this.gpu?.validation??null,
+      ...(this.gpuProfileEnabled?{gpuInternalTimings:this.gpu?.getInternalTimingSummary()??null}:{}),
       environment:{userAgent:navigator.userAgent,hardwareConcurrency:navigator.hardwareConcurrency},
       acceptance:'requires named-device application validation; recording/other presets/phone gates remain open',
     };

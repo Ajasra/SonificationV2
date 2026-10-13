@@ -28,7 +28,7 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
     recorder.start();await new Promise(resolve=>setTimeout(resolve,1000));recorder.stop();await stopped;clearInterval(timer);streamVideo.getTracks().forEach(track=>track.stop());
     return {bytes:Array.from(new Uint8Array(await new Blob(chunks).arrayBuffer()))};
   });
-  await page.goto('/?gpu=tapesat');
+  await page.goto('/?gpu=tapesat&gpu-profile=1');
   await page.locator('#card-input .rack-card-header').click();
   await page.locator('#card-sound .rack-card-header').click();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();
@@ -53,6 +53,9 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   expect(report.timings.captureMs.count).toBeGreaterThan(0);expect(report.timings.gpuCompletionAndReadbackMs.count).toBeGreaterThan(0);
   expect(report.timings.audioSubmissionMs.count).toBeGreaterThan(0);expect(report.timings.telemetryUpdateMs.count).toBeGreaterThan(0);
   expect(report.timings.hudRenderMs.count).toBeGreaterThan(0);
+  expect(report.gpuInternalTimings.gpuPrepareSubmitMs.count).toBeGreaterThan(0);
+  expect(report.gpuInternalTimings.gpuValidationCompletionMapMs.count).toBeGreaterThan(0);
+  expect(report.gpuInternalTimings.gpuMappedCopyMs.count).toBeGreaterThan(0);
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'480p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeHidden();await expect(page.locator('#main-canvas')).toBeVisible();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();await expect(page.locator('#gpu-main-canvas')).toBeVisible();
   await page.locator('#select-bitdepth').evaluate((element:HTMLSelectElement)=>{element.value='16';element.dispatchEvent(new Event('change',{bubbles:true}));});await expect(page.locator('#perf-badge')).toContainText('JS');await expect(page.locator('#gpu-main-canvas')).toBeHidden();
