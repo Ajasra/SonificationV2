@@ -38,11 +38,7 @@ function waitForExit(child,timeoutMs){
 function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function closeBrowser(browser,browserServer){
   if(browser){
-    const closing=browser.close().then(()=>true,()=>true);
-    if(await Promise.race([closing,delay(5000).then(()=>false)])){
-      if(browserServer)await Promise.race([browserServer.close().catch(()=>{}),delay(5000)]);
-      return;
-    }
+    await Promise.race([browser.close().catch(()=>{}),delay(5000)]);
   }
   if(browserServer)await browserServer.kill().catch(()=>{});
 }
