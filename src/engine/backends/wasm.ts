@@ -26,6 +26,7 @@ const definitions = {
   tapesat: { kind: 1, defaults: { drive: 2.5, bias: .1, bump: .4, bumpHz: 80, tone: 8000 }, bounds: [[1, 10], [-.5, .5], [0, 1], [40, 200], [1000, 18000]] },
   tapewow: { kind: 2, defaults: { wow: .5, flutter: .3, drift: .3, mix: 1 }, bounds: [[0, 1], [0, 1], [0, 1], [0, 1]] },
   moogladder: { kind: 3, defaults: { cutoff: 1200, resonance: 2.2, drive: 1.5 }, bounds: [[20, 18000], [0, 4], [1, 5]] },
+  shiftr: { kind: 4, defaults: { mPasses: 5, mDiv: 1 }, bounds: [[1, 10], [.5, 5]] },
 } as const;
 type SupportedId = keyof typeof definitions;
 
@@ -136,7 +137,8 @@ export class WasmFilter implements IDspFilter {
       if (value === undefined) continue;
       if (!Number.isFinite(value)) throw new Error('Non-finite DSP parameter');
       const [lo, hi] = definitions[this.type].bounds[i];
-      const clamped = Math.max(lo, Math.min(hi, value));
+      const bounded = Math.max(lo, Math.min(hi, value));
+      const clamped = this.type === 'shiftr' && key === 'mPasses' ? Math.floor(bounded) : bounded;
       if (this.params[key] !== clamped) { changed = true; next[key] = clamped; }
     }
     if (changed) {

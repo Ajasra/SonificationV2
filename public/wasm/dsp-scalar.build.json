@@ -21,6 +21,6 @@
     "-fno-slp-vectorize"
   ],
   "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)\r\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\r\nThis is free and open source software under the MIT license.\r\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
-  "sourceSha256": "73ed87403856f0e6a85e851a9b6579a709fa16ec0aafa25f7d00a1993d86112f",
-  "wasmSha256": "aa611839450973594534387846a18014cf25681c156e57c65b9ab2e28ab046a1"
+  "sourceSha256": "1ba40f16e57ccf439b588740f64c555a384ff78c9a48592f6704f05f1bfc40b6",
+  "wasmSha256": "2d32d07e1c206f9f9996f32fb3b1a8d55633fd640fbea50b8dc17d6b11116101"
 }

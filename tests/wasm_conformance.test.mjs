@@ -24,6 +24,7 @@ const { WasmDspRuntime } = load('src/engine/backends/wasm.ts');
 const { TapeSaturationFilter } = load('src/engine/filters/lofi/tapesat.ts');
 const { TapeWowFilter } = load('src/engine/filters/lofi/tapewow.ts');
 const { MoogLadderFilter } = load('src/engine/filters/eq/moogladder.ts');
+const { TShiftRFilter } = load('src/engine/filters/distortion/shiftr.ts');
 const bytes = fs.readFileSync('public/wasm/dsp-scalar.wasm');
 const stateValues = (type, filter) => {
   const state = filter.exportState();
@@ -70,6 +71,27 @@ test('WASM-owned pipeline arena matches copied segment output and reuses its vie
     compare(arena, expected);
     compare(arenaFilter.exportState().values, copiedFilter.exportState().values, 0, 0);
     copiedFilter.dispose(); arenaFilter.dispose();
+  } finally { runtime.dispose(); }
+});
+
+test('Shiftr scalar WASM preserves recurrent samples and reset/parameter semantics', async () => {
+  const runtime = await WasmDspRuntime.fromBytes(bytes);
+  try {
+    const reference = new TShiftRFilter(44100), wasm = runtime.createFilter('shiftr', 44100);
+    const params = { mPasses: 3.9, mDiv: 1.7 };
+    reference.setParams(params); wasm.setParams(params);
+    for (let frame = 0; frame < 3; frame++) {
+      for (const length of [1, 8191, 2, 8193]) {
+        const expected = input(length, 100 + frame), actual = expected.slice();
+        reference.processBlock(expected); wasm.processBlock(actual); compare(actual, expected);
+        assert.equal(wasm.exportState().values[0], reference.prev);
+      }
+    }
+    reference.setParams({ mPasses: 5, mDiv: .5 }); wasm.setParams({ mPasses: 5, mDiv: .5 });
+    const expected = input(8193, 999), actual = expected.slice();
+    reference.processBlock(expected); wasm.processBlock(actual); compare(actual, expected);
+    assert.equal(wasm.exportState().values[0], reference.prev);
+    wasm.dispose();
   } finally { runtime.dispose(); }
 });
 

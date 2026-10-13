@@ -31,7 +31,7 @@ extern "C" {
 int dsp_abi_version() { return 1; }
 float* dsp_sine_table() { return sine_table; }
 Filter* dsp_create(int kind, double sr, uint32_t seed) {
-  if (kind < 1 || kind > 3 || !std::isfinite(sr) || sr < 8000 || sr > 192000 || !seed) return nullptr;
+  if (kind < 1 || kind > 4 || !std::isfinite(sr) || sr < 8000 || sr > 192000 || !seed) return nullptr;
   auto* f = static_cast<Filter*>(std::calloc(1, sizeof(Filter)));
   if (!f) return nullptr;
   f->kind = kind; f->sr = sr; f->rng = seed;
@@ -45,6 +45,7 @@ Filter* dsp_create(int kind, double sr, uint32_t seed) {
     if (!f->history) { std::free(f); return nullptr; }
   }
   if (kind == 3) { f->p[0] = 1200; f->p[1] = 2.2; f->p[2] = 1.5; }
+  if (kind == 4) { f->p[0] = 5; f->p[1] = 1; }
   return f;
 }
 void dsp_destroy(Filter* f) { if (f) { std::free(f->history); std::free(f); } }
@@ -59,6 +60,7 @@ void dsp_set_params(Filter* f, const double* p) {
     f->p[0] = clamp(p[0], 1, 10); f->p[1] = clamp(p[1], -.5, .5);
     f->p[2] = clamp(p[2], 0, 1); f->p[3] = clamp(p[3], 40, 200); f->p[4] = clamp(p[4], 1000, 18000);
   } else if (f->kind == 2) { for (int i = 0; i < 4; ++i) f->p[i] = clamp(p[i], 0, 1); }
+  else if (f->kind == 4) { f->p[0] = clamp(std::floor(p[0]), 1, 10); f->p[1] = clamp(p[1], .5, 5); }
   else { f->p[0] = clamp(p[0], 20, 18000); f->p[1] = clamp(p[1], 0, 4); f->p[2] = clamp(p[2], 1, 5); }
 }
 double* dsp_state(Filter* f) { return f->state; }
@@ -111,6 +113,21 @@ void dsp_process(Filter* f, float* samples, int length) {
     f->state[0] = std::fmod(wp / RAD_TO_INDEX, TWO_PI);
     f->state[1] = std::fmod(fp / RAD_TO_INDEX, TWO_PI);
     f->state[2] = noise; f->state[3] = target; f->pos = pos; f->count = count;
+  } else if (f->kind == 4) {
+    const int passes = static_cast<int>(f->p[0]);
+    const double div = f->p[1];
+    double prev = f->state[0];
+    for (int i = 0; i < length; ++i) {
+      const double x = samples[i];
+      double out = x;
+      for (int p = 0; p < passes; ++p) {
+        const double arg = (out + prev) / (x * div);
+        out = arg < 1e-10 ? 0.0 : std::sqrt(std::fabs(arg));
+      }
+      prev = x;
+      samples[i] = out != out ? 0.0f : static_cast<float>(out);
+    }
+    f->state[0] = prev;
   } else {
     const double fc = clamp(f->p[0], 20, f->sr * .45), freq = (fc * 2.0) / f->sr;
     const double k = 3.6 * freq - 1.6 * freq * freq - 1, p = (k + 1) * .5;

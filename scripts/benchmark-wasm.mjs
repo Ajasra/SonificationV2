@@ -39,7 +39,7 @@ try {
     sourceCtx.putImageData(image, 0, 0);
     const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' };
     const cases = [];
-    for (const types of [['tapesat'], ['tapewow'], ['tapesat', 'tapewow'], ['moogladder']]) {
+    for (const types of [['tapesat'], ['tapewow'], ['tapesat', 'tapewow'], ['moogladder'], ['shiftr']]) {
       const preset = { id: types.join('+'), name: types.join('+'), reader: stream, writer: stream,
         equalize: false, blendMode: 'NONE', blendAmount: 0, videoFilters: [],
         filters: types.map(type => ({ id: type, type, enabled: true, sampleRate: 44100,
@@ -53,18 +53,20 @@ try {
             new SonificationPipeline((type, rate) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
           const target = outputCtx.createImageData(1280, 720);
           const samples = { drawMs: [], readbackMs: [], pipelineMs: [], dspMs: [], outputSubmitMs: [], completeCpuPathMs: [] };
-          for (let frame = 0; frame < 25; frame++) {
+          const warmupFrames = types.includes('shiftr') ? 2 : 5;
+          const measuredFrames = types.includes('shiftr') ? 5 : 20;
+          for (let frame = 0; frame < warmupFrames + measuredFrames; frame++) {
             const start = performance.now(); captureCtx.drawImage(source, 0, 0);
             const drawn = performance.now(), input = captureCtx.getImageData(0, 0, 1280, 720), read = performance.now();
             const result = pipeline.processFrame(input.data, 1280, 720, preset, target.data, { profile: true, timeMs: frame * 1000 / 30 });
             const processed = performance.now(); outputCtx.putImageData(target, 0, 0); const end = performance.now();
-            if (frame >= 5) {
+            if (frame >= warmupFrames) {
               samples.drawMs.push(drawn - start); samples.readbackMs.push(read - drawn);
               samples.pipelineMs.push(processed - read); samples.dspMs.push(result.timings.audioDspMs);
               samples.outputSubmitMs.push(end - processed); samples.completeCpuPathMs.push(end - start);
             }
           }
-          cases.push({ backend, preset, wasmBuild: runtime?.buildInfo ?? null,
+          cases.push({ backend, preset, warmupFrames, measuredFrames, wasmBuild: runtime?.buildInfo ?? null,
             timings: Object.fromEntries(Object.entries(samples).map(([key, values]) => [key, summarize(values)])) });
         } finally { runtime?.dispose(); }
       }
