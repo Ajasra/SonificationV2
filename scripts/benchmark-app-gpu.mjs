@@ -19,6 +19,7 @@ Options:
   --video <path>       Video file (default: test_60fps.mov in the repository root)
   --duration <seconds> Measured duration, excluding the app's warmup (default: 60)
   --gpu-validation <on|off> Per-frame WebGPU validation scope (default: on)
+  --gpu-fused-apply <on|off> Fuse hierarchical prefix carry, filter, and state save (default: on)
   --hud <on|off>        HUD rendering state (default: on)
   --output-dir <path>  Report directory (default: ~/Downloads)
   --headed             Show the Chrome window
@@ -59,11 +60,13 @@ if(argv.includes('--help')){console.log(usage);process.exit(0);}
 const videoPath=path.resolve(option('--video',defaultVideo));
 const durationSeconds=Number(option('--duration','60'));
 const gpuValidation=option('--gpu-validation','on');
+const gpuFusedApply=option('--gpu-fused-apply','on');
 const hud=option('--hud','on');
 const outputDir=path.resolve(option('--output-dir',path.join(os.homedir(),'Downloads')));
 const headed=argv.includes('--headed');
 if(!Number.isInteger(durationSeconds)||durationSeconds<5||durationSeconds>3600)throw new Error('--duration must be an integer from 5 to 3600 seconds.');
 if(!['on','off'].includes(gpuValidation))throw new Error('--gpu-validation must be on or off.');
+if(!['on','off'].includes(gpuFusedApply))throw new Error('--gpu-fused-apply must be on or off.');
 if(!['on','off'].includes(hud))throw new Error('--hud must be on or off.');
 
 const sourceHasher=createHash('sha256');
@@ -102,7 +105,7 @@ try{
   const pageErrors=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')pageErrors.push(message.text());});
-  await page.goto(`${baseUrl}/?gpu=tapesat&gpu-profile=1&gpu-validation=${gpuValidation}&gpu-hud=${hud}`,{waitUntil:'domcontentloaded'});
+  await page.goto(`${baseUrl}/?gpu=tapesat&gpu-profile=1&gpu-validation=${gpuValidation}&gpu-fused-apply=${gpuFusedApply}&gpu-hud=${hud}`,{waitUntil:'domcontentloaded'});
   await page.locator('#card-input .rack-card-header').click();
   await page.locator('#card-sound .rack-card-header').click();
   await page.locator('#slider-resolution-mount').getByRole('button',{name:'720p',exact:true}).click();
@@ -152,6 +155,7 @@ try{
   if(report.build?.revision!==expectedRevision)problems.push(`build revision mismatch (${report.build?.revision??'missing'} vs ${expectedRevision})`);
   if(!report.gpuInternalTimings?.gpuValidationErrorScopeMs||!report.gpuInternalTimings?.gpuReadbackMapMs)problems.push('new error-scope/readback timing fields are missing');
   if(report.gpuPerFrameValidation!==(gpuValidation==='on'))problems.push(`per-frame validation mismatch (${report.gpuPerFrameValidation} vs ${gpuValidation})`);
+  if(report.gpuFusedApplyFinish!==(gpuFusedApply==='on'))problems.push(`fused apply mismatch (${report.gpuFusedApplyFinish} vs ${gpuFusedApply})`);
   if(report.hudEnabled!==(hud==='on'))problems.push(`HUD state mismatch (${report.hudEnabled} vs ${hud})`);
   if(pageErrors.length)problems.push(`${pageErrors.length} browser console/page errors`);
   console.log(JSON.stringify({
@@ -160,7 +164,7 @@ try{
     framePathMs:report.timings?.framePathMs,gpuCompletionAndReadbackMs:report.timings?.gpuCompletionAndReadbackMs,
     gpuValidationErrorScopeMs:report.gpuInternalTimings?.gpuValidationErrorScopeMs,gpuReadbackMapMs:report.gpuInternalTimings?.gpuReadbackMapMs,
     captureMode:report.gpuValidation?.captureMode,fidelityPassed:Boolean(report.gpuValidation?.sample?.passed&&report.gpuValidation?.resident?.passed),
-    gpuPerFrameValidation:report.gpuPerFrameValidation,hudEnabled:report.hudEnabled,audioMuted:report.audioMuted,audioContextState:report.audioContextState,problems,
+    gpuPerFrameValidation:report.gpuPerFrameValidation,gpuFusedApplyFinish:report.gpuFusedApplyFinish,hudEnabled:report.hudEnabled,audioMuted:report.audioMuted,audioContextState:report.audioContextState,problems,
   },null,2));
   if(problems.length)process.exitCode=1;
 }finally{

@@ -102,6 +102,12 @@ var<workgroup> prefix:array<vec2<f32>,256>;
  if(p.stride==0u){var carry=state[p.stage];if(g>0u){let v=summaries[g-1u];carry=v.y+v.x*carry;}let s=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;scanned[i]=vec2<f32>(s,0.0);}
  else{let block=g/256u;var carry=state[p.stage];if(block>0u){let v=blockSummaries[block-1u];carry=v.y+v.x*carry;}if(g%256u>0u){let v=scanned[g-1u];carry=v.y+v.x*carry;}local[i]=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;}
 }
+@compute @workgroup_size(256) fn applyFused(@builtin(global_invocation_id) id:vec3<u32>){
+ let i=id.x;if(i>=p.n){return;}let g=i/256u;let block=g/256u;
+ var carry=state[p.stage];if(block>0u){let v=blockSummaries[block-1u];carry=v.y+v.x*carry;}if(g%256u>0u){let v=scanned[g-1u];carry=v.y+v.x*carry;}
+ let a=select(p.bumpA,p.toneA,p.stage==1u);let s=local[i]+pow(1.0-a,f32(i%256u+1u))*carry;
+ local[i]=select(value(i)+p.bump*s,s,p.stage==1u);if(i==p.n-1u){state[p.stage]=s;}
+}
 @compute @workgroup_size(256) fn finish(@builtin(global_invocation_id) id:vec3<u32>){
  let i=id.x;if(i>=p.n){return;}var s=scanned[i].x;if(p.stride!=0u){s=local[i];}
  local[i]=select(value(i)+p.bump*s,s,p.stage==1u);
@@ -132,13 +138,13 @@ export class WebGpuTapeSat {
   private rasterContext:CanvasRenderingContext2D | undefined;
   private readonly lut:GPUBuffer;
   private readonly format = navigator.gpu.getPreferredCanvasFormat();
-  private constructor(private readonly device: GPUDevice, adapter: GPUAdapter, pipelines: Record<string, GPUComputePipeline>) {
+  private constructor(private readonly device: GPUDevice, adapter: GPUAdapter, pipelines: Record<string, GPUComputePipeline>, private readonly fusedApplyFinish=false) {
     this.adapterInfo = adapter.info; this.pipelines = pipelines;
     this.state = device.createBuffer({ size: 8, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
     this.lut=device.createBuffer({size:1024,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
     device.queue.writeBuffer(this.lut,0,LUT_LINEAR_8 as Float32Array<ArrayBuffer>);
   }
-  static async create(): Promise<WebGpuTapeSat> {
+  static async create(fusedApplyFinish=false): Promise<WebGpuTapeSat> {
     if (!navigator.gpu) throw new Error('WebGPU unavailable');
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw new Error('No WebGPU adapter');
@@ -148,9 +154,9 @@ export class WebGpuTapeSat {
       const info = await module.getCompilationInfo();
       const errors = info.messages.filter(message => message.type === 'error');
       if (errors.length) throw new Error(errors.map(message => message.message).join('\n'));
-      const entries = await Promise.all(['tiles', 'scan', 'scanBlocks', 'scanBlockTotals', 'apply', 'finish', 'save'].map(async entryPoint =>
+      const entries = await Promise.all(['tiles', 'scan', 'scanBlocks', 'scanBlockTotals', 'apply', 'applyFused', 'finish', 'save'].map(async entryPoint =>
         [entryPoint, await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint } })] as const));
-      const runtime = new WebGpuTapeSat(device, adapter, Object.fromEntries(entries));
+      const runtime = new WebGpuTapeSat(device, adapter, Object.fromEntries(entries), fusedApplyFinish);
       runtime.imagePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:imageShader}),entryPoint:'encode'}});
       runtime.bytePipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:byteShader}),entryPoint:'encode'}});
       runtime.gatherPipeline = await device.createComputePipelineAsync({layout:'auto',compute:{module:device.createShaderModule({code:gatherShader}),entryPoint:'gather'}});
@@ -281,7 +287,7 @@ export class WebGpuTapeSat {
           this.device.queue.writeBuffer(uniform,0,data);
           const pipeline = this.pipelines[entry];
           // Auto layouts omit bindings unused by each entry point.
-          const used:Record<string,number[]> = {tiles:[0,1,2,3],scan:[0,3,4],scanBlocks:[0,3,4,6],scanBlockTotals:[0,6],apply:[0,2,3,4,5,6],finish:[0,1,2,4],save:[0,2,4,5]};
+          const used:Record<string,number[]> = {tiles:[0,1,2,3],scan:[0,3,4],scanBlocks:[0,3,4,6],scanBlockTotals:[0,6],apply:[0,2,3,4,5,6],applyFused:[0,1,2,4,5,6],finish:[0,1,2,4],save:[0,2,4,5]};
           const all=[uniform,input,local,source,target,this.state,blockSummaries];
           const bind=this.device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:used[entry].map(binding=>({binding,resource:{buffer:all[binding]}}))});
           const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.dispatchWorkgroups(count);pass.end();
@@ -290,9 +296,12 @@ export class WebGpuTapeSat {
         if(hierarchical){
           dispatch('scanBlocks',0,sums,scratch,blockCount);
           dispatch('scanBlockTotals',0,sums,scratch,1);
-          dispatch('apply',1,sums,scratch,Math.ceil(n/256));
-          dispatch('save',1,sums,scratch,1);
-          dispatch('finish',1,sums,scratch,Math.ceil(n/256));
+          if(this.fusedApplyFinish) dispatch('applyFused',1,sums,scratch,Math.ceil(n/256));
+          else {
+            dispatch('apply',1,sums,scratch,Math.ceil(n/256));
+            dispatch('save',1,sums,scratch,1);
+            dispatch('finish',1,sums,scratch,Math.ceil(n/256));
+          }
         }else{
           let source=sums,target=scratch;
           for(let stride=1;stride<groups;stride*=2){dispatch('scan',stride,source,target,Math.ceil(groups/64));[source,target]=[target,source];}

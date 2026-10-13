@@ -128,7 +128,7 @@ test('GPU compact audio, raw HUD preview and JS state handoff preserve mapping',
     const input=Uint8ClampedArray.from({length:65*47*4},(_,i)=>i%4===3?255:(i*37)%256);
     const gold=new SonificationPipeline(),hybrid=new SonificationPipeline();gold.processFrame(input,65,47,preset);hybrid.processFrame(input,65,47,preset);
     const expected=gold.processFrame(input,65,47,preset).audioSamples.slice();const raw=imageToAudioStream(input,stream);
-    const gpu=await WebGpuTapeSat.create(),canvas=document.createElement('canvas');canvas.width=65;canvas.height=47;document.body.append(canvas);const context=gpu.configureCanvas(canvas);
+    const gpu=await WebGpuTapeSat.create(true),canvas=document.createElement('canvas');canvas.width=65;canvas.height=47;document.body.append(canvas);const context=gpu.configureCanvas(canvas);
     try{
       const state=hybrid.tapeSatState(preset,65,47,'sat');gpu.seedState(state.bumpLp,state.toneLp);
       const compact=await gpu.processRgba(input,context,preset.filters[0].params);let mappedMax=0,rawMax=0;

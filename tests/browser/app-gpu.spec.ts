@@ -46,7 +46,7 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   console.log('Application GPU capture mode:',report.gpuValidation.captureMode);
   console.log('Texture probe capture errors:',report.gpuValidation.textureProbe?.cases?.map((item:{source:string;captureMaxError:number;maxPixelError:number})=>({source:item.source,captureMaxError:item.captureMaxError,maxPixelError:item.maxPixelError}))??'no fallback probe');
   expect(['texture','reference-bytes']).toContain(report.gpuValidation.captureMode);
-  expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');
+  expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');expect(report.gpuFusedApplyFinish).toBe(true);
   expect(report.gpuValidation.sample.passed).toBe(true);expect(report.gpuValidation.resident.passed).toBe(true);
   expect(report.preset.id).toBe('experimental-gpu-tapesat');
   expect(report.sessionSeconds).toBeGreaterThanOrEqual(10);expect(report.measurementResets.length).toBeGreaterThan(0);

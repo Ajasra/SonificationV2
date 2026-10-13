@@ -13,7 +13,7 @@ export class AppTapeSatGpu {
   private failed=false;
   private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuValidationErrorScopeMs:number[];gpuReadbackMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuValidationErrorScopeMs:[],gpuReadbackMapMs:[],gpuMappedCopyMs:[]};
   validation:unknown;
-  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true){
+  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true,private readonly fusedApplyFinish=true){
     this.canvas.id='gpu-main-canvas';this.canvas.width=1280;this.canvas.height=720;this.canvas.style.display='none';
     referenceCanvas.insertAdjacentElement('afterend',this.canvas);
   }
@@ -37,7 +37,7 @@ export class AppTapeSatGpu {
     }
   }
   private async initialize(source:HTMLCanvasElement):Promise<boolean>{
-    const epoch=this.epoch,runtime=await WebGpuTapeSat.create();
+    const epoch=this.epoch,runtime=await WebGpuTapeSat.create(this.fusedApplyFinish);
     if(epoch!==this.epoch){runtime.dispose();return false;}
     this.runtime=runtime;this.context=runtime.configureCanvas(this.canvas);
     const sample=await checkGpuFidelity(runtime,()=>epoch!==this.epoch);
