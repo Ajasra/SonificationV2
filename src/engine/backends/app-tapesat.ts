@@ -13,7 +13,7 @@ export class AppTapeSatGpu {
   private failed=false;
   private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuValidationErrorScopeMs:number[];gpuReadbackMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuValidationErrorScopeMs:[],gpuReadbackMapMs:[],gpuMappedCopyMs:[]};
   validation:unknown;
-  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true,private readonly fusedApplyFinish=true){
+  constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true,private readonly fusedApplyFinish=true,private readonly requestedCaptureMode:'auto'|'reference-bytes'='auto'){
     this.canvas.id='gpu-main-canvas';this.canvas.width=1280;this.canvas.height=720;this.canvas.style.display='none';
     referenceCanvas.insertAdjacentElement('afterend',this.canvas);
   }
@@ -50,9 +50,9 @@ export class AppTapeSatGpu {
     const probeContext=probeCanvas.getContext('2d',{willReadFrequently:true,colorSpace:'srgb'});
     if(!probeContext)throw new Error('GPU fidelity probe canvas unavailable');
     probeContext.drawImage(source,0,0);
-    const selection=await selectResidentCapture(runtime,this.context,probeCanvas,()=>epoch!==this.epoch);
+    const selection=await selectResidentCapture(runtime,this.context,probeCanvas,()=>epoch!==this.epoch,this.requestedCaptureMode);
     if(epoch!==this.epoch)return false;
-    this.validation={sample,resident:selection.fidelity,textureProbe:selection.textureProbe,captureMode:selection.captureMode,adapter:{vendor:runtime.adapterInfo.vendor,architecture:runtime.adapterInfo.architecture,device:runtime.adapterInfo.device,description:runtime.adapterInfo.description}};
+    this.validation={sample,resident:selection.fidelity,textureProbe:selection.textureProbe,captureMode:selection.captureMode,requestedCaptureMode:this.requestedCaptureMode,adapter:{vendor:runtime.adapterInfo.vendor,architecture:runtime.adapterInfo.architecture,device:runtime.adapterInfo.device,description:runtime.adapterInfo.description}};
     if(!sample.passed || !selection.fidelity.passed)throw new Error('Application GPU fidelity gate failed');
     return true;
   }

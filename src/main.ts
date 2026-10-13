@@ -47,6 +47,7 @@ class SonificationApp {
   private gpuProfileEnabled=this.gpuEnabled && this.gpuQuery.get('gpu-profile')==='1';
   private gpuPerFrameValidation=this.gpuEnabled && this.gpuQuery.get('gpu-validation')!=='off';
   private gpuFusedApplyFinish=this.gpuEnabled && this.gpuQuery.get('gpu-fused-apply')!=='off';
+  private gpuCaptureMode:'auto'|'reference-bytes'=this.gpuQuery.get('gpu-capture')==='reference-bytes'?'reference-bytes':'auto';
   private gpu:AppTapeSatGpu | undefined;
   private offscreenCanvas = document.createElement('canvas');
   private offscreenCtx = this.offscreenCanvas.getContext('2d')!;
@@ -168,7 +169,7 @@ class SonificationApp {
     this.initControllers();
     if(this.gpuEnabled){
       this.mediaController.setResolution('720p');this.resolutionSlider?.setValue('720p');
-      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas,this.gpuProfileEnabled,this.gpuPerFrameValidation,this.gpuFusedApplyFinish);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
+      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas,this.gpuProfileEnabled,this.gpuPerFrameValidation,this.gpuFusedApplyFinish,this.gpuCaptureMode);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
     }
     this.bindEvents();
     if(this.gpuEnabled){
@@ -1144,7 +1145,7 @@ class SonificationApp {
       timings:{framePathMs:summarize(this.frameMeasurements),captureMs:summarize(this.stageMeasurements.map(s=>s.captureMs)),preparationMs:summarize(this.stageMeasurements.map(s=>s.prepareMs)),gpuCompletionAndReadbackMs:summarize(this.stageMeasurements.map(s=>s.gpuMs)),audioSubmissionMs:summarize(this.stageMeasurements.map(s=>s.audioMs)),telemetryUpdateMs:summarize(this.stageMeasurements.map(s=>s.telemetryMs)),otherFrameWorkMs:summarize(this.stageMeasurements.map(s=>s.otherMs)),hudRenderMs:this.hudOverlay.getRenderTimingSummary()},audioMuted:this.audioEngine.getMuted(),audioVolume:this.audioEngine.getVolume(),
       hudEnabled:this.hudOverlay.isEnabled(),gpuPerFrameValidation:this.gpuPerFrameValidation,gpuFusedApplyFinish:this.gpuFusedApplyFinish,audioContextState:this.audioEngine.getAnalyser()?.context.state??null,
       sourcePaused:this.mediaController.getLoadedVideo()?.paused??null,gpuValidation:this.gpu?.validation??null,
-      benchmarkConditions:{profileRequested:this.gpuProfileEnabled,audioRequested:this.gpuQuery.get('gpu-audio')??'unspecified',hudRequested:this.gpuQuery.get('gpu-hud')??'default',declaredSourceFps:Number.isFinite(declaredSourceFps)&&declaredSourceFps>0?declaredSourceFps:null,deviceLabel:this.gpuQuery.get('gpu-device-label')?.trim()||null},
+      benchmarkConditions:{profileRequested:this.gpuProfileEnabled,audioRequested:this.gpuQuery.get('gpu-audio')??'unspecified',hudRequested:this.gpuQuery.get('gpu-hud')??'default',captureModeRequested:this.gpuCaptureMode,declaredSourceFps:Number.isFinite(declaredSourceFps)&&declaredSourceFps>0?declaredSourceFps:null,deviceLabel:this.gpuQuery.get('gpu-device-label')?.trim()||null},
       ...(this.gpuProfileEnabled?{gpuInternalTimings:this.gpu?.getInternalTimingSummary()??null}:{}),
       environment:{userAgent:navigator.userAgent,hardwareConcurrency:navigator.hardwareConcurrency},
       acceptance:'requires named-device application validation; recording/other presets/phone gates remain open',

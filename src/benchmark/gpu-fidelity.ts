@@ -87,9 +87,15 @@ export async function checkResidentFidelity(gpu:WebGpuTapeSat, context:GPUCanvas
   } finally {if(!cancelled())gpu.reset();}
 }
 
-export async function selectResidentCapture(gpu:WebGpuTapeSat,context:GPUCanvasContext,source:HTMLVideoElement | HTMLCanvasElement | ImageBitmap,cancelled:()=>boolean=()=>false){
+export async function selectResidentCapture(gpu:WebGpuTapeSat,context:GPUCanvasContext,source:HTMLVideoElement | HTMLCanvasElement | ImageBitmap,cancelled:()=>boolean=()=>false,requested:'auto'|'reference-bytes'='auto'){
   const probe=await checkResidentFidelity(gpu,context,source,cancelled);
   if(cancelled())throw new Error('Fidelity check cancelled');
+  if(requested==='reference-bytes'){
+    gpu.useReferenceBytes();
+    const fidelity=await checkResidentFidelity(gpu,context,source,cancelled);
+    if(cancelled())throw new Error('Fidelity check cancelled');
+    return {textureProbe:probe,fidelity,captureMode:gpu.captureMode};
+  }
   if(probe.cases.some(value=>value.captureMaxError>0)){
     gpu.useReferenceBytes();
     return {textureProbe:probe,fidelity:await checkResidentFidelity(gpu,context,source,cancelled),captureMode:gpu.captureMode};

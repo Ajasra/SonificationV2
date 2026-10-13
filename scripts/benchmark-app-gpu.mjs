@@ -26,6 +26,7 @@ Options:
   --volume <0..1>      Requested output volume (default: 0.25)
   --source-fps <fps>   Declared source cadence for report context
   --device-label <text> Manually identify hardware if adapter name is blank
+  --capture <auto|reference-bytes> Force the reference-byte path for A/B tests
   --output-dir <path>  Report directory (default: ~/Downloads)
   --headed             Show the Chrome window
   --help               Show this help
@@ -72,6 +73,7 @@ const audio=option('--audio','active');
 const volume=Number(option('--volume','0.25'));
 const sourceFps=Number(option('--source-fps','0'));
 const deviceLabel=option('--device-label','');
+const capture=option('--capture','auto');
 const outputDir=path.resolve(option('--output-dir',path.join(os.homedir(),'Downloads')));
 const headed=argv.includes('--headed');
 if(!Number.isInteger(durationSeconds)||durationSeconds<5||durationSeconds>3600)throw new Error('--duration must be an integer from 5 to 3600 seconds.');
@@ -82,6 +84,7 @@ if(!['on','off'].includes(profile))throw new Error('--profile must be on or off.
 if(!['active','muted'].includes(audio))throw new Error('--audio must be active or muted.');
 if(!Number.isFinite(volume)||volume<0||volume>1)throw new Error('--volume must be from 0 to 1.');
 if(!Number.isFinite(sourceFps)||sourceFps<0)throw new Error('--source-fps must be zero or a positive number.');
+if(!['auto','reference-bytes'].includes(capture))throw new Error('--capture must be auto or reference-bytes.');
 
 const sourceHasher=createHash('sha256');
 try{for await(const chunk of createReadStream(videoPath))sourceHasher.update(chunk);}catch(error){throw new Error(`Cannot read video ${videoPath}: ${error.message}\n\n${usage}`);}
@@ -119,7 +122,7 @@ try{
   const pageErrors=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')pageErrors.push(message.text());});
-  const query=new URLSearchParams({gpu:'tapesat','gpu-profile':profile==='on'?'1':'0','gpu-validation':gpuValidation,'gpu-fused-apply':gpuFusedApply,'gpu-hud':hud,'gpu-source-fps':String(sourceFps),'gpu-device-label':deviceLabel,'gpu-audio':audio});
+  const query=new URLSearchParams({gpu:'tapesat','gpu-profile':profile==='on'?'1':'0','gpu-validation':gpuValidation,'gpu-fused-apply':gpuFusedApply,'gpu-hud':hud,'gpu-source-fps':String(sourceFps),'gpu-device-label':deviceLabel,'gpu-audio':audio,'gpu-capture':capture});
   await page.goto(`${baseUrl}/?${query}`,{waitUntil:'domcontentloaded'});
   await page.locator('#card-input .rack-card-header').click();
   await page.locator('#card-sound .rack-card-header').click();
@@ -140,7 +143,7 @@ try{
   const initialBadge=await page.locator('#perf-badge').textContent()??'';
   if(!initialBadge.includes('| GPU |'))throw new Error(`GPU backend did not activate within 30 seconds. Badge: ${initialBadge}\n${pageErrors.join('\n')}`);
   await page.locator('#gpu-main-canvas').waitFor({state:'visible'});
-  console.log(`Running ${durationSeconds}s measured 720p GPU TapeSat session on ${path.basename(videoPath)} (validation ${gpuValidation}, profiling ${profile}, audio ${audio} at ${volume}, HUD ${hud}, declared source ${sourceFps||'unknown'} fps, device ${deviceLabel||'unlabeled'}).`);
+  console.log(`Running ${durationSeconds}s measured 720p GPU TapeSat session on ${path.basename(videoPath)} (validation ${gpuValidation}, profiling ${profile}, audio ${audio} at ${volume}, HUD ${hud}, capture ${capture}, declared source ${sourceFps||'unknown'} fps, device ${deviceLabel||'unlabeled'}).`);
 
   const measureDeadline=Date.now()+(durationSeconds+150)*1000;
   try{
@@ -174,6 +177,7 @@ try{
   if(report.gpuPerFrameValidation!==(gpuValidation==='on'))problems.push(`per-frame validation mismatch (${report.gpuPerFrameValidation} vs ${gpuValidation})`);
   if(report.gpuFusedApplyFinish!==(gpuFusedApply==='on'))problems.push(`fused apply mismatch (${report.gpuFusedApplyFinish} vs ${gpuFusedApply})`);
   if(report.hudEnabled!==(hud==='on'))problems.push(`HUD state mismatch (${report.hudEnabled} vs ${hud})`);
+  if(report.benchmarkConditions?.captureModeRequested!==capture)problems.push(`capture mode request mismatch (${report.benchmarkConditions?.captureModeRequested} vs ${capture})`);
   if(pageErrors.length)problems.push(`${pageErrors.length} browser console/page errors`);
   console.log(JSON.stringify({
     report:reportPath,revision:report.build?.revision,dirty:report.build?.dirty,sourceSha256:report.source?.sha256,
@@ -183,6 +187,7 @@ try{
     captureMode:report.gpuValidation?.captureMode,fidelityPassed:Boolean(report.gpuValidation?.sample?.passed&&report.gpuValidation?.resident?.passed),
     gpuPerFrameValidation:report.gpuPerFrameValidation,gpuFusedApplyFinish:report.gpuFusedApplyFinish,hudEnabled:report.hudEnabled,audioMuted:report.audioMuted,audioContextState:report.audioContextState,problems,
     benchmarkConditions:report.benchmarkConditions,
+    actualCaptureMode:report.gpuValidation?.captureMode,
   },null,2));
   if(problems.length)process.exitCode=1;
 }finally{
