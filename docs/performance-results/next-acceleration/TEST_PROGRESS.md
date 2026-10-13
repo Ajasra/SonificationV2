@@ -10,10 +10,10 @@ This ledger records executed proposal tests and conservative decisions. Raw repo
 | P03 Monitoring/HUD | Six HUD on/off runs with audio active, GPU packet unchanged. Off averaged 55.4 vs 52.2 fps, but median p95 was 20.3 ms off vs 16.3 on. | Keep HUD/packet policy; no cadence change. Demand-driven packet and consumer-index tests remain open. |
 | P04 Ordered readback ring | No ring prototype. Current serialized app route remains the control. | Not tested; blocked on P02/P03 attribution and sequence-safe ownership. |
 | P05 WASM arena/copy reduction | Existing synthetic benchmark still copies a full Float32 segment into/out of WASM. No arena prototype or transfer-count comparison yet. | Not tested. |
-| P06 Pointwise kernels | Existing scalar/SIMD benchmark does not cover Amplify/Shiftr/Wavefolder. | Not tested. |
-| P07 Spatial video kernels | No candidate port or matched app path. | Not tested. |
-| P08 Temporal video kernels | No candidate port or long-history GPU prototype. | Not tested. |
-| P09 Recurrent CPU filters | Synthetic 20-frame 720p benchmark rerun; JS is faster for TapeWow and Moog; tape pair favors WASM scalar modestly. | Reject general scalar/SIMD recurrent replacement on these measurements; tape pair is conditional and requires longer P05 arena run. |
+| P06 Pointwise kernels | CPU baseline: stream conversion 1.2/1.8 ms; Wavefolder 13.0 ms at 640x480. Amplify/Shiftr/SIMD/GPU chain not tested. | Prioritize only after resident segment and filter-specific conformance prototype. |
+| P07 Spatial video kernels | CPU 640x480 baseline: four-filter Procamp/Colorizer/CVI/CRT rack 23.6 ms; CRT Bloom 8.4 ms, Procamp 5.9 ms. | Best GPU prototype candidate; no port or matched GPU app result yet. |
+| P08 Temporal video kernels | CPU 640x480 baseline: Vidicon 4.25 ms, FrameDelay 2.74 ms; no GPU/history comparison. | Defer until spatial residency prototype; test storage/state before porting. |
+| P09 Recurrent CPU filters | Synthetic 720p WASM comparison plus CPU 640x480 benchmark: Moog 37.7 ms, TapeWow 12.7 ms; WASM Moog/TapeWow loses on 720p. | Keep JS; Moog is high-value arena candidate, no more ports before P05. |
 | P10 GPU TapeWow | No GPU port. | Not tested. |
 | P11 Segment planner | No planner implementation; current eligibility is a static single-filter TapeSat gate. | Not tested. |
 | P12 Worker scheduler | No worker prototype. | Not tested. |
