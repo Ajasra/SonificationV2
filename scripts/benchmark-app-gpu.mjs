@@ -35,6 +35,17 @@ function waitForExit(child,timeoutMs){
     child.once('exit',onExit);
   });
 }
+function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function closeBrowser(browser,browserServer){
+  if(browser){
+    const closing=browser.close().then(()=>true,()=>true);
+    if(await Promise.race([closing,delay(5000).then(()=>false)])){
+      if(browserServer)await Promise.race([browserServer.close().catch(()=>{}),delay(5000)]);
+      return;
+    }
+  }
+  if(browserServer)await browserServer.kill().catch(()=>{});
+}
 if(argv.includes('--help')){console.log(usage);process.exit(0);}
 const videoPath=path.resolve(option('--video',defaultVideo));
 const durationSeconds=Number(option('--duration','60'));
@@ -62,6 +73,7 @@ server.stdout.on('data',data=>serverOutput+=data.toString());
 server.stderr.on('data',data=>serverOutput+=data.toString());
 const baseUrl=`http://127.0.0.1:${port}`;
 let browser;
+let browserServer;
 try{
   let ready=false;
   for(let attempt=0;attempt<120;attempt++){
@@ -71,7 +83,8 @@ try{
   }
   if(!ready)throw new Error(`Timed out waiting for benchmark server.\n${serverOutput}`);
 
-  browser=await chromium.launch({channel:'chrome',headless:!headed,args:['--enable-unsafe-webgpu']});
+  browserServer=await chromium.launchServer({channel:'chrome',headless:!headed,args:['--enable-unsafe-webgpu']});
+  browser=await chromium.connect(browserServer.wsEndpoint());
   const context=await browser.newContext({acceptDownloads:true});
   const page=await context.newPage();
   const pageErrors=[];
@@ -128,7 +141,7 @@ try{
   },null,2));
   if(problems.length)process.exitCode=1;
 }finally{
-  await browser?.close().catch(()=>{});
+  await closeBrowser(browser,browserServer);
   if(server.exitCode===null){
     server.kill('SIGTERM');
     if(!await waitForExit(server,2000)&&process.platform==='win32'){
