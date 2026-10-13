@@ -33,4 +33,4 @@ Within this run, GPU preparation/submission is small (p95 2.3 ms) and mapped cop
 
 ## Next diagnostic
 
-The follow-up implementation now reports `gpuValidationErrorScopeMs` and `gpuReadbackMapMs` separately while retaining the combined interval. Restarted benchmark server URL: `http://127.0.0.1:5176/?gpu=tapesat&gpu-profile=1`. Repeat with the same video/settings and confirm the report revision matches the new commit with `dirty: false`. Keep the complete frame path, processed FPS, and callback gaps as acceptance metrics; retain internal spans only for diagnosis.
+The follow-up implementation now reports `gpuValidationErrorScopeMs` and `gpuReadbackMapMs` separately while retaining the combined interval. Restarted benchmark server URL: `http://127.0.0.1:5176/?gpu=tapesat&gpu-profile=1`. Its injected revision matches code commit `4d58568`; the checkout is clean, though this development server still injects `dirty: true`, so treat the revision as the identifier and the flag as unreliable. Repeat with the same video/settings. Keep the complete frame path, processed FPS, and callback gaps as acceptance metrics; retain internal spans only for diagnosis.
