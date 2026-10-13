@@ -28,6 +28,12 @@ The direct Node invocation passed all new options and the report matched them: p
 
 The updated Playwright application integration test passed in 21.8 seconds and verified report condition fields plus GPU fidelity and JS fallback across format/resolution changes. On its generated video fixture the exact texture probe differed by up to two pixel byte levels, so the app correctly chose reference-byte capture. This demonstrates source-sensitive capture fallback on AMD; the separate 60 fps file run selected texture capture. The test is functional, not a sustained benchmark.
 
+## Committed-revision diagnostic run `e0b3eba7-e7fd-476e-b4be-0daa832741e9`
+
+Raw report: [app-benchmark-e0b3eba7-e7fd-476e-b4be-0daa832741e9.json](app-benchmark-e0b3eba7-e7fd-476e-b4be-0daa832741e9.json).
+
+On revision `3917d2ca27e06a9996c23a6d8eed49efc2006cf3`, the same 1280×720 60 fps source ran for 60.27 measured seconds with GPU validation on, fused dispatch on, profiling off, audio active at volume 0.25, HUD on and texture capture selected. AMD GCN-5 was identified; the adapter model remains unknown. Fidelity passed. Throughput was 37.51 fps; frame-path p50/p95/p99 9.6/24.6/35.8 ms; GPU completion/readback p50/p95/p99 9.1/22.5/33.7 ms; 236 presented-callback gap proxy events. This meets the measured ≥29.4 throughput and ≤25 ms p95 on this headless high-cadence setup. The one-second p95 margin is narrow, and the 60 fps clip plus callback proxy cannot close exact 30 fps source/drop acceptance. The Vite report still marks the tree dirty; the commit revision is explicit, but the runner's dirty flag needs reconciliation before claiming an immutable clean build.
+
 ## Regression and suite checkpoint
 
 - `npm run build`: passed.
@@ -35,13 +41,15 @@ The updated Playwright application integration test passed in 21.8 seconds and v
 - `npm run test:wasm`: 9 passed, 0 failed.
 - Focused application GPU browser test: 1 passed (21.8 s).
 - `npm run test:gpu`: 8 passed across three serial Playwright processes. The earlier single-process run stalled at final compact handoff without respecting the test timeout. Running the app tests, five WebGPU tests, then state handoff in a new Chrome process completed; the final handoff test took 4.3 s. The runner now saves one JSON report per process. Its last report is `test-results/gpu-browser-report-handoff.json`.
+- A committed-revision 60-second headless app run passed both numeric frame-path gates on the verified 60 fps stress clip; exact 30 fps file/camera and visible-browser runs remain open.
 - `git diff --check`: passed before this update.
 
 This supports process isolation as a workaround; it does not prove the underlying cause of the original GPU/browser hang.
 
 ## Remaining P00 gate
 
-1. Add real JS/WASM application-run controls and an API-observed transfer ledger before claiming equal-backend app comparisons; the current WASM harness remains synthetic-canvas CPU-path scope.
-2. After committing the final harness revision, rerun a named, profiled-off 60-second source-verified diagnostic and preserve its revision/hash. The current unprofiled app run used the prior HEAD with a dirty working tree.
+1. Resolve the dirty flag/revision provenance and runner's per-process artifact reporting.
+2. Add real JS/WASM application-run controls and an API-observed transfer ledger before claiming equal-backend app comparisons; the current WASM harness remains synthetic-canvas CPU-path scope.
+3. Run a visible-browser 60-second test on a verified 30 fps source and retain it separately from the headless 60 fps stress run.
 
 P01 can diagnose capture on this AMD adapter after a clean fresh-revision run. `texture` selection passed its current file preflight and the app also correctly rejected the generated video fixture; reference-byte/upload remains a source-specific accuracy fallback and needs a matched per-source A/B before choosing an app route.
