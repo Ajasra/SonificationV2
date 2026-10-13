@@ -184,3 +184,32 @@ test('Procamp GPU prototype preserves pixels and benchmarks transfers against CP
   expect(result.maxByteError).toBeLessThanOrEqual(1);
   expect(result.gpu.count).toBe(15);expect(result.cpu.count).toBe(15);
 });
+
+test('Vidicon GPU history preserves a 20-frame sequence and bounded state reset',async ({page},testInfo)=>{
+  await page.goto('/benchmark.html');const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);test.skip(!available,'No WebGPU adapter for temporal Vidicon prototype');
+  const result=await page.evaluate(async()=>{
+    const {VidiconFilter}=await import('/src/engine/video-filters/optic/vidicon.ts');
+    const {WebGpuVidicon}=await import('/src/engine/backends/webgpu-vidicon.ts');
+    const width=1280,height=720,params={decay:.88,threshold:110,glowGain:1.3,tint:1},cpu=new VidiconFilter(),gpu=await WebGpuVidicon.create();
+    cpu.init(width,height);cpu.setParams(params);gpu.reset(width,height);
+    const base=new Uint8ClampedArray(width*height*4);for(let i=0;i<base.length;i++)base[i]=i%4===3?255:(i*37)%256;
+    const cpuMs:number[]=[],gpuMs:number[]=[];let maxByteError=0,differentBytes=0,comparedBytes=0;
+    const percentile=(a:number[])=>a.slice().sort((x,y)=>x-y)[Math.ceil(a.length*.95)-1];
+    try{
+      for(let frame=0;frame<20;frame++){
+        const frameParams=frame<10?params:{...params,decay:.96,tint:2};cpu.setParams(frameParams);
+        const input=base.slice(),x=(frame*47)% (width-80),y=(frame*23)%(height-60);
+        for(let py=y;py<y+60;py++)for(let px=x;px<x+80;px++){const i=(py*width+px)*4;input[i]=255;input[i+1]=230;input[i+2]=80;}
+        const cpuInput=input.slice(),cpuStart=performance.now();cpu.processFrame(cpuInput,{width,height,timeMs:frame*33,audioRms:0,audioPeak:0});cpuMs.push(performance.now()-cpuStart);
+        const gpuStart=performance.now(),gpuOutput=await gpu.processFrame(input,width,height,frameParams);gpuMs.push(performance.now()-gpuStart);
+        for(let i=0;i<cpuInput.length;i++){const error=Math.abs(cpuInput[i]-gpuOutput[i]);maxByteError=Math.max(maxByteError,error);if(error!==0)differentBytes++;comparedBytes++;}
+      }
+      const smallW=65,smallH=47,smallInput=Uint8ClampedArray.from({length:smallW*smallH*4},(_,i)=>i%4===3?255:(i*29)%256),cpuSmall=new VidiconFilter();
+      cpuSmall.init(smallW,smallH);cpuSmall.setParams(params);gpu.reset(smallW,smallH);const expected=smallInput.slice();cpuSmall.processFrame(expected,{width:smallW,height:smallH,timeMs:0,audioRms:0,audioPeak:0});const actual=await gpu.processFrame(smallInput,smallW,smallH,params);let resizeError=0;for(let i=0;i<expected.length;i++)resizeError=Math.max(resizeError,Math.abs(expected[i]-actual[i]));
+      return {width,height,frames:20,comparedBytes,maxByteError,differentBytes,resizeError,cpu:{count:cpuMs.length,p95Ms:percentile(cpuMs),meanMs:cpuMs.reduce((a,b)=>a+b,0)/cpuMs.length},gpu:{count:gpuMs.length,p95Ms:percentile(gpuMs),meanMs:gpuMs.reduce((a,b)=>a+b,0)/gpuMs.length}};
+    }finally{gpu.dispose();}
+  });
+  await testInfo.attach('Vidicon GPU temporal prototype',{body:JSON.stringify(result,null,2),contentType:'application/json'});console.log('Vidicon CPU/GPU sequence:',JSON.stringify(result));
+  expect(result.maxByteError).toBeLessThanOrEqual(1);expect(result.resizeError).toBeLessThanOrEqual(1);expect(result.frames).toBe(20);
+});
