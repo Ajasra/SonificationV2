@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "proposal": "P08-Vidicon",
+  "createdAt": "2026-10-14",
+  "revision": "dbdc4e4",
+  "scope": "headless Chrome WebGPU temporal-kernel prototype; CPU filter-only vs GPU upload/compute/map per frame",
+  "deviceLabel": "AMD GCN-5",
+  "dimensions": "1280x720",
+  "historyFrames": 20,
+  "correctness": {"comparedBytesPerRun": 73728000,"maxByteError":0,"differentBytes":0,"resizeResetMaxError":0,"parameterEditFrame":10},
+  "runs": [
+    {"cpuP95Ms":9.7,"cpuMeanMs":7.4,"gpuP95Ms":6.5,"gpuMeanMs":7.03,"frames":20},
+    {"cpuP95Ms":8.6,"cpuMeanMs":7.225,"gpuP95Ms":6.8,"gpuMeanMs":7.165,"frames":20},
+    {"cpuP95Ms":9.2,"cpuMeanMs":7.295,"gpuP95Ms":6.8,"gpuMeanMs":7.045,"frames":20}
+  ],
+  "resources720p": {"trailBytes":11059200,"inputBytes":3686400,"readbackBytes":3686400,"totalOwnedBufferBytes":18432000,"note":"Decimal bytes; excludes small uniform allocation and driver overhead."},
+  "limits": ["isolated prototype, not integrated with app pipeline","GPU output maps every frame and therefore does not test resident downstream consumers","no mobile memory or thermal run","FrameDelay 16-frame ring not implemented"]
+}
