@@ -11,7 +11,7 @@ import { checkGpuFidelity, checkResidentFidelity, selectResidentCapture } from '
 import { snapshotVideoFrame } from './video-snapshot.ts';
 import { summarize } from './report.ts';
 
-declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean };
+declare const __BENCHMARK_BUILD__: { revision: string; dirty: boolean; dirtyFiles?: string[] };
 
 const element = <T extends HTMLElement>(id: string): T => {
   const value = document.getElementById(id);
