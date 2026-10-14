@@ -49,7 +49,7 @@ test('application GPU path feeds audio/HUD and falls back across resolution and 
   expect(report.gpuValidation.captureMode).toBe('reference-bytes');
   expect(report.gpuFrames).toBeGreaterThan(0);expect(report.jsFrames).toBe(0);expect(report.audioMuted).toBe(false);expect(report.hudEnabled).toBe(true);expect(report.audioContextState).toBe('running');expect(report.gpuFusedApplyFinish).toBe(true);
   expect(report.gpuValidation.sample.passed).toBe(true);expect(report.gpuValidation.resident.passed).toBe(true);
-  expect(report.benchmarkConditions).toEqual({profileRequested:true,audioRequested:'active',hudRequested:'default',captureModeRequested:'reference-bytes',declaredSourceFps:30,deviceLabel:'playwright-fixture'});
+  expect(report.benchmarkConditions).toEqual({backendRequested:'tapesat',profileRequested:true,audioRequested:'active',hudRequested:'default',captureModeRequested:'reference-bytes',declaredSourceFps:30,deviceLabel:'playwright-fixture'});
   expect(report.preset.id).toBe('experimental-gpu-tapesat');
   expect(report.sessionSeconds).toBeGreaterThanOrEqual(10);expect(report.measurementResets.length).toBeGreaterThan(0);
   expect(report.timings.captureMs.count).toBeGreaterThan(0);expect(report.timings.gpuCompletionAndReadbackMs.count).toBeGreaterThan(0);
