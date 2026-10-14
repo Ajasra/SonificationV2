@@ -3,6 +3,7 @@ dist/
 dist-benchmark/
 test-results/
 playwright-report/
+/docs/performance-results/next-acceleration/automated-runs/
 # Local 720p60 benchmark video; keep large user-provided media out of Git.
 test_60fps.mov
 .playwright-mcp/
