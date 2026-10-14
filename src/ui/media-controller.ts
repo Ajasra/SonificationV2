@@ -1,6 +1,6 @@
-import type { SonificationPipeline } from '../engine/pipeline.ts';
 import type { VideoRecorder } from '../record/video-recorder.ts';
 import type { OfflineVideoRecorder } from '../record/offline-video-recorder.ts';
+import type { SonificationPipeline } from '../engine/pipeline.ts';
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import type { CameraManager } from '../camera/camera-manager.ts';
 import type { SonificationPreset } from '../types/index.ts';
@@ -424,7 +424,6 @@ export class MediaController {
       const res = await this.opts.offlineVideoRecorder.render({
         video: v,
         canvas: this.opts.canvas,
-        pipeline: this.opts.pipeline,
         activePreset: this.opts.getActivePreset(),
         targetFps: 30,
         audioSampleRate: this.opts.getBusRate(),

@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "runId": "88babba9-9a1b-44f6-b12c-0ff846550499",
+  "createdAt": "2026-10-14T02:18:29.275Z",
+  "build": {
+    "revision": "2a0a478148951bea3e7241fd57c21b0aae7aa3d0",
+    "dirty": true,
+    "dirtyFiles": [
+      "cripts/benchmark-app-gpu.mjs",
+      "scripts/test-acceleration.mjs",
+      "src/main.ts",
+      "src/record/offline-video-recorder.ts",
+      "src/ui/media-controller.ts",
+      "tests/browser/webgpu.spec.ts",
+      "tests/browser/offline-export.spec.ts"
+    ]
+  },
+  "source": {
+    "name": "sonification-acceleration-720p30.mp4",
+    "bytes": 50474167,
+    "sha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008"
+  },
+  "backend": "javascript-reference",
+  "scope": "720p source capture, application processing, output presentation submission, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "experimental-gpu-tapesat",
+    "name": "Experimental GPU TapeSat",
+    "description": "Single-filter TapeSat preset for the opt-in 720p WebGPU path.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "gpu-tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 20.46720000000298,
+  "measuredSeconds": 5.57929999999702,
+  "measuredFrames": 160,
+  "processedFps": 28.67743265285707,
+  "gpuFrames": 0,
+  "jsFrames": 160,
+  "missedPresentedCallbacks": 8,
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 4.887900000005961,
+      "reason": "settings-changed"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 160,
+      "p50": 28.099999994039536,
+      "p95": 39.599999994039536,
+      "p99": 77.5
+    },
+    "captureMs": {
+      "count": 160,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "preparationMs": {
+      "count": 160,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 160,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "audioSubmissionMs": {
+      "count": 160,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "telemetryUpdateMs": {
+      "count": 160,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "otherFrameWorkMs": {
+      "count": 160,
+      "p50": 28.099999994039536,
+      "p95": 39.599999994039536,
+      "p99": 77.5
+    },
+    "hudRenderMs": {
+      "count": 458,
+      "p50": 2.2999999970197678,
+      "p95": 3,
+      "p99": 5.9000000059604645
+    }
+  },
+  "audioMuted": false,
+  "audioVolume": 0.25,
+  "hudEnabled": true,
+  "gpuPerFrameValidation": false,
+  "gpuFusedApplyFinish": false,
+  "audioContextState": "running",
+  "sourcePaused": false,
+  "gpuValidation": null,
+  "benchmarkConditions": {
+    "profileRequested": false,
+    "audioRequested": "active",
+    "hudRequested": "on",
+    "captureModeRequested": "auto",
+    "declaredSourceFps": 30,
+    "deviceLabel": "AMD GCN-5 desktop (manual)"
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "acceptance": "application-path measurements recorded; physical presentation/audio, decode-drop attribution, other presets and phone gates remain separate"
+}

@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "runId": "5db09e62-d03c-4bc5-b575-6dd9cd28c7fc",
+  "createdAt": "2026-10-14T02:23:33.639Z",
+  "build": {
+    "revision": "2a0a478148951bea3e7241fd57c21b0aae7aa3d0",
+    "dirty": true,
+    "dirtyFiles": [
+      "cripts/benchmark-app-gpu.mjs",
+      "scripts/test-acceleration.mjs",
+      "src/main.ts",
+      "src/record/offline-video-recorder.ts",
+      "src/ui/media-controller.ts",
+      "tests/browser/webgpu.spec.ts",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-5ee26787-a36a-467a-a99c-62a87c668205.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-88babba9-9a1b-44f6-b12c-0ff846550499.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-9095a175-60b8-4415-b449-f90c763e0f9f.json",
+      "tests/browser/offline-export.spec.ts"
+    ]
+  },
+  "source": {
+    "name": "sonification-acceleration-720p30.mp4",
+    "bytes": 50474167,
+    "sha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008"
+  },
+  "backend": "javascript-reference",
+  "scope": "720p source capture, application processing, output presentation submission, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "experimental-gpu-tapesat",
+    "name": "Experimental GPU TapeSat",
+    "description": "Single-filter TapeSat preset for the opt-in 720p WebGPU path.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "gpu-tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 25.56979999999702,
+  "measuredSeconds": 5.569899999991059,
+  "measuredFrames": 128,
+  "processedFps": 22.98066392578062,
+  "gpuFrames": 0,
+  "wasmFrames": 0,
+  "jsFrames": 128,
+  "missedPresentedCallbacks": 29,
+  "transferLedger": {
+    "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+    "measuredFrames": 128,
+    "perFrameBytes": {
+      "cpuImageDataReadback": 3686400,
+      "gpuReferenceByteCaptureReadback": 0,
+      "gpuReferenceByteUpload": 0,
+      "gpuExternalTextureInputLowerBound": 0,
+      "gpuCompactMappedMonitor": 0,
+      "wasmResidentSampleArena": 0,
+      "explicitWasmSegmentCopies": 0,
+      "mainWorkerTransfers": 0
+    },
+    "measuredTotals": {
+      "cpuImageDataReadbackBytes": 471859200,
+      "gpuReferenceByteCaptureReadbackBytes": 0,
+      "gpuReferenceByteUploadBytes": 0,
+      "gpuExternalTextureInputLowerBoundBytes": 0,
+      "gpuCompactMappedMonitorBytes": 0,
+      "wasmResidentSampleArenaBytes": 0,
+      "explicitWasmSegmentCopyBytes": 0,
+      "mainWorkerTransferBytes": 0,
+      "totalCpuRasterReadbackBytes": 471859200
+    },
+    "synchronizations": {
+      "gpuQueueSubmissions": 0,
+      "gpuMonitorMapOperations": 0,
+      "gpuValidationScopes": 0
+    },
+    "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+  },
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 10.342400000005961,
+      "reason": "settings-changed"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 128,
+      "p50": 34.80000001192093,
+      "p95": 42,
+      "p99": 44.400000005960464
+    },
+    "captureMs": {
+      "count": 128,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "preparationMs": {
+      "count": 128,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 128,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "audioSubmissionMs": {
+      "count": 128,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "telemetryUpdateMs": {
+      "count": 128,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "otherFrameWorkMs": {
+      "count": 128,
+      "p50": 34.80000001192093,
+      "p95": 42,
+      "p99": 44.400000005960464
+    },
+    "hudRenderMs": {
+      "count": 597,
+      "p50": 2.7000000029802322,
+      "p95": 4.9000000059604645,
+      "p99": 9.100000008940697
+    }
+  },
+  "audioMuted": false,
+  "audioVolume": 0.25,
+  "hudEnabled": true,
+  "gpuPerFrameValidation": false,
+  "gpuFusedApplyFinish": false,
+  "audioContextState": "running",
+  "sourcePaused": false,
+  "gpuValidation": null,
+  "benchmarkConditions": {
+    "backendRequested": "js",
+    "profileRequested": false,
+    "audioRequested": "active",
+    "hudRequested": "on",
+    "captureModeRequested": "auto",
+    "declaredSourceFps": 30,
+    "deviceLabel": "AMD GCN-5 desktop (manual)"
+  },
+  "wasmBuild": null,
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "acceptance": "application-path measurements recorded; physical presentation/audio, decode-drop attribution, other presets and phone gates remain separate"
+}

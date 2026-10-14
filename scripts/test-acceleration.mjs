@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const playwright = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');
+const appBenchmark = path.join(root, 'scripts', 'benchmark-app-gpu.mjs');
 const reportDir = path.join(root, 'docs', 'performance-results', 'next-acceleration', 'automated-runs');
 const runId = `${new Date().toISOString().replaceAll(':', '').replaceAll('.', '-')}-${randomUUID().slice(0, 8)}`;
 const startedAt = new Date().toISOString();
@@ -51,10 +52,14 @@ run('node-suite', process.execPath, ['--test', ...unitFiles]);
 const wasm = run('wasm-conformance', process.execPath, ['--test', path.join(root, 'tests', 'wasm_conformance.test.mjs')]);
 const build = run('production-build', npmCommand, ['run', 'build'], npmOptions);
 const benchmarkBuild = run('benchmark-build', npmCommand, ['run', 'build:benchmark'], npmOptions);
-const browser = run('benchmark-and-worker-browser', process.execPath, [playwright, 'test', 'tests/browser/benchmark.spec.ts', 'tests/browser/worker-probe.spec.ts'], { timeoutMs: 600_000 });
+const appSmokeOptions = ['--duration', '5', '--video', path.join(root, 'test_60fps.mov'), '--audio', 'active', '--volume', '0.25', '--hud', 'on', '--profile', 'off', '--source-fps', '60', '--output-dir', reportDir];
+run('application-js-route-smoke', process.execPath, [appBenchmark, '--backend', 'js', ...appSmokeOptions], { timeoutMs: 180_000 });
+run('application-wasm-arena-route-smoke', process.execPath, [appBenchmark, '--backend', 'wasm', ...appSmokeOptions], { timeoutMs: 180_000 });
+const browser = run('benchmark-worker-and-export-browser', process.execPath, [playwright, 'test', 'tests/browser/benchmark.spec.ts', 'tests/browser/worker-probe.spec.ts', 'tests/browser/offline-export.spec.ts'], { timeoutMs: 600_000 });
 
 if (!skipGpu) {
   const gpuEnv = { BENCHMARK_GPU_BROWSER: 'chrome' };
+  run('application-gpu-route-smoke', process.execPath, [appBenchmark, '--backend', 'gpu', ...appSmokeOptions], { timeoutMs: 240_000 });
   run('gpu-application-integration', process.execPath, [playwright, 'test', 'tests/browser/app-gpu.spec.ts', '--timeout=120000'], { timeoutMs: 300_000, env: gpuEnv });
   run('gpu-kernel-and-temporal-suite', process.execPath, [playwright, 'test', 'tests/browser/webgpu.spec.ts', '--grep-invert', 'GPU compact audio, raw HUD preview and JS state handoff preserve mapping', '--timeout=120000'], { timeoutMs: 300_000, env: gpuEnv });
   run('gpu-monitor-and-state-handoff', process.execPath, [playwright, 'test', 'tests/browser/webgpu.spec.ts', '--grep', 'GPU compact audio, raw HUD preview and JS state handoff preserve mapping', '--timeout=120000'], { timeoutMs: 180_000, env: gpuEnv });

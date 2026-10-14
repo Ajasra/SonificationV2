@@ -143,6 +143,34 @@ test('GPU compact audio, raw HUD preview and JS state handoff preserve mapping',
   expect(result.length).toBe(8194);expect(result.rawMax).toBe(0);expect(result.mappedMax).toBeLessThanOrEqual(1e-4);expect(result.continuationMax).toBeLessThanOrEqual(1e-4);
 });
 
+test('720p GPU monitor packet preserves playback, scope, meter and raw indices',async ({page})=>{
+  await page.goto('/benchmark.html');const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));
+  if(process.env.BENCHMARK_GPU_BROWSER==='chrome')expect(available).toBe(true);test.skip(!available,'No GPU adapter for 720p monitor conformance');
+  const result=await page.evaluate(async()=>{
+    const {WebGpuTapeSat}=await import('/src/engine/backends/webgpu-tapesat.ts');
+    const {SonificationPipeline}=await import('/src/engine/pipeline.ts');
+    const {imageToAudioStream}=await import('/src/engine/streams.ts');
+    const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'} as const;
+    const width=1280,height=720,n=width*height*3;
+    const preset={id:'monitor-720p',name:'monitor-720p',reader:{...stream},writer:{...stream},filters:[{id:'sat',type:'tapesat' as const,enabled:true,sampleRate:44100,params:{drive:2.5,bias:.1,bump:.4,bumpHz:80,tone:8000}}],videoFilters:[],equalize:false,blendMode:'NONE' as const,blendAmount:0};
+    const rgba=new Uint8ClampedArray(width*height*4);for(let i=0;i<rgba.length;i++)rgba[i]=i%4===3?255:(i*37)%256;
+    const reference=new SonificationPipeline().processFrame(rgba,width,height,preset).audioSamples;
+    const raw=imageToAudioStream(rgba,stream),gpu=await WebGpuTapeSat.create(),canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;document.body.append(canvas);const context=gpu.configureCanvas(canvas);
+    try{
+      const packet=await gpu.processRgba(rgba,context,preset.filters[0].params);const playbackStride=Math.max(1,Math.floor(n/4096)),scopeStride=Math.max(1,Math.floor(n/256));
+      let playbackMax=0,scopeMax=0,meterMax=0,rawMax=0;
+      for(let i=0;i<4096;i++)playbackMax=Math.max(playbackMax,Math.abs(packet[i]-reference[i*playbackStride]));
+      for(let i=0;i<256;i++)scopeMax=Math.max(scopeMax,Math.abs(packet[i*16]-reference[i*scopeStride]));
+      for(let i=0;i<512;i++)meterMax=Math.max(meterMax,Math.abs(packet[4096+i]-reference[i]));
+      for(let i=0;i<2048;i++)rawMax=Math.max(rawMax,Math.abs(packet[6144+i]-raw[i]));
+      return {packetLength:packet.length,sampleCount:n,playbackStride,scopeStride,playbackMax,scopeMax,meterMax,rawMax};
+    }finally{context.unconfigure();gpu.dispose();canvas.remove();}
+  });
+  expect(result.packetLength).toBe(8194);expect(result.sampleCount).toBe(2_764_800);
+  expect(result.playbackMax).toBeLessThanOrEqual(1e-4);expect(result.scopeMax).toBeLessThanOrEqual(1e-4);
+  expect(result.meterMax).toBeLessThanOrEqual(1e-4);expect(result.rawMax).toBe(0);
+});
+
 test('Procamp GPU prototype preserves pixels and benchmarks transfers against CPU',async ({page},testInfo)=>{
   await page.goto('/benchmark.html');
   const available=await page.evaluate(async()=>Boolean(await navigator.gpu?.requestAdapter()));

@@ -12,7 +12,8 @@ export interface OfflineRenderProgress {
 export interface OfflineRenderOptions {
   video: HTMLVideoElement;
   canvas: HTMLCanvasElement;
-  pipeline: SonificationPipeline;
+  /** Create an isolated pipeline for this export; defaults to the JS reference pipeline. */
+  pipelineFactory?: () => SonificationPipeline;
   activePreset: SonificationPreset;
   targetFps?: number;
   audioSampleRate?: number;
@@ -42,7 +43,6 @@ export class OfflineVideoRecorder {
     const {
       video,
       canvas,
-      pipeline,
       activePreset,
       targetFps = 30,
       audioSampleRate = 44100,
@@ -52,6 +52,10 @@ export class OfflineVideoRecorder {
     this.isAborted = false;
     this.isFinishingEarly = false;
     this.isRunning = true;
+    // Offline rendering must not advance the live preview's stateful filters.
+    // Keep exports on the reference backend unless a separately verified factory
+    // is explicitly supplied.
+    const pipeline = options.pipelineFactory?.() ?? new SonificationPipeline();
 
     // Preserve original video state
     const originalTime = video.currentTime;
