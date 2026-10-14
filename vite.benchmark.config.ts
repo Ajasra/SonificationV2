@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 import { execFileSync } from 'node:child_process';
+import { buildStateFromPorcelain } from './scripts/git-build-state.mjs';
 
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const status = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
-const dirtyFiles = status ? status.split(/\r?\n/).map(line => line.slice(3)) : [];
-const dirty = dirtyFiles.length > 0;
+const { revisionIndependentDirty: dirty, dirtyFiles } = buildStateFromPorcelain(status);
 
 // Loopback HTTP is a secure context for browser APIs and needs no development
 // certificate exception. This harness does not expose the application backend.
