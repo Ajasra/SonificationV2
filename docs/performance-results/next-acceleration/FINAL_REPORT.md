@@ -1,18 +1,18 @@
 # Acceleration test report and verdict
 
-Date: 2026-10-14. Scope: proposals P00–P13 in [the test plan](../../NEXT_ACCELERATION_TEST_PLAN.md). The local automated test campaign passed. The full product/device rollout is **not approved**: several proposal subtests require visible-device runs or missing route controls, and the 30 fps application report still carries an unresolved dirty-build bit.
+Date: 2026-10-14. Scope: proposals P00–P13 in [the test plan](../../NEXT_ACCELERATION_TEST_PLAN.md). The local automated test campaign and clean-build headless 30 fps benchmark passed. The full product/device rollout is **not approved**: several proposal subtests require visible-device runs or missing route controls.
 
 ## Automated local result
 
 `npm run test:acceleration` passed all 8/8 gates on clean revision `8e2e127782e0b27b0dd975670722886d204a0a6e` in Windows x64 / Node 22.12.0. The immutable local report is `automated-runs/2026-10-14T013222-743Z-52d0cc6d.json` (that directory is ignored; the report records clean tree, exact commands, durations and exit codes).
 
-The gates were: Node suite 71/71; WASM conformance 11/11; production build; benchmark build; four benchmark/worker browser tests; two app-GPU integration tests; eight GPU kernel/temporal tests; and one separate compact-monitor/state-handoff test. The GPU suite is stable when split into separate Chrome processes. No tests failed or timed out.
+The gates were: Node suite 72/72; WASM conformance 11/11; production build; benchmark build; four benchmark/worker browser tests; two app-GPU integration tests; eight GPU kernel/temporal tests; and one separate compact-monitor/state-handoff test. The GPU suite is stable when split into separate Chrome processes. No tests failed or timed out. A fresh final run is being saved after the P00 report commit so the runner starts clean.
 
 ## 30 fps application benchmark
 
 The source was transcoded from the checked-in 1280×720 clip to 30 fps and verified independently with `ffprobe`. Source SHA-256: `8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008`. A 60-second headless Chrome run used GPU TapeSat, active audio at volume 0.25, HUD on, validation on, and profile off. The AMD GCN-5 adapter reported fidelity pass and texture capture.
 
-The run processed 1,774 frames over 59.94 measured seconds: **29.60 fps**, frame-path p50/p95/p99 **10.0/15.4/36.5 ms**, and one missed-presented-callback proxy event. It meets the numeric 720p30 throughput (≥29.4 fps) and p95 (≤25 ms) gates for this headless GPU TapeSat configuration. This does not prove physical display or sound, and the report says `build.dirty=true` despite naming the current commit. Treat it as a strong diagnostic, not a clean-build release receipt. See [raw report](P00/app-benchmark-9f67c4cd-2c9d-4697-8d5d-ef1fb433c785.json) and [P00 decision](P00/DECISION.md).
+The final clean-tree run processed 1,796 frames over 59.91 measured seconds: **29.98 fps**, frame-path p50/p95/p99 **9.7/13.1/18.3 ms**, zero missed-presented-callback proxy events. Fidelity passed, and the app selected texture capture. It meets numeric 720p30 throughput (≥29.4 fps) and p95 (≤25 ms) gates for this headless GPU TapeSat configuration. It does not prove physical display/audio. The earlier dirty bit was a Vite-generated temporary config bundle; the build-state helper now filters only that filename and a clean repeat reports `dirty=false`. See [clean raw report](P00/app-benchmark-80c46eaf-c1e6-41a2-9fe0-b7c1f02e6fcb.json) and [P00 decision](P00/DECISION.md).
 
 ## Proposal verdicts
 
@@ -39,6 +39,6 @@ Per-proposal evidence is in [TEST_PROGRESS.md](TEST_PROGRESS.md) and the adjacen
 
 Automation now runs every local correctness/build/browser/GPU group with `npm run test:acceleration`, writes an exact per-run JSON record, and fails on any failed or timed-out group. `npm run test:acceleration -- --skip-gpu` is only for hosts without WebGPU; that report explicitly marks the GPU groups skipped.
 
-This host cannot prove phone thermals, camera behavior, physical presentation/audio, offline MP4 fidelity, or deployment cache/fallback behavior. Those require named physical devices and the deployed HTTPS environment. Before any broader app routing, clear the dirty bit, repeat the 60-second 30 fps run from a clean committed tree, compare equivalent app-level JS/WASM/GPU routes, and test each route's transfers, synchronization, state handoff and consumer packet. A production planner remains off until that matrix contains at least three matched pairs per route class.
+This host cannot prove phone thermals, camera behavior, physical presentation/audio, offline MP4 fidelity, or deployment cache/fallback behavior. Those require named physical devices and the deployed HTTPS environment. Before broader app routing, compare equivalent app-level JS/WASM/GPU routes and test each route's transfers, synchronization, state handoff and consumer packet. A production planner remains off until that matrix contains at least three matched pairs per route class.
 
 For now, keep JS as the safe reference and GPU access opt-in with exact per-source fidelity fallback. When a route is proven, keep consecutive compatible stages resident on one owner and perform one entry transfer and one bounded result gather. Do not bounce each filter between CPU and GPU. Treat the WASM arena and two-slot ring as conditional implementation candidates; reject automatic routing and worker scheduling on current evidence.

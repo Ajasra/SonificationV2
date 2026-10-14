@@ -38,24 +38,26 @@ On revision `3917d2ca27e06a9996c23a6d8eed49efc2006cf3`, the same 1280×720 60 fp
 
 Raw report: [app-benchmark-9f67c4cd-2c9d-4697-8d5d-ef1fb433c785.json](app-benchmark-9f67c4cd-2c9d-4697-8d5d-ef1fb433c785.json). The source was generated from the repository's 1280×720 file with FFmpeg `fps=30`, independently verified as 30/1 nominal and average rate, and SHA-256 `8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008`. A 60-second headless Chrome run on AMD GCN-5 used active audio at volume 0.25, HUD on, validation on, fused processing on, and profile off. It processed 1,774 frames in 59.94 seconds: 29.60 fps; frame-path p50/p95/p99 10.0/15.4/36.5 ms. The compact completion/readback p50/p95/p99 was 9.6/15.0/36.0 ms. Fidelity passed, and automatic capture selected the texture path. The callback-gap proxy counted one miss.
 
-This meets the numeric 720p30 throughput and p95 thresholds in this **headless GPU TapeSat cohort**. It is not visible-display proof, does not compare JS/WASM application routes, and is not a named-model device sign-off. The report's `build.dirty` is still `true` despite the revision matching the committed code; repeat from a committed clean tree and reconcile that flag before using the result as a clean-build baseline.
+This meets the numeric 720p30 throughput and p95 thresholds in this **headless GPU TapeSat cohort**. It is not visible-display proof, does not compare JS/WASM application routes, and is not a named-model device sign-off. Its `build.dirty=true` was later traced to Vite's temporary config bundle; P00 now records the dirty paths and excludes only that known generated file.
+
+## Clean-provenance 30 fps confirmation `80c46eaf-c1e6-41a2-9fe0-b7c1f02e6fcb`
+
+Raw report: [app-benchmark-80c46eaf-c1e6-41a2-9fe0-b7c1f02e6fcb.json](app-benchmark-80c46eaf-c1e6-41a2-9fe0-b7c1f02e6fcb.json). It used the same verified 30 fps source hash and settings on clean revision `d06c756c250a5b773fccf0a59c79c2915a376aba`; build `dirty=false`. In 59.91 measured seconds it processed 1,796 frames: 29.98 fps; frame-path p50/p95/p99 9.7/13.1/18.3 ms; completion/readback p50/p95/p99 9.3/12.6/18.0 ms. There were zero missed-presented-callback proxy events. Fidelity passed, capture mode was texture, audio was active and HUD was on.
+
+This closes the clean-build headless 720p30 GPU TapeSat numeric gate on the named AMD GCN-5 adapter family. It still does not prove the physical display/audio path or a phone cohort.
 
 ## Regression and suite checkpoint
 
-- `npm run build`: passed.
-- `npm test`: 69 passed, 0 failed.
-- `npm run test:wasm`: 9 passed, 0 failed.
-- Focused application GPU browser test: 1 passed (21.8 s).
-- `npm run test:gpu`: 8 passed across three serial Playwright processes. The earlier single-process run stalled at final compact handoff without respecting the test timeout. Running the app tests, five WebGPU tests, then state handoff in a new Chrome process completed; the final handoff test took 4.3 s. The runner now saves one JSON report per process. Its last report is `test-results/gpu-browser-report-handoff.json`.
-- A 60-second headless GPU TapeSat app run on a verified 30 fps transcode passed the numeric FPS and frame p95 gates; its build dirty bit is unresolved and visible/phone plus JS/WASM route comparisons remain open.
+- `npm run test:acceleration`: passed all 8 serial local gates on clean revision `d06c756c250a5b773fccf0a59c79c2915a376aba`; 72 Node tests, 11 WASM conformance tests, both builds, benchmark/worker browser tests, app-GPU integration, eight GPU kernel/temporal tests and compact monitor/state handoff. Run report: `automated-runs/2026-10-14T014418-659Z-7260f8dd.json` (the next run is rerun after committing this P00 report to make the tree clean at start).
+- The original suite stall was transient/process-sensitive; current split runner completed every GPU group. Process isolation remains the reliable configuration.
+- A clean-provenance 60-second headless app run on a verified 30 fps source passed numeric throughput and p95 gates with fidelity, texture capture, active audio and HUD on.
 - `git diff --check`: passed before this update.
 
 This supports process isolation as a workaround; it does not prove the underlying cause of the original GPU/browser hang.
 
 ## Remaining P00 gate
 
-1. Resolve the dirty flag/revision provenance and runner's per-process artifact reporting.
-2. Add real JS/WASM application-run controls and an API-observed transfer ledger before claiming equal-backend app comparisons; the current WASM harness remains synthetic-canvas CPU-path scope.
-3. Run a visible-browser 60-second test on a verified 30 fps source and retain it separately from the headless 60 fps stress run.
+1. Add equivalent JS/WASM application-run controls and an API-observed transfer ledger before claiming equal-backend app comparisons; the current WASM harness remains synthetic-canvas CPU-path scope.
+2. Run a visible-browser and physical-device 60-second test on the verified 30 fps source, then camera and sustained sessions.
 
-P01 can diagnose capture on this AMD adapter after a clean fresh-revision run. `texture` selection passed its current file preflight and the app also correctly rejected the generated video fixture; reference-byte/upload remains a source-specific accuracy fallback and needs a matched per-source A/B before choosing an app route.
+P01 can diagnose capture on this AMD adapter after a clean fresh-revision run. The clean 30 fps file selected texture with the existing resident fidelity gate; a distinct generated browser video fixture correctly fell back to reference bytes. Keep capture selection source-specific.
