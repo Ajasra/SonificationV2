@@ -48,7 +48,7 @@ This closes the clean-build headless 720p30 GPU TapeSat numeric gate on the name
 
 ## Regression and suite checkpoint
 
-- `npm run test:acceleration`: passed all 8 serial local gates on clean revision `d06c756c250a5b773fccf0a59c79c2915a376aba`; 72 Node tests, 11 WASM conformance tests, both builds, benchmark/worker browser tests, app-GPU integration, eight GPU kernel/temporal tests and compact monitor/state handoff. Run report: `automated-runs/2026-10-14T014418-659Z-7260f8dd.json` (the next run is rerun after committing this P00 report to make the tree clean at start).
+- `npm run test:acceleration`: passed all 8 serial local gates on clean revision `160b350a5cfdeb991139b2560d614e19b1e4334f`; 72 Node tests, 11 WASM conformance tests, both builds, benchmark/worker browser tests, app-GPU integration, eight GPU kernel/temporal tests and compact monitor/state handoff. Run report: `automated-runs/2026-10-14T014726-046Z-e71b9e17.json` (`workingTreeCleanAtStart=true`).
 - The original suite stall was transient/process-sensitive; current split runner completed every GPU group. Process isolation remains the reliable configuration.
 - A clean-provenance 60-second headless app run on a verified 30 fps source passed numeric throughput and p95 gates with fidelity, texture capture, active audio and HUD on.
 - `git diff --check`: passed before this update.

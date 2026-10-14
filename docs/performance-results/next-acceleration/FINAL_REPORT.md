@@ -4,9 +4,9 @@ Date: 2026-10-14. Scope: proposals P00–P13 in [the test plan](../../NEXT_ACCEL
 
 ## Automated local result
 
-`npm run test:acceleration` passed all 8/8 gates on clean revision `8e2e127782e0b27b0dd975670722886d204a0a6e` in Windows x64 / Node 22.12.0. The immutable local report is `automated-runs/2026-10-14T013222-743Z-52d0cc6d.json` (that directory is ignored; the report records clean tree, exact commands, durations and exit codes).
+`npm run test:acceleration` passed all 8/8 gates on clean revision `160b350a5cfdeb991139b2560d614e19b1e4334f` in Windows x64 / Node 22.12.0. The local report is `automated-runs/2026-10-14T014726-046Z-e71b9e17.json` (that directory is ignored; the report records clean tree, exact commands, durations and exit codes).
 
-The gates were: Node suite 72/72; WASM conformance 11/11; production build; benchmark build; four benchmark/worker browser tests; two app-GPU integration tests; eight GPU kernel/temporal tests; and one separate compact-monitor/state-handoff test. The GPU suite is stable when split into separate Chrome processes. No tests failed or timed out. A fresh final run is being saved after the P00 report commit so the runner starts clean.
+The gates were: Node suite 72/72; WASM conformance 11/11; production build; benchmark build; four benchmark/worker browser tests; two app-GPU integration tests; eight GPU kernel/temporal tests; and one separate compact-monitor/state-handoff test. The GPU suite is stable when split into separate Chrome processes. No tests failed or timed out; the run began with a clean tree.
 
 ## 30 fps application benchmark
 
