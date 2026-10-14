@@ -10,7 +10,7 @@ Command: `npx playwright test tests/browser/worker-probe.spec.ts`.
 
 ## Result
 
-Two focused browser runs each matched all five blocks exactly and left no pending replies. Over 12,288,000 logical bytes transferred per run, JS p95 was 7.1 and 6.8 ms; worker round-trip p95 was 19.4 and 32.9 ms. Timer coverage was 14 and 15 samples, with maximum lag of 24.4 and 22.2 ms. The worker path is slower here, and these sparse timer samples establish no responsiveness gain.
+Three focused browser runs each matched all five blocks exactly and left no pending replies. Over 12,288,000 logical bytes transferred per run, JS p95 was 7.1, 6.8 and 6.6 ms; worker round-trip p95 was 19.4, 32.9 and 16.5 ms. Timer coverage was 14–15 samples, with maximum lag of 22.1–24.4 ms. The worker path is slower in all three runs, and these sparse timer samples establish no responsiveness gain.
 
 ## Decision and next step
 

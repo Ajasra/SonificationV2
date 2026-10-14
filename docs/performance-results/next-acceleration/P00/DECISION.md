@@ -34,6 +34,12 @@ Raw report: [app-benchmark-e0b3eba7-e7fd-476e-b4be-0daa832741e9.json](app-benchm
 
 On revision `3917d2ca27e06a9996c23a6d8eed49efc2006cf3`, the same 1280×720 60 fps source ran for 60.27 measured seconds with GPU validation on, fused dispatch on, profiling off, audio active at volume 0.25, HUD on and texture capture selected. AMD GCN-5 was identified; the adapter model remains unknown. Fidelity passed. Throughput was 37.51 fps; frame-path p50/p95/p99 9.6/24.6/35.8 ms; GPU completion/readback p50/p95/p99 9.1/22.5/33.7 ms; 236 presented-callback gap proxy events. This meets the measured ≥29.4 throughput and ≤25 ms p95 on this headless high-cadence setup. The one-second p95 margin is narrow, and the 60 fps clip plus callback proxy cannot close exact 30 fps source/drop acceptance. The Vite report still marks the tree dirty; the commit revision is explicit, but the runner's dirty flag needs reconciliation before claiming an immutable clean build.
 
+## Verified-cadence 30 fps run `9f67c4cd-2c9d-4697-8d5d-ef1fb433c785`
+
+Raw report: [app-benchmark-9f67c4cd-2c9d-4697-8d5d-ef1fb433c785.json](app-benchmark-9f67c4cd-2c9d-4697-8d5d-ef1fb433c785.json). The source was generated from the repository's 1280×720 file with FFmpeg `fps=30`, independently verified as 30/1 nominal and average rate, and SHA-256 `8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008`. A 60-second headless Chrome run on AMD GCN-5 used active audio at volume 0.25, HUD on, validation on, fused processing on, and profile off. It processed 1,774 frames in 59.94 seconds: 29.60 fps; frame-path p50/p95/p99 10.0/15.4/36.5 ms. The compact completion/readback p50/p95/p99 was 9.6/15.0/36.0 ms. Fidelity passed, and automatic capture selected the texture path. The callback-gap proxy counted one miss.
+
+This meets the numeric 720p30 throughput and p95 thresholds in this **headless GPU TapeSat cohort**. It is not visible-display proof, does not compare JS/WASM application routes, and is not a named-model device sign-off. The report's `build.dirty` is still `true` despite the revision matching the committed code; repeat from a committed clean tree and reconcile that flag before using the result as a clean-build baseline.
+
 ## Regression and suite checkpoint
 
 - `npm run build`: passed.
@@ -41,7 +47,7 @@ On revision `3917d2ca27e06a9996c23a6d8eed49efc2006cf3`, the same 1280×720 60 fp
 - `npm run test:wasm`: 9 passed, 0 failed.
 - Focused application GPU browser test: 1 passed (21.8 s).
 - `npm run test:gpu`: 8 passed across three serial Playwright processes. The earlier single-process run stalled at final compact handoff without respecting the test timeout. Running the app tests, five WebGPU tests, then state handoff in a new Chrome process completed; the final handoff test took 4.3 s. The runner now saves one JSON report per process. Its last report is `test-results/gpu-browser-report-handoff.json`.
-- A committed-revision 60-second headless app run passed both numeric frame-path gates on the verified 60 fps stress clip; exact 30 fps file/camera and visible-browser runs remain open.
+- A 60-second headless GPU TapeSat app run on a verified 30 fps transcode passed the numeric FPS and frame p95 gates; its build dirty bit is unresolved and visible/phone plus JS/WASM route comparisons remain open.
 - `git diff --check`: passed before this update.
 
 This supports process isolation as a workaround; it does not prove the underlying cause of the original GPU/browser hang.
