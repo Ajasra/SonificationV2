@@ -49,7 +49,7 @@ export class PresetController {
   private savedPresetOwnerId: string | null = null;
 
   // Preset library modal state
-  private libraryMode: 'mine' | 'defaults' | 'explore' = 'mine';
+  private libraryMode: 'mine' | 'explore' = 'mine';
   private libraryPage = 1;
   private libraryTotalPages = 1;
   private libraryQuery = '';
@@ -392,16 +392,15 @@ export class PresetController {
 
     // Preset library triggers
     const openLibraryMine = () => this.openPresetLibrary('mine');
-    const openLibraryDefaults = () => this.openPresetLibrary('defaults');
     const openLibraryExplore = () => this.openPresetLibrary('explore');
     document.getElementById('btn-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-preset-library')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-explore-presets')?.addEventListener('click', openLibraryExplore);
-    document.getElementById('btn-default-presets')?.addEventListener('click', openLibraryDefaults);
+    document.getElementById('btn-default-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-drawer-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-drawer-my-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-drawer-explore')?.addEventListener('click', openLibraryExplore);
-    document.getElementById('btn-drawer-defaults')?.addEventListener('click', openLibraryDefaults);
+    document.getElementById('btn-drawer-defaults')?.addEventListener('click', openLibraryMine);
 
     document.getElementById('btn-close-preset-library')?.addEventListener('click', () => {
       document.getElementById('preset-library-modal')?.classList.add('hidden');
@@ -422,7 +421,7 @@ export class PresetController {
     const tabs = document.querySelectorAll('.preset-lib-tab');
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        const mode = (tab as HTMLElement).dataset.mode as 'mine' | 'defaults' | 'explore';
+        const mode = (tab as HTMLElement).dataset.mode as 'mine' | 'explore';
         if (mode && mode !== this.libraryMode) {
           this.libraryMode = mode;
           this.libraryPage = 1;
@@ -464,16 +463,13 @@ export class PresetController {
     if (this.libraryMode === 'mine') {
       if (title) title.textContent = 'My Presets';
       if (sub) sub.textContent = 'Your privately saved and created preset studies.';
-    } else if (this.libraryMode === 'defaults') {
-      if (title) title.textContent = 'Default Studies';
-      if (sub) sub.textContent = 'Curated built-in factory DSP sound studies.';
     } else {
-      if (title) title.textContent = 'Explore Shared Presets';
+      if (title) title.textContent = 'Shared Presets';
       if (sub) sub.textContent = 'Community presets shared by people.';
     }
   }
 
-  public openPresetLibrary(mode: 'mine' | 'defaults' | 'explore' = 'mine'): void {
+  public openPresetLibrary(mode: 'mine' | 'explore' = 'mine'): void {
     this.libraryMode = mode;
     this.libraryPage = 1;
     this.libraryQuery = '';
@@ -508,20 +504,6 @@ export class PresetController {
         status.textContent = `Could not load presets: ${(error as Error).message}`;
         status.dataset.error = 'true';
       }
-    } else if (this.libraryMode === 'defaults') {
-      const allDefaults = this.opts.presetManager.getDefaultPresets();
-      const q = this.libraryQuery.toLowerCase().trim();
-      const matchedDefaults = q
-        ? allDefaults.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)))
-        : allDefaults;
-
-      if (pagination) pagination.classList.remove('hidden');
-      this.libraryTotalPages = Math.max(1, Math.ceil(matchedDefaults.length / 24));
-      const pageIndex = Math.max(1, Math.min(this.libraryPage, this.libraryTotalPages));
-      const start = (pageIndex - 1) * 24;
-      const pageItems = matchedDefaults.slice(start, start + 24);
-      status.textContent = pageItems.length ? '' : 'No default presets found.';
-      for (const preset of pageItems) this.renderDefaultPresetCard(preset, list);
     } else {
       // this.libraryMode === 'mine': ONLY show user saved presets, NEVER default ones
       if (!this.opts.accountManager.userId) {
@@ -562,58 +544,6 @@ export class PresetController {
     if (nextBtn) nextBtn.disabled = this.libraryPage >= this.libraryTotalPages;
   }
 
-  private renderDefaultPresetCard(preset: SonificationPreset, list: HTMLElement): void {
-    const card = document.createElement('article');
-    card.className = 'preset-library-card';
-    const top = document.createElement('div');
-    top.className = 'preset-card-header';
-    const heading = document.createElement('h4');
-    heading.textContent = preset.name;
-    const badge = document.createElement('span');
-    badge.className = 'preset-card-badge is-default';
-    badge.textContent = 'DEFAULT';
-    top.append(heading, badge);
-    const description = document.createElement('p');
-    description.textContent = preset.description || 'Curated factory preset.';
-    const author = document.createElement('small');
-    author.textContent = 'Factory Built-in';
-    const actions = document.createElement('div');
-    actions.className = 'preset-card-actions';
-    const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {
-      const control = document.createElement('button');
-      control.className = `btn-hw ${style} btn-sm`;
-      control.textContent = label;
-      control.onclick = () => { void callback(); };
-      actions.appendChild(control);
-    };
-    button('Apply', () => {
-      this.opts.setActivePreset(preset);
-      document.getElementById('preset-library-modal')?.classList.add('hidden');
-      this.opts.onShowNotice(`Factory preset "${preset.name}" applied.`);
-    }, 'btn-hw-primary');
-    if (this.opts.accountManager.userId) {
-      button('Save copy', async () => {
-        try {
-          const copy = JSON.parse(JSON.stringify(preset)) as SonificationPreset;
-          copy.id = `user_${this.newId()}`;
-          const name = prompt('Name your copy:', `${copy.name} (Copy)`);
-          if (!name?.trim()) return;
-          copy.name = name.trim().slice(0, 128);
-          const saved = await this.opts.accountManager.save(copy);
-          this.opts.onShowNotice('Private copy saved to My presets.');
-          this.opts.setActivePreset(copy, saved);
-        } catch (error) { this.opts.onShowNotice((error as Error).message, true); }
-      });
-    }
-    button('QR link', async () => {
-      const hash = this.opts.presetManager.encodePresetToHash(preset);
-      await this.opts.onShowQrForHash(hash);
-      document.getElementById('preset-library-modal')?.classList.add('hidden');
-    });
-    card.append(top, description, author, actions);
-    list.appendChild(card);
-  }
-
   private renderStoredPresetCard(record: StoredPreset, list: HTMLElement): void {
     const card = document.createElement('article');
     card.className = 'preset-library-card';
@@ -623,22 +553,15 @@ export class PresetController {
     heading.textContent = record.name;
     const badge = document.createElement('span');
     const isMine = this.libraryMode === 'mine';
-    if (record.isDefault) {
-      badge.className = 'preset-card-badge is-default';
-      badge.textContent = 'DEFAULT';
-    } else {
-      badge.className = isMine ? 'preset-card-badge is-mine' : 'preset-card-badge is-public';
-      badge.textContent = isMine ? (record.visibility === 'public' ? 'PUBLIC' : 'MINE') : 'SHARED';
-    }
+    badge.className = isMine ? (record.visibility === 'public' ? 'preset-card-badge is-public' : 'preset-card-badge is-mine') : 'preset-card-badge is-public';
+    badge.textContent = isMine ? (record.visibility === 'public' ? 'PUBLIC' : 'MINE') : 'SHARED';
     top.append(heading, badge);
     const description = document.createElement('p');
     description.textContent = record.description || 'No description.';
     const author = document.createElement('small');
-    author.textContent = record.isDefault
-      ? 'Curated Default'
-      : isMine
-        ? (record.visibility === 'public' ? 'Public in Explore' : 'Private · only you')
-        : `by ${record.authorName}`;
+    author.textContent = isMine
+      ? (record.visibility === 'public' ? 'Public in Shared' : 'Private · only you')
+      : `by ${record.authorName || 'community'}`;
     const actions = document.createElement('div');
     actions.className = 'preset-card-actions';
     const button = (label: string, callback: () => void | Promise<void>, style = 'btn-hw-secondary') => {

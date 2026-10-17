@@ -17,6 +17,7 @@ export interface MobileControllerOptions {
   onToggleRecording: () => void;
   onSetResolution: (res: '360p' | '480p' | '720p' | 'native') => void;
   onVolumeChange: (vol: number) => void;
+  onSourceVolumeChange?: (vol: number) => void;
   onModeChanged?: (mode: 'cam' | 'scope' | 'rack') => void;
 }
 
@@ -240,6 +241,15 @@ export class MobileController {
         const val = parseFloat((e.target as HTMLInputElement).value);
         this.opts.audioEngine.setVolume(val);
         this.opts.onVolumeChange(val);
+      });
+    }
+
+    const mobileSrcVol = document.getElementById('mobile-slider-source-volume') as HTMLInputElement | null;
+    if (mobileSrcVol) {
+      mobileSrcVol.addEventListener('input', (e) => {
+        const val = parseFloat((e.target as HTMLInputElement).value);
+        this.opts.audioEngine.setInputVolume(val);
+        this.opts.onSourceVolumeChange?.(val);
       });
     }
 

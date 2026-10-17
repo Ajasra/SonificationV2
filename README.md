@@ -2,7 +2,7 @@
 
 Browser studio and mobile camera for processing image pixels through audio DSP filters. Inputs include still images, video files, and a live camera. The studio includes a filter library, rotary controls, factory studies, custom presets, QR sharing, snapshots, and video recording.
 
-The app has five local default presets. User accounts, private preset libraries, and public preset search use PocketBase. Presets are JSON records in PocketBase's SQLite database file on your VPS; each public link opens without login. Database persistence requires a VPS volume or disk that survives process restarts.
+User accounts, private preset libraries, and community shared presets use PocketBase. Presets are JSON records in PocketBase's SQLite database file on your VPS; each public link opens without login. Database persistence requires a VPS volume or disk that survives process restarts.
 
 ## Local test setup
 

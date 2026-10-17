@@ -92,8 +92,10 @@ class SonificationApp {
   private pendingAccountSave = false;
   private pendingAccountPublish = false;
 
-  // Master Volume Rotary Knob
+  // Audio Gain Rotary Knobs (Generated Synth & Input Source)
   private masterGainKnob!: RotaryKnob;
+  private sourceGainKnob!: RotaryKnob;
+  private currentMicStream: MediaStream | null = null;
 
   private inputImageBuffer: ImageData | null = null;
   private animFrameId: number | null = null;
@@ -219,6 +221,7 @@ class SonificationApp {
     const releaseCamera = () => {
       this.stopFrameLoop('page-hidden');
       this.cameraManager.stop();
+      this.stopMicStream();
       this.updateCamToggleUI(false);
       const button = document.getElementById('btn-toggle-camera');
       if (button) button.textContent = 'Live camera';
@@ -341,6 +344,7 @@ class SonificationApp {
         return this.processAndBlit(started,capturedAt,captureInput);
       },
       onCameraStopped: () => {
+        this.stopMicStream();
         const btnCam = document.getElementById('btn-toggle-camera');
         if (btnCam) {
           btnCam.textContent = 'Live camera';
@@ -376,6 +380,13 @@ class SonificationApp {
       },
       onVolumeChange: (vol) => {
         if (this.masterGainKnob) this.masterGainKnob.setValue(vol);
+        const desktopVol = document.getElementById('slider-volume') as HTMLInputElement | null;
+        if (desktopVol) desktopVol.value = String(vol);
+      },
+      onSourceVolumeChange: (vol) => {
+        if (this.sourceGainKnob) this.sourceGainKnob.setValue(vol);
+        const desktopSrcVol = document.getElementById('slider-source-volume') as HTMLInputElement | null;
+        if (desktopSrcVol) desktopSrcVol.value = String(vol);
       },
       onModeChanged: (mode) => {
         if (mode === 'scope') {
@@ -476,30 +487,58 @@ class SonificationApp {
 
   private initMasterKnob(): void {
     const slot = document.getElementById('master-knob-slot') || document.getElementById('master-gain-knob-slot');
-    if (!slot) return;
-    this.masterGainKnob = new RotaryKnob({
-      min: 0,
-      max: 1.0,
-      step: 0.01,
-      value: 0.01,
-      defaultValue: 0.01,
-      label: 'GAIN',
-      tooltip: 'Master Audio Volume Level [Range: 0.0 to 1.0]',
-      size: 38,
-      onChange: (val) => {
-        this.audioEngine.setVolume(val);
-        const mobileVol = document.getElementById('mobile-slider-volume') as HTMLInputElement | null;
-        if (mobileVol) {
-          mobileVol.value = String(val);
-        }
-        const desktopVol = document.getElementById('slider-volume') as HTMLInputElement | null;
-        if (desktopVol) {
-          desktopVol.value = String(val);
-        }
-      },
-    });
-    slot.appendChild(this.masterGainKnob.element);
-    this.audioEngine.setVolume(0.01);
+    if (slot) {
+      this.masterGainKnob = new RotaryKnob({
+        min: 0,
+        max: 1.0,
+        step: 0.01,
+        value: 0.01,
+        defaultValue: 0.01,
+        label: 'SYNTH',
+        tooltip: 'Generated Sonification Volume Level [Range: 0.0 to 1.0]',
+        size: 38,
+        onChange: (val) => {
+          this.audioEngine.setVolume(val);
+          const mobileVol = document.getElementById('mobile-slider-volume') as HTMLInputElement | null;
+          if (mobileVol) {
+            mobileVol.value = String(val);
+          }
+          const desktopVol = document.getElementById('slider-volume') as HTMLInputElement | null;
+          if (desktopVol) {
+            desktopVol.value = String(val);
+          }
+        },
+      });
+      slot.appendChild(this.masterGainKnob.element);
+      this.audioEngine.setVolume(0.01);
+    }
+
+    const srcSlot = document.getElementById('source-knob-slot');
+    if (srcSlot) {
+      this.sourceGainKnob = new RotaryKnob({
+        min: 0,
+        max: 1.0,
+        step: 0.01,
+        value: 0.7,
+        defaultValue: 0.7,
+        label: 'SOURCE',
+        tooltip: 'Source Audio Level (Video / Microphone) [Range: 0.0 to 1.0]',
+        size: 38,
+        onChange: (val) => {
+          this.audioEngine.setInputVolume(val);
+          const mobileSrcVol = document.getElementById('mobile-slider-source-volume') as HTMLInputElement | null;
+          if (mobileSrcVol) {
+            mobileSrcVol.value = String(val);
+          }
+          const desktopSrcVol = document.getElementById('slider-source-volume') as HTMLInputElement | null;
+          if (desktopSrcVol) {
+            desktopSrcVol.value = String(val);
+          }
+        },
+      });
+      srcSlot.appendChild(this.sourceGainKnob.element);
+      this.audioEngine.setInputVolume(0.7);
+    }
   }
 
   private syncFormWithPreset(): void {
@@ -922,6 +961,17 @@ class SonificationApp {
       });
     }
 
+    const sliderSourceVol = document.getElementById('slider-source-volume') as HTMLInputElement | null;
+    if (sliderSourceVol) {
+      sliderSourceVol.addEventListener('input', (e) => {
+        const val = parseFloat((e.target as HTMLInputElement).value);
+        this.audioEngine.setInputVolume(val);
+        if (this.sourceGainKnob) this.sourceGainKnob.setValue(val);
+        const mobileSrcVol = document.getElementById('mobile-slider-source-volume') as HTMLInputElement | null;
+        if (mobileSrcVol) mobileSrcVol.value = String(val);
+      });
+    }
+
     // Shutter Trigger Button
     document.getElementById('btn-shutter')?.addEventListener('click', () => {
       this.mediaController.triggerShutterSnapshot();
@@ -978,6 +1028,16 @@ class SonificationApp {
     this.mobileController?.updateCamToggleUI(isActive);
   }
 
+  private stopMicStream(): void {
+    if (this.currentMicStream) {
+      try {
+        this.currentMicStream.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+      this.currentMicStream = null;
+    }
+    this.audioEngine.detachMediaStream();
+  }
+
   private async startLiveCameraFeed(): Promise<boolean> {
     if (this.cameraBusy || document.hidden) return false;
     this.cameraBusy = true;
@@ -985,6 +1045,17 @@ class SonificationApp {
       this.mediaController?.stopVideoFile();
       await this.cameraManager.start(1920, 1080);
       if (!this.cameraManager.isActive() || document.hidden) return false;
+
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          this.currentMicStream = micStream;
+          this.audioEngine.attachMediaStream(micStream);
+        } catch (err) {
+          console.warn('Microphone feed unavailable in live mode:', err);
+        }
+      }
+
       this.startLiveLoop();
       this.updateCamToggleUI(true);
 
@@ -1010,6 +1081,7 @@ class SonificationApp {
     if (this.cameraManager.isActive()) {
       this.stopFrameLoop('camera-stopped');
       this.cameraManager.stop();
+      this.stopMicStream();
       this.updateCamToggleUI(false);
       const btnCam = document.getElementById('btn-toggle-camera');
       if (btnCam) {

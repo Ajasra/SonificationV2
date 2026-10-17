@@ -153,6 +153,7 @@ export class MediaController {
     this.opts.stopFrameLoop('media-source-stopped-or-replaced');
     this.hideVideoLoading();
     this.videoTimeline.detachVideo();
+    this.opts.audioEngine.detachMediaElement();
     if (this.loadedVideoElement) {
       this.loadedVideoElement.pause();
       this.loadedVideoElement.remove();
@@ -176,7 +177,7 @@ export class MediaController {
     video.preload = 'auto';
     video.autoplay = true;
     video.loop = true;
-    video.muted = true;
+    video.muted = false;
     video.playsInline = true;
     video.setAttribute('playsinline', 'true');
     video.setAttribute('webkit-playsinline', 'true');
@@ -186,6 +187,7 @@ export class MediaController {
     host.appendChild(video);
 
     this.loadedVideoElement = video;
+    this.opts.audioEngine.attachMediaElement(video);
     this.sourceInfo={name:file.name,bytes:file.size};
     if(this.opts.measureSourceHash)void file.arrayBuffer().then(bytes=>crypto.subtle.digest('SHA-256',bytes)).then(digest=>{
       if(this.loadedVideoElement===video && this.sourceInfo)this.sourceInfo.sha256=Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('');
