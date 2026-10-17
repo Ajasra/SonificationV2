@@ -783,6 +783,10 @@ class SonificationApp {
           this.mediaController.toggleVideoPlayPause();
         }
       }
+      if ((e.key === 'v' || e.key === 'V') && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
+        e.preventDefault();
+        void this.mediaController.toggleVideoRecording();
+      }
     });
 
     document.getElementById('btn-qr-modal')?.addEventListener('click', () => {

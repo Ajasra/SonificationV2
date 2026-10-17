@@ -481,6 +481,17 @@ export class MediaController {
     }
 
     if (!this.opts.videoRecorder.getIsRecording()) {
+      if (this.loadedVideoElement && (this.loadedVideoElement.paused || this.loadedVideoElement.ended)) {
+        const loop = this.videoTimeline.getLoopRange();
+        this.loadedVideoElement.currentTime = loop.start;
+        this.lastVideoTime = -1;
+        this.videoTimeline.updatePlayhead(loop.start);
+        this.requestVideoFrameRender();
+        this.loadedVideoElement.play().catch(console.warn);
+        this.videoTimeline.setPlaying(true);
+        this.startVideoFileLoop();
+      }
+
       this.opts.canvas.width = Math.max(2, this.opts.canvas.width & ~1);
       this.opts.canvas.height = Math.max(2, this.opts.canvas.height & ~1);
 

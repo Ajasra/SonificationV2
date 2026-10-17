@@ -100,7 +100,7 @@ Real-time recording uses canvas capture and Web Audio through MediaRecorder. Bot
 
 $$\text{Recording Audio} = (\text{Generated Synth} \times \text{SYNTH Vol}) + (\text{Source Audio} \times \text{SOURCE Vol})$$
 
-Toggling the speaker mute button (`AUDIO: MUTED`) silences physical monitor output without muting the recording bus, so both sound sources continue recording at their configured levels. Video-file export also provides an offline WebCodecs path. Confirm that an exported recording contains moving video and audible audio on each target device.
+Toggling the speaker mute button (`AUDIO: MUTED`) silences physical monitor output without muting the recording bus, so both sound sources continue recording at their configured levels. When pressing **REC** (or keyboard shortcut `v`), if a loaded video is currently stopped/paused, playback automatically begins from the loop start point **[A]** and recording starts. If the video is already actively playing, recording starts immediately without interrupting or rewinding playback. Video-file export also provides an offline WebCodecs path. Confirm that an exported recording contains moving video and audible audio on each target device.
 
 
 ## Project documents

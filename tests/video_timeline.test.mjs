@@ -98,3 +98,93 @@ test('VideoTimeline resetLoopToFull restores entire video duration', () => {
   assert.equal(timeline.getLoopRange().end, 30.0);
   assert.equal(rangeChanged, true);
 });
+
+test('MediaController starts playback from start point [A] on rec when video is stopped', async () => {
+  const { VideoTimeline } = load('src/ui/video-timeline.ts');
+  const { MediaController } = load('src/ui/media-controller.ts', {
+    require: (mod) => {
+      if (mod.includes('video-timeline')) return { VideoTimeline };
+      return {};
+    },
+    HTMLVideoElement: class {},
+    HTMLImageElement: class {},
+    Image: class {},
+    URL: { createObjectURL: () => 'blob:mock', revokeObjectURL: () => {} },
+    window: { setInterval: () => 1, clearInterval: () => {} },
+  });
+
+  let recordingStarted = false;
+  let videoPlayed = false;
+  const mockVideo = {
+    duration: 60.0,
+    currentTime: 25.0,
+    paused: true,
+    ended: false,
+    seeking: false,
+    readyState: 4,
+    videoWidth: 640,
+    videoHeight: 480,
+    play: async () => {
+      videoPlayed = true;
+      mockVideo.paused = false;
+    },
+    pause: () => {
+      mockVideo.paused = true;
+    },
+  };
+
+  const controller = new MediaController({
+    canvas: { width: 640, height: 480 },
+    offscreenCanvas: { width: 640, height: 480 },
+    offscreenCtx: { drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(4) }) },
+    pipeline: {},
+    videoRecorder: {
+      getIsRecording: () => recordingStarted,
+      startRecording: () => { recordingStarted = true; },
+      stopRecording: async () => ({ blob: {}, ext: 'webm' }),
+    },
+    offlineVideoRecorder: {
+      getIsRunning: () => false,
+    },
+    audioEngine: {
+      setIsRecording: () => {},
+      getAudioMediaStream: () => null,
+      attachMediaElement: () => {},
+      detachMediaElement: () => {},
+    },
+    cameraManager: { stop() {}, isActive: () => false },
+    getActivePreset: () => ({}),
+    getBusRate: () => 44100,
+    getIsSyncMode: () => true,
+    isMobileDevice: () => false,
+    isFrameProcessing: () => false,
+    onFrameProcessed: () => {},
+    onCameraStopped: () => {},
+    scheduleFrame: () => {},
+    stopFrameLoop: () => {},
+    getLoopGeneration: () => 1,
+  });
+
+  controller.loadedVideoElement = mockVideo;
+  controller.getVideoTimeline().attachVideo(mockVideo);
+  controller.getVideoTimeline().setLoopRange(4.5, 20.0);
+
+  // Video was stopped at 25.0s, loop start [A] is at 4.5s
+  assert.equal(mockVideo.paused, true);
+  await controller.toggleVideoRecording();
+
+  assert.equal(mockVideo.currentTime, 4.5);
+  assert.equal(videoPlayed, true);
+  assert.equal(recordingStarted, true);
+  assert.equal(controller.getVideoTimeline().getIsPlaying(), true);
+
+  // If video is already playing, starting recording does not jump back to [A]
+  recordingStarted = false;
+  mockVideo.currentTime = 12.0;
+  mockVideo.paused = false;
+  videoPlayed = false;
+
+  await controller.toggleVideoRecording();
+  assert.equal(mockVideo.currentTime, 12.0);
+  assert.equal(recordingStarted, true);
+});
