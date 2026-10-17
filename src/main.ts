@@ -1,14 +1,17 @@
 // Main application entry point for Sonification V2
 // Modular architecture: Photographic Studio aesthetic, Audio Rack / PCB hardware details, and Tactile Rotary Knobs
-import type { ColorSpace, CompandingLaw, FilterId, RawType, SonificationPreset } from './types/index.ts';
+import type { ColorSpace, CompandingLaw, FilterId, RawType, SonificationPreset, VideoFilterId } from './types/index.ts';
 import { SonificationPipeline } from './engine/pipeline.ts';
 import type {AppTapeSatGpu} from './engine/backends/app-tapesat.ts';
+import type {AppWebGpuVideoTail} from './engine/backends/app-webgpu-video-tail.ts';
 import type {WasmDspRuntime} from './engine/backends/wasm.ts';
-import {eligibleTapeSat} from './engine/backends/gpu-eligibility.ts';
+import {eligibleResidentVideoRack,eligibleTapeSat,isAccelerationBenchmark,planApplicationRoute,shouldEnableTapeSatGpu} from './engine/backends/gpu-eligibility.ts';
+import type {ApplicationRoutePlan} from './engine/backends/gpu-eligibility.ts';
 import {summarize} from './benchmark/report.ts';
 import {BUILD_INFO} from './build-info.ts';
 import { PresetManager } from './presets/preset-manager.ts';
 import { FILTER_DESCRIPTORS } from './engine/filters/factory.ts';
+import { VIDEO_FILTER_DESCRIPTORS } from './engine/video-filters/factory.ts';
 import { SoundCameraAudio } from './audio/sound-camera.ts';
 import { CameraManager } from './camera/camera-manager.ts';
 import { VideoRecorder } from './record/video-recorder.ts';
@@ -44,14 +47,20 @@ class SonificationApp {
   private canvas = document.getElementById('main-canvas') as HTMLCanvasElement;
   private ctx = this.canvas.getContext('2d')!;
   private gpuQuery=new URLSearchParams(location.search);
-  private gpuEnabled=this.gpuQuery.get('gpu')==='tapesat';
+  private gpuEnabled=shouldEnableTapeSatGpu(this.gpuQuery.get('gpu'),typeof navigator!=='undefined' && 'gpu' in navigator && !!navigator.gpu);
   private wasmEnabled=this.gpuQuery.get('gpu')==='wasm';
-  private benchmarkEnabled=this.gpuEnabled || this.wasmEnabled || this.gpuQuery.get('gpu')==='js';
+  private benchmarkEnabled=isAccelerationBenchmark(this.gpuQuery.get('gpu'));
   private gpuProfileEnabled=this.benchmarkEnabled && this.gpuQuery.get('gpu-profile')==='1';
-  private gpuPerFrameValidation=this.gpuEnabled && this.gpuQuery.get('gpu-validation')!=='off';
-  private gpuFusedApplyFinish=this.gpuEnabled && this.gpuQuery.get('gpu-fused-apply')!=='off';
+  private gpuPerFrameValidation=(this.gpuQuery.get('gpu')==='tapesat' || this.gpuQuery.get('gpu')==='gpu-resident-rack') && this.gpuQuery.get('gpu-validation')!=='off';
+  private gpuFusedApplyFinish=(this.gpuEnabled || this.gpuQuery.get('gpu')==='gpu-resident-rack') && this.gpuQuery.get('gpu-fused-apply')!=='off';
   private gpuCaptureMode:'auto'|'reference-bytes'=this.gpuQuery.get('gpu-capture')==='reference-bytes'?'reference-bytes':'auto';
   private gpu:AppTapeSatGpu | undefined;
+  private gpuModuleLoad:Promise<void> | undefined;
+  private gpuUnavailable=false;
+  private videoTail:AppWebGpuVideoTail|undefined;
+  private videoTailLoad:Promise<void>|undefined;
+  private videoTailUnavailable=false;
+  private residentFailureReason:string|undefined;
   private wasmRuntime:WasmDspRuntime | undefined;
   private offscreenCanvas = document.createElement('canvas');
   private offscreenCtx = this.offscreenCanvas.getContext('2d')!;
@@ -110,6 +119,11 @@ class SonificationApp {
   private measuredGpuFrames=0;
   private measuredJsFrames=0;
   private measuredWasmFrames=0;
+  private measuredVideoTailFrames=0;
+  private measuredResidentFrames=0;
+  private selectedRouteId='cpu-reference';
+  private routeChanges:{atSeconds:number;routeId:string}[]=[];
+  private currentRoutePlan:ApplicationRoutePlan|undefined;
   private missedCallbacks=0;
   private lastPresented:number | undefined;
 
@@ -127,6 +141,7 @@ class SonificationApp {
     if(!hadActiveLoop)return;
     this.loopGeneration++;
     this.gpu?.reset();
+    this.videoTail?.reset();
     this.closeMeasuredWindow();
     if(this.sessionStart)this.resetHistory.push({atSeconds:(performance.now()-this.sessionStart)/1000,reason});
     this.measureStart=0;this.lastPresented=undefined;
@@ -178,9 +193,6 @@ class SonificationApp {
     if(this.benchmarkEnabled){
       this.perfBadge.dataset.benchmarkBackend=this.gpuEnabled?'GPU-loading':this.wasmEnabled?'WASM-loading':'JS';
     }
-    if(this.gpuEnabled){
-      void import('./engine/backends/app-tapesat.ts').then(module=>{this.gpu=new module.AppTapeSatGpu(this.canvas,this.gpuProfileEnabled,this.gpuPerFrameValidation,this.gpuFusedApplyFinish,this.gpuCaptureMode);}).catch(error=>console.warn('Experimental GPU module unavailable',error));
-    }
     if(this.wasmEnabled){
       void import('./engine/backends/wasm.ts').then(async module=>{
         const runtime=await module.WasmDspRuntime.load();
@@ -214,6 +226,7 @@ class SonificationApp {
     window.addEventListener('pagehide', releaseCamera);
     window.addEventListener('pagehide',()=>this.audioEngine.dispose());
     window.addEventListener('pagehide',()=>this.wasmRuntime?.dispose());
+    window.addEventListener('pagehide',()=>this.videoTail?.dispose());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) releaseCamera();
       else if (this.mediaController?.getLoadedVideo()) this.mediaController.startVideoFileLoop();
@@ -468,8 +481,8 @@ class SonificationApp {
       min: 0,
       max: 1.0,
       step: 0.01,
-      value: 0.8,
-      defaultValue: 0.8,
+      value: 0.01,
+      defaultValue: 0.01,
       label: 'GAIN',
       tooltip: 'Master Audio Volume Level [Range: 0.0 to 1.0]',
       size: 38,
@@ -486,7 +499,7 @@ class SonificationApp {
       },
     });
     slot.appendChild(this.masterGainKnob.element);
-    this.audioEngine.setVolume(0.8);
+    this.audioEngine.setVolume(0.01);
   }
 
   private syncFormWithPreset(): void {
@@ -760,6 +773,16 @@ class SonificationApp {
           }
         }
       }
+      if (this.activePreset.videoFilters) {
+        for (const vf of this.activePreset.videoFilters) {
+          const desc = VIDEO_FILTER_DESCRIPTORS[vf.type];
+          if (desc) {
+            for (const p of desc.params) {
+              vf.params[p.name] = p.min + Math.random() * (p.max - p.min);
+            }
+          }
+        }
+      }
       this.rackController.render();
       this.requestRender();
     });
@@ -784,24 +807,52 @@ class SonificationApp {
     });
 
     document.getElementById('btn-random-filters')?.addEventListener('click', () => {
-      const allTypes = Object.keys(FILTER_DESCRIPTORS) as FilterId[];
-      const count = Math.floor(1 + Math.random() * 3);
+      type ModuleChoice = { kind: 'audio'; type: FilterId } | { kind: 'video'; type: VideoFilterId };
+      const audioTypes = (Object.keys(FILTER_DESCRIPTORS) as FilterId[]).map(
+        (type): ModuleChoice => ({ kind: 'audio', type }),
+      );
+      const videoTypes = (Object.keys(VIDEO_FILTER_DESCRIPTORS) as VideoFilterId[]).map(
+        (type): ModuleChoice => ({ kind: 'video', type }),
+      );
+      const allModules: ModuleChoice[] = [...audioTypes, ...videoTypes];
+
+      const count = Math.floor(1 + Math.random() * 4);
       this.activePreset.filters = [];
+      this.activePreset.videoFilters = [];
+      this.activePreset.chain = [];
 
       for (let i = 0; i < count; i++) {
-        const t = allTypes[Math.floor(Math.random() * allTypes.length)];
-        const desc = FILTER_DESCRIPTORS[t];
-        const params: Record<string, number> = {};
-        for (const p of desc.params) {
-          params[p.name] = p.min + Math.random() * (p.max - p.min);
+        const choice = allModules[Math.floor(Math.random() * allModules.length)];
+        if (choice.kind === 'audio') {
+          const desc = FILTER_DESCRIPTORS[choice.type];
+          const params: Record<string, number> = {};
+          for (const p of desc.params) {
+            params[p.name] = p.min + Math.random() * (p.max - p.min);
+          }
+          const id = 'f_' + Math.random().toString(36).substring(2, 7);
+          this.activePreset.filters.push({
+            id,
+            type: choice.type,
+            enabled: true,
+            sampleRate: 44100,
+            params,
+          });
+          this.activePreset.chain.push({ kind: 'audio', id });
+        } else {
+          const desc = VIDEO_FILTER_DESCRIPTORS[choice.type];
+          const params: Record<string, number> = {};
+          for (const p of desc.params) {
+            params[p.name] = p.min + Math.random() * (p.max - p.min);
+          }
+          const id = 'vf_' + Math.random().toString(36).substring(2, 7);
+          this.activePreset.videoFilters.push({
+            id,
+            type: choice.type,
+            enabled: true,
+            params,
+          });
+          this.activePreset.chain.push({ kind: 'video', id });
         }
-        this.activePreset.filters.push({
-          id: 'f_' + Math.random().toString(36).substring(2, 7),
-          type: t,
-          enabled: true,
-          sampleRate: 44100,
-          params,
-        });
       }
 
       this.rackController.render();
@@ -1021,6 +1072,24 @@ class SonificationApp {
     this.processingFrame=true;
     try{await this.processCapturedFrame(started,capturedAt,captureInput);}finally{this.processingFrame=false;}
   }
+  private async ensureGpuBackend(force=false):Promise<AppTapeSatGpu | undefined>{
+    if(this.gpu || this.gpuUnavailable || (!this.gpuEnabled&&!force))return this.gpu;
+    this.gpuModuleLoad??=import('./engine/backends/app-tapesat.ts').then(module=>{
+      this.gpu=new module.AppTapeSatGpu(this.canvas,this.gpuProfileEnabled,this.gpuPerFrameValidation,this.gpuFusedApplyFinish,this.gpuCaptureMode);
+    }).catch(error=>{
+      this.gpuUnavailable=true;
+      console.warn('GPU TapeSat module unavailable; continuing with JavaScript',error);
+    });
+    await this.gpuModuleLoad;
+    return this.gpu;
+  }
+  private async ensureVideoTail():Promise<AppWebGpuVideoTail|undefined>{
+    if(this.videoTail||this.videoTailUnavailable||!navigator.gpu)return this.videoTail;
+    this.videoTailLoad??=import('./engine/backends/app-webgpu-video-tail.ts').then(module=>{this.videoTail=new module.AppWebGpuVideoTail(this.canvas,()=>this.gpu?.sharedDevice);}).catch(error=>{
+      this.videoTailUnavailable=true;console.warn('GPU video-tail module unavailable; continuing with CPU',error);
+    });
+    await this.videoTailLoad;return this.videoTail;
+  }
   private async processCapturedFrame(started:number,capturedAt:number,captureInput:()=>{data:ImageData;durationMs:number}):Promise<void> {
     if(this.benchmarkEnabled && this.wasmEnabled && !this.wasmRuntime)return;
     if(this.gpuEnabled && this.offlineVideoRecorder.getIsRunning())return;
@@ -1038,17 +1107,89 @@ class SonificationApp {
 
     if (this.currentViewMode === 'source') {
       this.gpu?.showCpu();
+      this.videoTail?.showCpu();
       this.ctx.putImageData(getInput(), 0, 0);
       return;
     }
 
-    const preset=this.gpu ? structuredClone(this.activePreset) : this.activePreset;
+    const routeOverride=this.gpuQuery.get('gpu');
+    const preset=this.gpuEnabled || routeOverride==='cpu-gpu-video-tail' || routeOverride==='gpu-resident-rack' ? structuredClone(this.activePreset) : this.activePreset;
     const eligible=this.currentViewMode==='developed' && this.isSyncMode && !this.videoRecorder.getIsRecording() && !this.offlineVideoRecorder.getIsRunning() &&
       (this.cameraManager.isActive() || !!this.mediaController?.getLoadedVideo()) && (this.presetController?.getCurrentBusRate()||44100)===44100 ? eligibleTapeSat(preset,w,h) : undefined;
-    if(this.gpu && eligible){
+    const requestedRoute=routeOverride==='js'?'cpu-reference':routeOverride==='wasm'?'wasm-cpu':routeOverride==='tapesat'?'gpu-tapesat':routeOverride==='cpu-gpu-video-tail'?'cpu-gpu-video-tail':routeOverride==='gpu-resident-rack'?'gpu-resident-rack':'auto';
+    const routeFileSource=!!this.mediaController?.getLoadedVideo()&&this.currentViewMode==='developed'&&this.isSyncMode&&!this.videoRecorder.getIsRecording()&&!this.offlineVideoRecorder.getIsRunning()&&(this.presetController?.getCurrentBusRate()||44100)===44100;
+    let routePlan=planApplicationRoute({requested:requestedRoute as 'auto'|'cpu-reference'|'gpu-tapesat'|'cpu-gpu-video-tail'|'gpu-resident-rack'|'wasm-cpu',preset,width:w,height:h,
+      webGpuAvailable:typeof navigator!=='undefined'&&!!navigator.gpu,
+      videoTailAvailable:!this.videoTailUnavailable&&routeFileSource,fileVideo:routeFileSource,cameraActive:this.cameraManager.isActive()});
+    if(requestedRoute==='gpu-resident-rack'&&this.residentFailureReason)routePlan={...routePlan,selectedRouteId:'cpu-reference',cpuPrefixNodeIds:routePlan.activeNodeIds.slice(),videoSuffixNodeIds:[],fallbackReason:this.residentFailureReason};
+    this.currentRoutePlan=routePlan;
+    this.perfBadge.dataset.benchmarkRoute=routePlan.selectedRouteId;
+    if(routePlan.fallbackReason)this.perfBadge.dataset.benchmarkFallbackReason=routePlan.fallbackReason;
+    else delete this.perfBadge.dataset.benchmarkFallbackReason;
+    if(routePlan.selectedRouteId==='gpu-resident-rack'){
+      const rack=eligibleResidentVideoRack(preset,w,h);
+      if(!rack)throw new Error('Resident route planner returned an ineligible rack');
+      const gpu=await this.ensureGpuBackend(true);
+      if(generation!==this.loopGeneration)return;
+      const initialState=this.pipeline.tapeSatState(preset,w,h,rack.audio.id);
+      const gpuStarted=performance.now();
+      const compact=gpu?await gpu.processResident(this.offscreenCanvas,rack.audio.params,initialState):undefined;
+      let succeeded=false;
+      if(compact&&gpu?.captureMode==='texture'&&gpu.sharedDevice){
+        const tail=await this.ensureVideoTail();
+        if(generation!==this.loopGeneration)return;
+        const context=this.pipeline.residentVideoContext(compact.subarray(0,4096),w,h,started);
+        succeeded=!!tail&&await tail.processSource(this.offscreenCanvas,rack.video,context,()=>getInput().data);
+        const gpuMs=Math.max(0,performance.now()-gpuStarted-captureReadMs);
+        if(generation!==this.loopGeneration)return;
+        if(succeeded&&tail&&JSON.stringify(this.activePreset)===JSON.stringify(preset)&&this.currentViewMode==='developed'&&!this.videoRecorder.getIsRecording()&&!this.offlineVideoRecorder.getIsRunning()){
+          this.pipeline.tapeSatState(preset,w,h,rack.audio.id,{version:1,sampleRate:44100,bumpLp:compact[8192],toneLp:compact[8193]});
+          gpu.showGpu();tail.showGpu();this.perfBadge.dataset.benchmarkBackend='GPU-RESIDENT';
+          const audioStarted=performance.now();this.audioEngine.playFrameSamples(compact.subarray(0,4096));const audioMs=performance.now()-audioStarted;
+          const telemetryStarted=performance.now();this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:compact.subarray(4096,6144),scopeSamples:compact.subarray(0,4096),rawAudioSamples:compact.subarray(6144,8192),analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});const telemetryMs=performance.now()-telemetryStarted;
+          this.updateFramePerformance(performance.now()-started,'GPU-RESIDENT',{captureMs:Math.max(0,capturedAt-started)+captureReadMs,prepareMs:Math.max(0,gpuStarted-capturedAt),gpuMs,audioMs,telemetryMs});return;
+        }
+      }
+      if(!compact||gpu?.captureMode!=='texture'||!gpu?.sharedDevice)this.gpuUnavailable=true;
+      if(!succeeded)this.videoTailUnavailable=true;
+      const residentFailure=this.videoTail?.validation?.passed===false?`Resident video-filter fidelity check failed (${this.videoTail.validation.mismatchBytes} RGBA bytes differ); using CPU reference.`:'Resident GPU executor unavailable; using CPU reference.';
+      this.residentFailureReason=residentFailure;
+      this.currentRoutePlan={...routePlan,selectedRouteId:'cpu-reference',cpuPrefixNodeIds:routePlan.activeNodeIds.slice(),videoSuffixNodeIds:[],fallbackReason:residentFailure};
+      this.perfBadge.dataset.benchmarkFallbackReason=residentFailure;
+      this.pipeline.tapeSatState(preset,w,h,rack.audio.id,initialState);
+      gpu?.showCpu();this.videoTail?.showCpu();
+    }
+    if(routePlan.selectedRouteId==='cpu-gpu-video-tail'){
+      const prefixResult=this.pipeline.processPrefix(getInput().data,w,h,preset,undefined,undefined,routePlan.videoSuffixNodeIds.length);
+      const prefix=prefixResult.prefix;
+      if(!prefix)throw new Error('GPU video-tail route has no final video suffix');
+      const suffix=prefix.remainingVideoNodeIds.map(id=>preset.videoFilters?.find(node=>node.id===id)).filter((node):node is NonNullable<typeof node>=>!!node);
+      const tail=await this.ensureVideoTail();
+      const gpuStarted=performance.now();
+      const succeeded=!!tail&&await tail.process(prefix.rgbaAtBoundary,suffix,prefix.videoContext);
+      const gpuMs=performance.now()-gpuStarted;
+      if(generation!==this.loopGeneration)return;
+      if(succeeded&&tail&&JSON.stringify(this.activePreset)===JSON.stringify(preset)&&this.currentViewMode==='developed'&&!this.videoRecorder.getIsRecording()){
+        tail.showGpu();this.perfBadge.dataset.benchmarkBackend='GPU-TAIL';
+        const audioStarted=performance.now();this.audioEngine.playFrameSamples(prefix.audioSamples);const audioMs=performance.now()-audioStarted;
+        const telemetryStarted=performance.now();this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:prefix.audioSamples,scopeSamples:undefined,rawAudioSamples:prefix.rawAudioSamples,analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});const telemetryMs=performance.now()-telemetryStarted;
+        this.updateFramePerformance(performance.now()-started,'GPU-TAIL',{captureMs:Math.max(0,capturedAt-started)+captureReadMs,prepareMs:Math.max(0,gpuStarted-capturedAt),gpuMs,audioMs,telemetryMs});return;
+      }
+      if(!succeeded)this.videoTailUnavailable=true;
+      tail?.showCpu();this.pipeline.processCpuTail(prefix);
+      this.ctx.putImageData(new ImageData(Uint8ClampedArray.from(prefix.rgbaAtBoundary),w,h),0,0);
+      this.audioEngine.playFrameSamples(prefix.audioSamples);
+      this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:prefix.audioSamples,scopeSamples:undefined,rawAudioSamples:prefix.rawAudioSamples,analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});
+      this.updateFramePerformance(performance.now()-started,'JS');return;
+    }
+    this.videoTail?.showCpu();
+    if(routePlan.selectedRouteId==='gpu-tapesat' && eligible){
+      const gpu=await this.ensureGpuBackend();
+      if(generation!==this.loopGeneration)return;
+      if(gpu){
       const gpuStarted=performance.now();
       const state=this.pipeline.tapeSatState(preset,w,h,eligible.id);
-      const compact=await this.gpu.process(this.offscreenCanvas,getInput,eligible.params,state);
+      const compact=await gpu.process(this.offscreenCanvas,getInput,eligible.params,state);
       // In reference-byte mode the lazy pixel read is performed inside
       // gpu.process(). Keep it attributed to capture instead of counting it
       // again as GPU completion/readback time.
@@ -1056,8 +1197,8 @@ class SonificationApp {
       if(generation!==this.loopGeneration)return;
       if(compact){
         this.pipeline.tapeSatState(preset,w,h,eligible.id,{version:1,sampleRate:44100,bumpLp:compact[8192],toneLp:compact[8193]});
-        if(JSON.stringify(this.activePreset)!==JSON.stringify(preset) || this.currentViewMode!=='developed' || this.videoRecorder.getIsRecording()){this.gpu.showCpu();return;}
-        this.gpu.showGpu();
+        if(JSON.stringify(this.activePreset)!==JSON.stringify(preset) || this.currentViewMode!=='developed' || this.videoRecorder.getIsRecording()){gpu.showCpu();return;}
+        gpu.showGpu();
         this.perfBadge.dataset.benchmarkBackend='GPU';
         const audioStarted=performance.now();
         this.audioEngine.playFrameSamples(compact.subarray(0,4096));
@@ -1066,6 +1207,7 @@ class SonificationApp {
         this.hudOverlay?.setTelemetryData({fps:this.currentFps,sampleRate:44100,width:w,height:h,audioSamples:compact.subarray(4096,6144),scopeSamples:compact.subarray(0,4096),rawAudioSamples:compact.subarray(6144,8192),analyser:this.audioEngine.getAnalyser(),seed:this.presetController?.getCurrentSeed()||4821});
         const telemetryMs=performance.now()-telemetryStarted;
         this.updateFramePerformance(performance.now()-started,'GPU',{captureMs:Math.max(0,capturedAt-started)+captureReadMs,prepareMs:Math.max(0,gpuStarted-capturedAt),gpuMs,audioMs,telemetryMs});return;
+      }
       }
     }
     this.gpu?.showCpu();
@@ -1126,7 +1268,13 @@ class SonificationApp {
     this.updateFramePerformance(this.benchmarkEnabled ? performance.now()-started : res.executionTimeMs,this.wasmEnabled?'WASM':'JS');
   }
 
-  private updateFramePerformance(elapsed:number,backend:'JS'|'WASM'|'GPU',stages={captureMs:0,prepareMs:0,gpuMs:0,audioMs:0,telemetryMs:0}):void {
+  private updateFramePerformance(elapsed:number,backend:'JS'|'WASM'|'GPU'|'GPU-TAIL'|'GPU-RESIDENT',stages={captureMs:0,prepareMs:0,gpuMs:0,audioMs:0,telemetryMs:0}):void {
+    const routeId=backend==='GPU'?'gpu-tapesat':backend==='GPU-TAIL'?'cpu-gpu-video-tail':backend==='GPU-RESIDENT'?'gpu-resident-rack':backend==='WASM'?'wasm-cpu':'cpu-reference';
+    if(routeId!==this.selectedRouteId){
+      this.selectedRouteId=routeId;
+      this.routeChanges.push({atSeconds:this.sessionStart?(performance.now()-this.sessionStart)/1000:0,routeId});
+    }
+    this.perfBadge.dataset.benchmarkRoute=routeId;
     if(this.benchmarkEnabled){
       const key=JSON.stringify([this.mediaController.getSourceInfo(),this.activePreset,this.currentViewMode,this.canvas.width,this.canvas.height,this.audioEngine.getMuted(),this.hudOverlay.isEnabled(),this.videoRecorder.getIsRecording()]);
       const now=performance.now();
@@ -1136,7 +1284,7 @@ class SonificationApp {
         const reason=!this.measureKey?'initial-settings':!this.measureStart?'frame-loop-restarted':'settings-changed';
         this.measureKey=key;this.measureStart=now+10000;this.resetHistory.push({atSeconds:(now-this.sessionStart)/1000,reason});
       }
-      if(now>=this.measureStart){this.frameMeasurements.push(elapsed);this.stageMeasurements.push({...stages,otherMs:Math.max(0,elapsed-stages.captureMs-stages.prepareMs-stages.gpuMs-stages.audioMs-stages.telemetryMs)});if(backend==='GPU')this.measuredGpuFrames++;else if(backend==='WASM')this.measuredWasmFrames++;else this.measuredJsFrames++;}
+      if(now>=this.measureStart){this.frameMeasurements.push(elapsed);this.stageMeasurements.push({...stages,otherMs:Math.max(0,elapsed-stages.captureMs-stages.prepareMs-stages.gpuMs-stages.audioMs-stages.telemetryMs)});if(backend==='GPU')this.measuredGpuFrames++;else if(backend==='GPU-TAIL')this.measuredVideoTailFrames++;else if(backend==='GPU-RESIDENT')this.measuredResidentFrames++;else if(backend==='WASM')this.measuredWasmFrames++;else this.measuredJsFrames++;}
     }
     this.frameCount++;
     const now = performance.now();
@@ -1165,47 +1313,55 @@ class SonificationApp {
     const gpuCaptureMode=(this.gpu?.validation as {captureMode?:string}|undefined)?.captureMode??null;
     const textureFrames=gpuCaptureMode==='texture'?this.measuredGpuFrames:0;
     const byteCaptureGpuFrames=this.measuredGpuFrames-textureFrames;
-    const cpuRasterReadbackBytes=(this.measuredJsFrames+this.measuredWasmFrames+byteCaptureGpuFrames)*frameBytes;
+    const cpuRasterReadbackBytes=(this.measuredJsFrames+this.measuredWasmFrames+this.measuredVideoTailFrames+byteCaptureGpuFrames)*frameBytes;
     const transferLedger={
       accounting:'API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic',
       measuredFrames:this.frameMeasurements.length,
       perFrameBytes:{
-        cpuImageDataReadback:this.measuredJsFrames+this.measuredWasmFrames?frameBytes:0,
+        cpuImageDataReadback:this.measuredJsFrames+this.measuredWasmFrames+this.measuredVideoTailFrames?frameBytes:0,
+        gpuVideoTailRgbaUpload:this.measuredVideoTailFrames?frameBytes:0,
         gpuReferenceByteCaptureReadback:byteCaptureGpuFrames?frameBytes:0,
         gpuReferenceByteUpload:byteCaptureGpuFrames?frameBytes:0,
         gpuExternalTextureInputLowerBound:textureFrames?frameBytes:0,
+        gpuResidentExternalImageImportLowerBound:this.measuredResidentFrames?frameBytes*2:0,
         gpuCompactMappedMonitor:this.measuredGpuFrames?8194*4:0,
         wasmResidentSampleArena:this.measuredWasmFrames?arenaBytes:0,
         explicitWasmSegmentCopies:0,
         mainWorkerTransfers:0,
       },
       measuredTotals:{
-        cpuImageDataReadbackBytes:(this.measuredJsFrames+this.measuredWasmFrames)*frameBytes,
+        cpuImageDataReadbackBytes:(this.measuredJsFrames+this.measuredWasmFrames+this.measuredVideoTailFrames)*frameBytes,
         gpuReferenceByteCaptureReadbackBytes:byteCaptureGpuFrames*frameBytes,
         gpuReferenceByteUploadBytes:byteCaptureGpuFrames*frameBytes,
+        gpuVideoTailRgbaUploadBytes:this.measuredVideoTailFrames*frameBytes,
         gpuExternalTextureInputLowerBoundBytes:textureFrames*frameBytes,
-        gpuCompactMappedMonitorBytes:this.measuredGpuFrames*8194*4,
+        gpuResidentExternalImageImportLowerBoundBytes:this.measuredResidentFrames*frameBytes*2,
+        gpuCompactMappedMonitorBytes:(this.measuredGpuFrames+this.measuredResidentFrames)*8194*4,
         wasmResidentSampleArenaBytes:this.measuredWasmFrames*arenaBytes,
         explicitWasmSegmentCopyBytes:0,
         mainWorkerTransferBytes:0,
         totalCpuRasterReadbackBytes:cpuRasterReadbackBytes,
       },
-      synchronizations:{gpuQueueSubmissions:this.measuredGpuFrames,gpuMonitorMapOperations:this.measuredGpuFrames,gpuValidationScopes:this.gpuPerFrameValidation?this.measuredGpuFrames:0},
+      synchronizations:{gpuQueueSubmissions:this.measuredGpuFrames+this.measuredVideoTailFrames+this.measuredResidentFrames*2,gpuMonitorMapOperations:this.measuredGpuFrames+this.measuredResidentFrames,gpuValidationScopes:this.gpuPerFrameValidation?this.measuredGpuFrames+this.measuredResidentFrames:0},
       unmeasured:'GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer',
     };
     const report={
       schemaVersion:1,runId:crypto.randomUUID(),createdAt:new Date().toISOString(),build:BUILD_INFO,
-      source:this.mediaController.getSourceInfo(),backend:this.gpuEnabled?'experimental-app-tapesat':this.wasmEnabled?'wasm-scalar-arena':'javascript-reference',
+      route:{requested:this.gpuQuery.get('gpu')??'auto',selectedRouteId:this.selectedRouteId,
+        activeNodeIds:this.currentRoutePlan?.activeNodeIds??[],cpuPrefixNodeIds:this.currentRoutePlan?.cpuPrefixNodeIds??[],videoSuffixNodeIds:this.currentRoutePlan?.videoSuffixNodeIds??[],
+        fallbackReason:this.currentRoutePlan?.fallbackReason??null,changes:this.routeChanges.slice()},
+      source:this.mediaController.getSourceInfo(),backend:this.selectedRouteId==='gpu-tapesat'?'experimental-app-tapesat':this.selectedRouteId==='gpu-resident-rack'?'experimental-app-resident-rack':this.selectedRouteId==='cpu-gpu-video-tail'?'experimental-app-gpu-video-tail':this.wasmEnabled?'wasm-scalar-arena':'javascript-reference',
       scope:'720p source capture, application processing, output presentation submission, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation',
       preset:this.activePreset,width:this.canvas.width,height:this.canvas.height,warmupSeconds:10,
       sessionSeconds:this.sessionStart?Math.max(0,(now-this.sessionStart)/1000):0,
       measuredSeconds:seconds,measuredFrames:this.frameMeasurements.length,processedFps:seconds ? this.frameMeasurements.length/seconds : 0,
-      gpuFrames:this.measuredGpuFrames,wasmFrames:this.measuredWasmFrames,jsFrames:this.measuredJsFrames,missedPresentedCallbacks:this.missedCallbacks,
+      gpuFrames:this.measuredGpuFrames,gpuVideoTailFrames:this.measuredVideoTailFrames,gpuResidentFrames:this.measuredResidentFrames,wasmFrames:this.measuredWasmFrames,jsFrames:this.measuredJsFrames,missedPresentedCallbacks:this.missedCallbacks,
       transferLedger,
       measurementResets:this.resetHistory,
       timings:{framePathMs:summarize(this.frameMeasurements),captureMs:summarize(this.stageMeasurements.map(s=>s.captureMs)),preparationMs:summarize(this.stageMeasurements.map(s=>s.prepareMs)),gpuCompletionAndReadbackMs:summarize(this.stageMeasurements.map(s=>s.gpuMs)),audioSubmissionMs:summarize(this.stageMeasurements.map(s=>s.audioMs)),telemetryUpdateMs:summarize(this.stageMeasurements.map(s=>s.telemetryMs)),otherFrameWorkMs:summarize(this.stageMeasurements.map(s=>s.otherMs)),hudRenderMs:this.hudOverlay.getRenderTimingSummary()},audioMuted:this.audioEngine.getMuted(),audioVolume:this.audioEngine.getVolume(),
       hudEnabled:this.hudOverlay.isEnabled(),gpuPerFrameValidation:this.gpuPerFrameValidation,gpuFusedApplyFinish:this.gpuFusedApplyFinish,audioContextState:this.audioEngine.getAnalyser()?.context.state??null,
       sourcePaused:this.mediaController.getLoadedVideo()?.paused??null,gpuValidation:this.gpu?.validation??null,
+      gpuVideoTailValidation:this.videoTail?.validation??null,
       benchmarkConditions:{backendRequested:this.gpuQuery.get('gpu')??'default',profileRequested:this.gpuProfileEnabled,audioRequested:this.gpuQuery.get('gpu-audio')??'unspecified',hudRequested:this.gpuQuery.get('gpu-hud')??'default',captureModeRequested:this.gpuCaptureMode,declaredSourceFps:Number.isFinite(declaredSourceFps)&&declaredSourceFps>0?declaredSourceFps:null,deviceLabel:this.gpuQuery.get('gpu-device-label')?.trim()||null},
       wasmBuild:this.wasmRuntime?.buildInfo??null,
       ...(this.gpuProfileEnabled?{gpuInternalTimings:this.gpu?.getInternalTimingSummary()??null}:{}),

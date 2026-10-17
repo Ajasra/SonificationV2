@@ -138,6 +138,7 @@ export class WebGpuTapeSat {
   private rasterContext:CanvasRenderingContext2D | undefined;
   private readonly lut:GPUBuffer;
   private readonly format = navigator.gpu.getPreferredCanvasFormat();
+  get sharedDevice():GPUDevice{return this.device;}
   private constructor(private readonly device: GPUDevice, adapter: GPUAdapter, pipelines: Record<string, GPUComputePipeline>, private readonly fusedApplyFinish=false) {
     this.adapterInfo = adapter.info; this.pipelines = pipelines;
     this.state = device.createBuffer({ size: 8, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });

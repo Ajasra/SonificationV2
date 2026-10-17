@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A15-autophaser",
+  "name": "App Optimization A15 autophaser",
+  "description": "Frozen autophaser defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a15-autophaser",
+      "type": "autophaser",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "attackP": 0.1,
+        "decayP": 0.1,
+        "depthP": 0.1,
+        "fb": 0
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a15-autophaser"
+    }
+  ]
+}

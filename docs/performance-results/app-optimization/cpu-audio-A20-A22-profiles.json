@@ -1,0 +1,38 @@
+[
+  {
+    "code": "A20",
+    "id": "vcf303",
+    "fixture": "tests\\fixtures\\app-optimization\\A20-vcf303.json",
+    "fixtureSha256": "9b2505fae1445d4f967eb4956164b35639093d36c5fa4ad4cb25460f46a07ef7",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-fd1b9503-7dec-4d2b-9a8d-e466fa4fc76a.json",
+    "runnerExitCode": 0,
+    "fps": 27.78218764881672,
+    "p95Ms": 40.5,
+    "p99Ms": 57.20000000298023,
+    "problems": []
+  },
+  {
+    "code": "A21",
+    "id": "plucked",
+    "fixture": "tests\\fixtures\\app-optimization\\A21-plucked.json",
+    "fixtureSha256": "a76940aac767fed60a258a2f3fe124c7e090d40508d3c994a6998d6e2af576d8",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-191ab610-ac9b-46c0-865f-5d545bd3bd94.json",
+    "runnerExitCode": 0,
+    "fps": 29.804303816467126,
+    "p95Ms": 34.099999994039536,
+    "p99Ms": 52.099999994039536,
+    "problems": []
+  },
+  {
+    "code": "A22",
+    "id": "fmop",
+    "fixture": "tests\\fixtures\\app-optimization\\A22-fmop.json",
+    "fixtureSha256": "3a2037bedbda9a210fb5b8fc879bd401fdf98af9cfd1e2f94561ecdfaccad64b",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-141aaab6-0d1d-4e4e-8a6e-3acb3ded87b9.json",
+    "runnerExitCode": 0,
+    "fps": 9.387587901940345,
+    "p95Ms": 115.09999999403954,
+    "p99Ms": 146.70000000298023,
+    "problems": []
+  }
+]

@@ -1,0 +1,44 @@
+{
+  "id": "app-optimization-A41-limiter",
+  "name": "App Optimization A41 limiter",
+  "description": "Frozen Limiter defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a41-limiter",
+      "type": "limiter",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "ceiling": -1,
+        "release": 120,
+        "drive": 0
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a41-limiter"
+    }
+  ]
+}

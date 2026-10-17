@@ -1,0 +1,45 @@
+{
+  "filter": "crtbloom",
+  "status": "FAILED",
+  "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+  "dirtyWorktree": true,
+  "sourceSha256": "77598dff31ced009ca67636798f4016a6669c506ae58c3240aabad0d1cc93160",
+  "preset": "tests/fixtures/app-optimization/V02-crtbloom.json",
+  "presetSha256": "ddb9bd0e5dc01171e0e0b248f963b9939149b9f2260ce54979a3757cf27492ff",
+  "cpuProfile": {
+    "measuredSeconds": 5.3128,
+    "processedFps": 21.645836470423227,
+    "framePathP95Ms": 55.69999998807907,
+    "audioActive": true,
+    "hudEnabled": true,
+    "profilingEnabled": true
+  },
+  "cpuScreenControl": {
+    "measuredSeconds": 15.2395,
+    "processedFps": 20.341874733423012,
+    "framePathP95Ms": 61.30000001192093,
+    "audioActive": true,
+    "hudEnabled": true,
+    "profilingEnabled": false
+  },
+  "candidateParityAttempts": [
+    {
+      "attempt": 1,
+      "mismatchBytes": 867,
+      "representativeMismatch": { "offset": 347238, "expected": 63, "actual": 62 },
+      "result": "Rejected by application fidelity preflight; no candidate performance report was produced."
+    },
+    {
+      "attempt": 2,
+      "repair": "Precompute the CPU's Float32 bloom excess values in a 256-entry lookup table.",
+      "mismatchBytes": 867,
+      "representativeMismatch": { "offset": 347238, "expected": 63, "actual": 62 },
+      "result": "Same mismatch after the one permitted focused repair; candidate excluded."
+    }
+  ],
+  "checkpoints": [
+    "sonification-app-pair-MTC2Nq/manifest.json",
+    "sonification-app-pair-He6SFo/manifest.json"
+  ],
+  "decision": "Keep the CPU implementation and remove CRT Bloom from the supported GPU tail."
+}

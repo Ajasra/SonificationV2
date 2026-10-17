@@ -15,6 +15,8 @@ export class GranularFilter extends BaseDspFilter {
   private buf = new Float32Array(0);
   private pos = 0;
   private active = new Uint8Array(MAX_GRAINS);
+  private activeSlots = new Uint8Array(MAX_GRAINS);
+  private activeCount = 0;
   private start = new Float64Array(MAX_GRAINS); // read position at age 0
   private age = new Float64Array(MAX_GRAINS);
   private len = new Float64Array(MAX_GRAINS);
@@ -29,6 +31,8 @@ export class GranularFilter extends BaseDspFilter {
     this.buf = new Float32Array(Math.ceil(this.sampleRate * 2));
     this.pos = 0;
     this.active.fill(0);
+    this.activeSlots.fill(0);
+    this.activeCount = 0;
     this.age.fill(0);
   }
 
@@ -64,6 +68,13 @@ export class GranularFilter extends BaseDspFilter {
       this.len[g] = grainLen;
       this.ratio[g] = ratio;
       this.active[g] = 1;
+      let insertAt = this.activeCount;
+      while (insertAt > 0 && this.activeSlots[insertAt - 1] > g) {
+        this.activeSlots[insertAt] = this.activeSlots[insertAt - 1];
+        insertAt--;
+      }
+      this.activeSlots[insertAt] = g;
+      this.activeCount++;
       return;
     }
   }
@@ -87,6 +98,49 @@ export class GranularFilter extends BaseDspFilter {
       if (Math.random() < prob) this.spawn(pos, size, grainLen);
 
       let wet = 0;
+      for (let slot = 0; slot < this.activeCount; slot++) {
+        const g = this.activeSlots[slot];
+        const a = this.age[g];
+        const w = 0.5 - 0.5 * Math.cos((2 * Math.PI * a) / this.len[g]);
+        let rp = this.start[g] + a * this.ratio[g];
+        rp = ((rp % size) + size) % size;
+        const i0 = Math.floor(rp);
+        const fr = rp - i0;
+        wet += (buf[i0] + (buf[(i0 + 1) % size] - buf[i0]) * fr) * w;
+        this.age[g] = a + 1;
+        if (a + 1 >= this.len[g]) {
+          this.active[g] = 0;
+          for (let move = slot + 1; move < this.activeCount; move++) this.activeSlots[move - 1] = this.activeSlots[move];
+          this.activeCount--;
+          slot--;
+        }
+      }
+
+      if (++pos >= size) pos = 0;
+      samples[i] = x * dry + wet * norm * mix;
+    }
+
+    this.pos = pos;
+  }
+
+  processBlockReference(samples: Float32Array): void {
+    const n = samples.length;
+    const buf = this.buf;
+    const size = buf.length;
+    const grainLen = Math.max(16, (this.size / 1000) * this.sampleRate);
+    const prob = this.density / this.sampleRate;
+    const overlap = Math.max(1, this.density * (this.size / 1000));
+    const norm = 1 / Math.sqrt(overlap);
+    const mix = this.mix;
+    const dry = 1 - mix;
+    let pos = this.pos;
+
+    for (let i = 0; i < n; i++) {
+      const x = samples[i];
+      buf[pos] = x;
+      if (Math.random() < prob) this.spawnReference(pos, size, grainLen);
+
+      let wet = 0;
       for (let g = 0; g < MAX_GRAINS; g++) {
         if (!this.active[g]) continue;
         const a = this.age[g];
@@ -99,12 +153,25 @@ export class GranularFilter extends BaseDspFilter {
         this.age[g] = a + 1;
         if (a + 1 >= this.len[g]) this.active[g] = 0;
       }
-
       if (++pos >= size) pos = 0;
       samples[i] = x * dry + wet * norm * mix;
     }
-
     this.pos = pos;
+  }
+
+  private spawnReference(pos: number, size: number, grainLen: number): void {
+    for (let g = 0; g < MAX_GRAINS; g++) {
+      if (this.active[g]) continue;
+      const ratio = Math.pow(2, ((Math.random() * 2 - 1) * this.pitchScatter) / 12);
+      const minOffset = grainLen * Math.max(1, ratio) + 2;
+      const offset = minOffset + Math.random() * (this.posJitter / 1000) * this.sampleRate;
+      this.start[g] = pos - Math.min(offset, size - grainLen * 2 - 2);
+      this.age[g] = 0;
+      this.len[g] = grainLen;
+      this.ratio[g] = ratio;
+      this.active[g] = 1;
+      return;
+    }
   }
 }
 

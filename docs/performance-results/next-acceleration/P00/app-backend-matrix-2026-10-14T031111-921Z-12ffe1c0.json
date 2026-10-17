@@ -1,0 +1,719 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "2026-10-14T031111-921Z-12ffe1c0",
+  "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+  "startedAt": "2026-10-14T03:11:11.923Z",
+  "finishedAt": "2026-10-14T03:14:41.115Z",
+  "status": "complete",
+  "video": "C:\\Users\\user\\AppData\\Local\\Temp\\sonification-acceleration-720p30.mp4",
+  "deviceLabel": "AMD GCN-5 smoke only",
+  "durationSeconds": 5,
+  "source": {
+    "width": 1280,
+    "height": 720,
+    "frameRate": 30
+  },
+  "sourceCadence": "Source independently verified by ffprobe; raw source hash checked by each run",
+  "conditions": {
+    "resolution": "1280x720",
+    "audio": "active browser audio context, volume 0.25",
+    "hud": "on",
+    "profile": "off",
+    "headed": true,
+    "order": [
+      "js",
+      "wasm",
+      "gpu",
+      "gpu",
+      "wasm",
+      "js",
+      "js",
+      "gpu",
+      "wasm"
+    ]
+  },
+  "runs": [
+    {
+      "index": 1,
+      "backend": "js",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-01-js.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 4.70479999999702,
+        "measuredFrames": 141,
+        "processedFps": 29.969392960399873,
+        "framePathMs": {
+          "count": 141,
+          "p50": 20.30000001192093,
+          "p95": 22.5,
+          "p99": 23.80000001192093
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 141,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 519782400,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 519782400
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 141,
+          "wasm": 0,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 2,
+      "backend": "wasm",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-02-wasm.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 5.27679999999702,
+        "measuredFrames": 159,
+        "processedFps": 30.13189812008979,
+        "framePathMs": {
+          "count": 159,
+          "p50": 21,
+          "p95": 22.400000005960464,
+          "p99": 23.099999994039536
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 159,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 11059200,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 586137600,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 1758412800,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 586137600
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 159,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 3,
+      "backend": "gpu",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-03-gpu.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 4.60609999999404,
+        "measuredFrames": 138,
+        "processedFps": 29.96027007667627,
+        "framePathMs": {
+          "count": 138,
+          "p50": 8.299999997019768,
+          "p95": 10.200000002980232,
+          "p99": 10.900000005960464
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": true,
+        "captureMode": "texture",
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 138,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 0,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 3686400,
+            "gpuCompactMappedMonitor": 32776,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 0,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 508723200,
+            "gpuCompactMappedMonitorBytes": 4523088,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 0
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 138,
+            "gpuMonitorMapOperations": 138,
+            "gpuValidationScopes": 138
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 0,
+          "gpu": 138
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 4,
+      "backend": "gpu",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-04-gpu.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 5.079300000011921,
+        "measuredFrames": 152,
+        "processedFps": 29.925383418904822,
+        "framePathMs": {
+          "count": 152,
+          "p50": 8.700000002980232,
+          "p95": 11.100000008940697,
+          "p99": 13.099999994039536
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": true,
+        "captureMode": "texture",
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 152,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 0,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 3686400,
+            "gpuCompactMappedMonitor": 32776,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 0,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 560332800,
+            "gpuCompactMappedMonitorBytes": 4981952,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 0
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 152,
+            "gpuMonitorMapOperations": 152,
+            "gpuValidationScopes": 152
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 0,
+          "gpu": 152
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 5,
+      "backend": "wasm",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-05-wasm.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 4.7132999999970195,
+        "measuredFrames": 141,
+        "processedFps": 29.915345935987347,
+        "framePathMs": {
+          "count": 141,
+          "p50": 20.700000002980232,
+          "p95": 22.900000005960464,
+          "p99": 24.200000002980232
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 141,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 11059200,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 519782400,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 1559347200,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 519782400
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 141,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 6,
+      "backend": "js",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-06-js.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 5.225,
+        "measuredFrames": 157,
+        "processedFps": 30.047846889952154,
+        "framePathMs": {
+          "count": 157,
+          "p50": 20.599999994039536,
+          "p95": 22.599999994039536,
+          "p99": 23.799999997019768
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 157,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 578764800,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 578764800
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 157,
+          "wasm": 0,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 7,
+      "backend": "js",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-07-js.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 5.33709999999404,
+        "measuredFrames": 160,
+        "processedFps": 29.978827453144717,
+        "framePathMs": {
+          "count": 160,
+          "p50": 20.599999994039536,
+          "p95": 22.899999991059303,
+          "p99": 25.700000002980232
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 160,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 589824000,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 589824000
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 160,
+          "wasm": 0,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 8,
+      "backend": "gpu",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-08-gpu.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 4.7835,
+        "measuredFrames": 143,
+        "processedFps": 29.894428765548238,
+        "framePathMs": {
+          "count": 143,
+          "p50": 8.599999994039536,
+          "p95": 10,
+          "p99": 10.700000002980232
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": true,
+        "captureMode": "texture",
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 143,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 0,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 3686400,
+            "gpuCompactMappedMonitor": 32776,
+            "wasmResidentSampleArena": 0,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 0,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 527155200,
+            "gpuCompactMappedMonitorBytes": 4686968,
+            "wasmResidentSampleArenaBytes": 0,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 0
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 143,
+            "gpuMonitorMapOperations": 143,
+            "gpuValidationScopes": 143
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 0,
+          "gpu": 143
+        },
+        "problems": []
+      }
+    },
+    {
+      "index": 9,
+      "backend": "wasm",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "report": "P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-09-wasm.json",
+      "metrics": {
+        "sourceSha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008",
+        "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+        "dirty": false,
+        "measuredSeconds": 4.7135,
+        "measuredFrames": 142,
+        "processedFps": 30.126233160072136,
+        "framePathMs": {
+          "count": 142,
+          "p50": 20.600000008940697,
+          "p95": 22.399999991059303,
+          "p99": 23.700000002980232
+        },
+        "missedPresentedCallbacks": 0,
+        "fidelityPassed": null,
+        "captureMode": null,
+        "transferLedger": {
+          "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+          "measuredFrames": 142,
+          "perFrameBytes": {
+            "cpuImageDataReadback": 3686400,
+            "gpuReferenceByteCaptureReadback": 0,
+            "gpuReferenceByteUpload": 0,
+            "gpuExternalTextureInputLowerBound": 0,
+            "gpuCompactMappedMonitor": 0,
+            "wasmResidentSampleArena": 11059200,
+            "explicitWasmSegmentCopies": 0,
+            "mainWorkerTransfers": 0
+          },
+          "measuredTotals": {
+            "cpuImageDataReadbackBytes": 523468800,
+            "gpuReferenceByteCaptureReadbackBytes": 0,
+            "gpuReferenceByteUploadBytes": 0,
+            "gpuExternalTextureInputLowerBoundBytes": 0,
+            "gpuCompactMappedMonitorBytes": 0,
+            "wasmResidentSampleArenaBytes": 1570406400,
+            "explicitWasmSegmentCopyBytes": 0,
+            "mainWorkerTransferBytes": 0,
+            "totalCpuRasterReadbackBytes": 523468800
+          },
+          "synchronizations": {
+            "gpuQueueSubmissions": 0,
+            "gpuMonitorMapOperations": 0,
+            "gpuValidationScopes": 0
+          },
+          "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+        },
+        "audioMuted": false,
+        "audioContextState": "running",
+        "hudEnabled": true,
+        "backendFrameCounts": {
+          "js": 0,
+          "wasm": 142,
+          "gpu": 0
+        },
+        "problems": []
+      }
+    }
+  ],
+  "backendRunCounts": {
+    "js": 3,
+    "wasm": 3,
+    "gpu": 3
+  },
+  "pairComparisons": [
+    {
+      "round": 1,
+      "baseline": "js",
+      "candidate": "wasm",
+      "baselineRun": 1,
+      "candidateRun": 2,
+      "processedFpsDelta": 0.16250515968991763,
+      "frameP95DeltaMs": -0.09999999403953552,
+      "sourceMatch": true,
+      "revisionMatch": true
+    },
+    {
+      "round": 1,
+      "baseline": "js",
+      "candidate": "gpu",
+      "baselineRun": 1,
+      "candidateRun": 3,
+      "processedFpsDelta": -0.00912288372360237,
+      "frameP95DeltaMs": -12.299999997019768,
+      "sourceMatch": true,
+      "revisionMatch": true
+    },
+    {
+      "round": 2,
+      "baseline": "js",
+      "candidate": "wasm",
+      "baselineRun": 6,
+      "candidateRun": 5,
+      "processedFpsDelta": -0.13250095396480788,
+      "frameP95DeltaMs": 0.30000001192092896,
+      "sourceMatch": true,
+      "revisionMatch": true
+    },
+    {
+      "round": 2,
+      "baseline": "js",
+      "candidate": "gpu",
+      "baselineRun": 6,
+      "candidateRun": 4,
+      "processedFpsDelta": -0.12246347104733246,
+      "frameP95DeltaMs": -11.499999985098839,
+      "sourceMatch": true,
+      "revisionMatch": true
+    },
+    {
+      "round": 3,
+      "baseline": "js",
+      "candidate": "wasm",
+      "baselineRun": 7,
+      "candidateRun": 9,
+      "processedFpsDelta": 0.14740570692741883,
+      "frameP95DeltaMs": -0.5,
+      "sourceMatch": true,
+      "revisionMatch": true
+    },
+    {
+      "round": 3,
+      "baseline": "js",
+      "candidate": "gpu",
+      "baselineRun": 7,
+      "candidateRun": 8,
+      "processedFpsDelta": -0.0843986875964795,
+      "frameP95DeltaMs": -12.899999991059303,
+      "sourceMatch": true,
+      "revisionMatch": true
+    }
+  ],
+  "acceptance": {
+    "js": {
+      "minimumProcessedFps": 29.4,
+      "maximumFramePathP95Ms": 25,
+      "runsMeetingFps": 3,
+      "runsMeetingP95": 3,
+      "fidelityPasses": null
+    },
+    "wasm": {
+      "minimumProcessedFps": 29.4,
+      "maximumFramePathP95Ms": 25,
+      "runsMeetingFps": 3,
+      "runsMeetingP95": 3,
+      "fidelityPasses": null
+    },
+    "gpu": {
+      "minimumProcessedFps": 29.4,
+      "maximumFramePathP95Ms": 25,
+      "runsMeetingFps": 3,
+      "runsMeetingP95": 3,
+      "fidelityPasses": 3
+    }
+  },
+  "reportScope": "Headed Chrome application processing and canvas/HUD/audio-context submission path. A running audio context does not confirm audible speaker output or physical display scan-out."
+}

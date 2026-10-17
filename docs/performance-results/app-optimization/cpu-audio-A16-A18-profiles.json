@@ -1,0 +1,38 @@
+[
+  {
+    "code": "A16",
+    "id": "autopan",
+    "fixture": "tests\\fixtures\\app-optimization\\A16-autopan.json",
+    "fixtureSha256": "98491da69f51e1b0ee259f1088bf38b15d8831cbee226bfe4ce913e2841787c0",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-910533a5-4125-488d-a9d8-636efcc4a889.json",
+    "runnerExitCode": 0,
+    "fps": 29.766826525494846,
+    "p95Ms": 20.900000005960464,
+    "p99Ms": 26,
+    "problems": []
+  },
+  {
+    "code": "A17",
+    "id": "ringmod",
+    "fixture": "tests\\fixtures\\app-optimization\\A17-ringmod.json",
+    "fixtureSha256": "6335e0c934113af95c980050330b6cde8fad209973cf750ae391b9b8dcc30392",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-3e90e7e9-16cd-4cde-9c57-22322b6b5763.json",
+    "runnerExitCode": 0,
+    "fps": 26.923849708659834,
+    "p95Ms": 45.5,
+    "p99Ms": 137.6000000089407,
+    "problems": []
+  },
+  {
+    "code": "A18",
+    "id": "flanger",
+    "fixture": "tests\\fixtures\\app-optimization\\A18-flanger.json",
+    "fixtureSha256": "0b8410dc5e6c3308d83e7af31b2bcb8393ba523d36dcd666c793f7a4145994fb",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-062699c4-8959-46c3-b51e-b7f53f51be9e.json",
+    "runnerExitCode": 0,
+    "fps": 25.145218509985003,
+    "p95Ms": 44.400000005960464,
+    "p99Ms": 49.29999999701977,
+    "problems": []
+  }
+]

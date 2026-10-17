@@ -1,0 +1,49 @@
+{
+  "id": "app-optimization-A14-fourbyfour",
+  "name": "App Optimization A14 fourbyfour",
+  "description": "Frozen fourbyfour defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a14-fourbyfour",
+      "type": "fourbyfour",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "f0": 10,
+        "f1": 10000,
+        "f2": 15000,
+        "f3": 20000,
+        "fb0": 0,
+        "fb1": 0,
+        "fb2": 0,
+        "fb3": 0
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a14-fourbyfour"
+    }
+  ]
+}

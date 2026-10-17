@@ -42,6 +42,18 @@ export class PitchShifterFilter extends BaseDspFilter {
   private read(buf: Float32Array, pos: number, delay: number): number {
     const size = buf.length;
     let rp = pos - delay;
+    if (rp < 0) rp += size;
+    const i0 = Math.floor(rp);
+    const f = rp - i0;
+    const next = i0 + 1 === size ? 0 : i0 + 1;
+    const a = buf[i0];
+    const b = buf[next];
+    return a + (b - a) * f;
+  }
+
+  private readReference(buf: Float32Array, pos: number, delay: number): number {
+    const size = buf.length;
+    let rp = pos - delay;
     while (rp < 0) rp += size;
     const i0 = Math.floor(rp);
     const f = rp - i0;
@@ -83,6 +95,17 @@ export class PitchShifterFilter extends BaseDspFilter {
 
     this.pos = pos;
     this.phase = ph;
+  }
+
+  processBlockReference(samples: Float32Array): void {
+    const len=samples.length,buf=this.buf,size=buf.length,winSamples=(this.window/1000)*this.sampleRate,ratio=Math.pow(2,this.semitones/12),inc=(1-ratio)/winSamples,mix=this.mix,dry=1-mix;
+    let pos=this.pos,ph=this.phase;
+    for(let i=0;i<len;i++){
+      const x=samples[i];buf[pos]=x;const ph2=ph+.5>=1?ph-.5:ph+.5,w1=.5-.5*Math.cos(TWO_PI*ph),w2=.5-.5*Math.cos(TWO_PI*ph2);
+      const wet=this.readReference(buf,pos,ph*winSamples+1)*w1+this.readReference(buf,pos,ph2*winSamples+1)*w2;
+      ph+=inc;if(ph>=1)ph-=1;else if(ph<0)ph+=1;if(++pos>=size)pos=0;samples[i]=x*dry+wet*mix;
+    }
+    this.pos=pos;this.phase=ph;
   }
 }
 

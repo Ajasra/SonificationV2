@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A38-noisegate",
+  "name": "App Optimization A38 noisegate",
+  "description": "Frozen Noise Gate defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a38-noisegate",
+      "type": "noisegate",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "threshold": -36,
+        "range": -40,
+        "attack": 5,
+        "release": 100
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a38-noisegate"
+    }
+  ]
+}

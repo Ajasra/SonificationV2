@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A28-vocoder",
+  "name": "App Optimization A28 vocoder",
+  "description": "Frozen vocoder defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a28-vocoder",
+      "type": "vocoder",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "bands": 8,
+        "q": 5,
+        "carrier": 1,
+        "freq": 110,
+        "mix": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a28-vocoder"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "code": "A05",
+    "id": "svf",
+    "fixture": "tests\\fixtures\\app-optimization\\A05-svf.json",
+    "fixtureSha256": "c5b9dd41a340a992f4a52df6a16fdf37b83adf6e8075cbaf3d4aabff57514b8b",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-80479f79-b8e8-4b39-a142-048f830da698.json",
+    "runnerExitCode": 0,
+    "fps": 29.539868040900437,
+    "p95Ms": 28,
+    "p99Ms": 29.899999991059303,
+    "dirty": true,
+    "actualRoute": "cpu-reference",
+    "problems": []
+  },
+  {
+    "code": "A06",
+    "id": "formant",
+    "fixture": "tests\\fixtures\\app-optimization\\A06-formant.json",
+    "fixtureSha256": "3aa066cdf5ac4ed4802f246de23b4f70193378ae8b32b231a749629f9422f38b",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-a0edded8-81ca-42a5-b2c1-ba2c943e3c72.json",
+    "runnerExitCode": 0,
+    "fps": 20.943816770461005,
+    "p95Ms": 56,
+    "p99Ms": 68.69999998807907,
+    "dirty": true,
+    "actualRoute": "cpu-reference",
+    "problems": []
+  }
+]

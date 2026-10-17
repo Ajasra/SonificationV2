@@ -72,6 +72,38 @@ export class FourByFourPoleFilter extends BaseDspFilter {
   }
 
   processBlock(samples: Float32Array): void {
+    const ap=this.ap;let y0=this.y0,y1=this.y1,y2=this.y2,y3=this.y3;
+    const fb0=this.fb0,fb1=this.fb1,fb2=this.fb2,fb3=this.fb3;
+    for(let i=0;i<samples.length;i++){
+      let x=samples[i]+y0*fb0;
+      let a=ap[0],v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[1];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[2];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[3];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;y0=v;
+
+      x=y0+y1*fb1;
+      a=ap[4];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[5];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[6];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[7];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;y1=v;
+
+      x=y1+y2*fb2;
+      a=ap[8];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[9];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[10];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[11];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;y2=v;
+
+      x=y2+y3*fb3;
+      a=ap[12];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[13];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[14];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;x=v;
+      a=ap[15];v=x*-a.a1+a.zm1;a.zm1=v*a.a1+x;y3=v;
+      samples[i]=y3!==y3?0:y3;
+    }
+    this.y0=y0;this.y1=y1;this.y2=y2;this.y3=y3;
+  }
+
+  processBlockReference(samples: Float32Array): void {
     const len = samples.length;
     for (let i = 0; i < len; i++) {
       const s = samples[i];

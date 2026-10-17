@@ -23,6 +23,18 @@ export interface PipelineResult {
   executionTimeMs: number;
   /** Opt-in instrumentation; total includes setup and timing overhead. */
   timings?: PipelineTimings;
+  /** Present only for a split frame; valid until the next processing call. */
+  prefix?: PipelinePrefixResult;
+}
+
+export interface PipelinePrefixResult {
+  token: object;
+  rgbaAtBoundary: Uint8ClampedArray;
+  originalInput: Uint8ClampedArray;
+  audioSamples: Float32Array;
+  rawAudioSamples: Float32Array;
+  videoContext: VideoFrameContext;
+  remainingVideoNodeIds: string[];
 }
 
 export interface PipelineTimings {
@@ -54,6 +66,12 @@ export class SonificationPipeline {
     if(!(filter instanceof TapeSaturationFilter))throw new Error('TapeSat instance unavailable');
     if(state)filter.importState(state);
     return filter.exportState();
+  }
+  residentVideoContext(audioSamples:Float32Array,width:number,height:number,timeMs=performance.now()):VideoFrameContext {
+    // The resident monitor contains every fourth output sample for the frozen
+    // 720p R3 route; the reference reducer samples 1024 values at stride 2700.
+    this.measureAudio(audioSamples);
+    return {width,height,timeMs,audioRms:this.lastAudioRms,audioPeak:this.lastAudioPeak};
   }
   constructor(
     private readonly audioFactory: typeof createFilterInstance = createFilterInstance,
@@ -204,6 +222,44 @@ export class SonificationPipeline {
     outputTargetRgba?: Uint8ClampedArray,
     options?: PipelineFrameOptions
   ): PipelineResult {
+    return this.runFrame(inputRgba,width,height,preset,outputTargetRgba,options,false);
+  }
+
+  /** Execute the shared compiled chain up to its final video segment. */
+  processPrefix(
+    inputRgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    preset: SonificationPreset,
+    outputTargetRgba?: Uint8ClampedArray,
+    options?: PipelineFrameOptions,
+    videoTailCount?: number
+  ): PipelineResult {
+    return this.runFrame(inputRgba,width,height,preset,outputTargetRgba,options,true,videoTailCount);
+  }
+
+  /** Complete only the retained final video segment after a prefix run. */
+  processCpuTail(prefix: PipelinePrefixResult): Uint8ClampedArray {
+    const tail=this.pendingVideoTail;
+    if(!tail || tail.token!==prefix.token)throw new Error('No pending CPU video tail for this frame');
+    if(prefix.remainingVideoNodeIds.join('\0')!==tail.nodeIds.join('\0'))throw new Error('CPU video tail does not match the current prefix');
+    for(const filter of tail.filters)filter.processFrame(prefix.rgbaAtBoundary, prefix.videoContext);
+    this.pendingVideoTail=undefined;
+    return prefix.rgbaAtBoundary;
+  }
+
+  private pendingVideoTail:{token:object;filters:IVideoFilter[];nodeIds:string[]}|undefined;
+
+  private runFrame(
+    inputRgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    preset: SonificationPreset,
+    outputTargetRgba: Uint8ClampedArray|undefined,
+    options: PipelineFrameOptions|undefined,
+    splitFinalVideo: boolean,
+    requestedVideoTailCount?:number
+  ): PipelineResult {
     const t0 = performance.now();
     if (outputTargetRgba && inputRgba.buffer === outputTargetRgba.buffer &&
       inputRgba.byteOffset < outputTargetRgba.byteOffset + outputTargetRgba.byteLength &&
@@ -220,6 +276,7 @@ export class SonificationPipeline {
     const numSamples = Math.floor((numPixels * 3) / (preset.reader.bits === 8 ? 1 : preset.reader.bits === 16 ? 2 : 3));
     this.ensureBuffers(numPixels, numSamples);
     this.syncChain(preset, width, height);
+    this.pendingVideoTail=undefined;
     if (timings) timings.setupMs = performance.now() - t0;
 
     const outRgba = outputTargetRgba || new Uint8ClampedArray(numPixels * 4);
@@ -230,6 +287,11 @@ export class SonificationPipeline {
     let audioStream: Float32Array = this.workAudioBuffer.subarray(0, numSamples);
     let firstAudio = true;
     let copyLen = 0;
+    let splitVideoContext:VideoFrameContext|undefined;
+    let splitVideoSegment:Extract<Segment,{kind:'video'}>|undefined;
+    const finalSegment=this.segments.at(-1);
+    const splitVideoTailCount=Math.min(finalSegment?.kind==='video'?finalSegment.filters.length:0,Math.max(0,Math.floor(requestedVideoTailCount??Number.MAX_SAFE_INTEGER)));
+    if(splitFinalVideo && splitVideoTailCount>0 && finalSegment?.kind==='video')splitVideoSegment=finalSegment;
 
     for (const seg of this.segments) {
       if (seg.kind === 'video') {
@@ -245,7 +307,7 @@ export class SonificationPipeline {
           audioRms: this.lastAudioRms,
           audioPeak: this.lastAudioPeak,
         };
-        const fl = seg.filters;
+        const fl = seg===splitVideoSegment?seg.filters.slice(0,-splitVideoTailCount):seg.filters;
         for (let i = 0; i < fl.length; i++) fl[i].processFrame(outRgba, videoCtx);
         if (timings) timings.videoDspMs += performance.now() - start;
         continue;
@@ -346,12 +408,25 @@ export class SonificationPipeline {
 
     const t1 = performance.now();
 
+    let prefix:PipelinePrefixResult|undefined;
+    if(splitVideoSegment){
+      splitVideoContext={width,height,timeMs:effectTimeMs,audioRms:this.lastAudioRms,audioPeak:this.lastAudioPeak};
+      const ordered=resolveChain(preset).filter(entry=>entry.kind==='video'&&entry.cfg.enabled);
+      const filters=splitVideoSegment.filters.slice(-splitVideoTailCount);
+      const nodeIds=ordered.slice(-filters.length).map(entry=>entry.cfg.id);
+      const token={};
+      this.pendingVideoTail={token,filters,nodeIds};
+      prefix={token,rgbaAtBoundary:outRgba,originalInput:inputRgba,audioSamples:audioStream,
+        rawAudioSamples:this.rawAudioPreviewBuffer.subarray(0,copyLen),videoContext:splitVideoContext,remainingVideoNodeIds:nodeIds};
+    }
+
     return {
       outputRgba: outRgba,
       audioSamples: audioStream,
       rawAudioSamples: this.rawAudioPreviewBuffer.subarray(0, copyLen),
       executionTimeMs: t1 - t0,
       timings,
+      ...(prefix?{prefix}:{}),
     };
   }
 

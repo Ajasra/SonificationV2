@@ -10,6 +10,13 @@ test('normal application startup stays on JS without loading the GPU backend',as
   expect(requests.some(url=>url.includes('/backends/app-tapesat'))).toBe(false);
 });
 
+test('automatic acceleration stays disabled until the release flag is enabled',async ({page})=>{
+  await page.goto('/');
+  expect(await page.locator('#gpu-main-canvas').count()).toBe(0);
+  expect(await page.locator('#gpu-video-tail-canvas').count()).toBe(0);
+  await expect(page.locator('#perf-badge')).not.toHaveAttribute('data-benchmark-backend','GPU');
+});
+
 test('application GPU path feeds audio/HUD and falls back across resolution and formats',async ({},testInfo)=>{
   const browser=await chromium.launch({headless:true,...(process.env.BENCHMARK_GPU_BROWSER==='chrome'?{channel:'chrome',args:['--enable-unsafe-webgpu']}: {})});
   const context=await browser.newContext({baseURL:'http://127.0.0.1:5175'});const page=await context.newPage();

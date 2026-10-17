@@ -1,6 +1,26 @@
 # P00 baseline and attribution checkpoint
 
-Status: **in progress**. Harness options and suite isolation are implemented; clean-revision full-path baselines and CPU/WASM app-route comparisons remain open. Nothing here closes 720p30 acceptance.
+Status: **local application comparison passed for the supported 720p TapeSat route; hardware rollout remains open**. Three clean, headed, matched runs per backend and a clean five-minute GPU session are now preserved below. This closes the previous missing JS/WASM/GPU app-control and sustained desktop-run gaps for this one route; it does not establish other racks, phone behavior, audible speakers, or physical scan-out.
+
+## Final matched visible-application matrix (2026-10-14)
+
+Manifest: [three-round backend matrix](app-backend-matrix-2026-10-14T023648-698Z-9c075513.json). It contains nine raw reports on clean revision `af54041d566575aa38b7a698dfc97e3529cd671e`, using the same independently ffprobe-verified 1280×720 30 fps source (SHA-256 `8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008`), headed Chrome, active browser audio context at volume 0.25, HUD on and detailed profiling off. Runs were counterbalanced JS/WASM/GPU; all reported the same source hash, revision, active backend only, and clean build. GPU sample and resident fidelity passed 3/3; capture selected the texture path 3/3.
+
+| Backend | Median processed fps | Median frame-path p95 | Range across three p95s | Runs meeting ≥29.4 fps / ≤25 ms p95 |
+|---|---:|---:|---:|---:|
+| JS reference | 29.999 | 28.6 ms | 23.8–32.1 ms | 3/3 / 1/3 |
+| Scalar WASM arena | 29.980 | 24.1 ms | 22.9–31.3 ms | 3/3 / 2/3 |
+| GPU TapeSat | 29.985 | 11.1 ms | 10.4–11.9 ms | 3/3 / 3/3 |
+
+GPU p95 beat paired JS by 21.0, 16.7 and 13.4 ms in the three rounds; fps deltas were +0.067, -0.030 and +0.004. WASM p95 deltas versus JS were -8.0, +2.7 and -0.9 ms, so the whole-route improvement is conditional and inconsistent even though its median is 4.5 ms lower. All three routes sustained source cadence on this desktop route; only GPU met both numeric gates in every repetition.
+
+The API-observed/modelled transfer ledger distinguishes ownership and representation. JS and WASM each report a 3,686,400-byte CPU raster readback per frame (one 720p RGBA image); the WASM arena accounts for 11,059,200 sample bytes/frame with zero explicit JS/WASM segment copies in the arena path. The GPU texture route reports zero CPU raster readback and zero byte upload, a 3,686,400-byte/frame external-texture input lower bound, plus one 32,776-byte compact monitor map/frame. These figures do not measure physical bus traffic, hidden browser/driver staging, compositor traffic or GPU-local shader traffic. They support keeping compatible GPU work resident and returning one bounded packet on this tested route; they do not validate a general segment planner.
+
+Five-minute report: [300-second headed GPU run](app-benchmark-sustained-300s-645d3fec-3b8d-4e72-a876-1982d09977aa.json). Clean build on the same revision/source; 300.285 measured seconds, 9,003 frames, **29.982 fps**, frame-path p50/p95/p99 **8.7/10.7/12.7 ms**, fidelity passed, texture capture, active browser audio context, HUD on, and one missed-presented-callback proxy event. This closes the local five-minute GPU file-session gate only.
+
+The reusable [matched matrix runner](../../../../scripts/benchmark-app-matrix.mjs) verifies input resolution/rate with `ffprobe`, requires headed mode, preserves raw reports after runs, checks selected-backend exclusivity/clean provenance/audio context/HUD and GPU fidelity, and separates performance outcomes from test-integrity status. `node --check` and a clean-worktree 9/9 five-second end-to-end smoke pass; the [smoke manifest](app-backend-matrix-2026-10-14T031111-921Z-12ffe1c0.json) is separate from acceptance data.
+
+Re-run the acceptance matrix with `node scripts/benchmark-app-matrix.mjs --video <verified-1280x720-30fps-source> --duration 60 --headed --device-label "<manually identified device>"`. It requires `ffprobe` and a visible headed-browser host; keep its result cohort separate for each physical device.
 
 ## Harness changes under test
 
@@ -57,7 +77,4 @@ This supports process isolation as a workaround; it does not prove the underlyin
 
 ## Remaining P00 gate
 
-1. Add equivalent JS/WASM application-run controls and an API-observed transfer ledger before claiming equal-backend app comparisons; the current WASM harness remains synthetic-canvas CPU-path scope.
-2. Run a visible-browser and physical-device 60-second test on the verified 30 fps source, then camera and sustained sessions.
-
-P01 can diagnose capture on this AMD adapter after a clean fresh-revision run. The clean 30 fps file selected texture with the existing resident fidelity gate; a distinct generated browser video fixture correctly fell back to reference bytes. Keep capture selection source-specific.
+The equal JS/WASM/GPU route controls, logical transfer accounting, visible headed desktop matrix and local five-minute GPU file session are closed for TapeSat on this source/device configuration. Still open: independently captured exact adapter model, physical speaker audibility/display scan-out, camera input, a second source/device pair, phone thermals/memory, and performance on other legal route classes. Do not use the matrix to infer a universal backend choice. P01 remains source-specific: keep texture only after the fidelity gate and retain reference-byte fallback.

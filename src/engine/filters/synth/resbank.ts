@@ -83,6 +83,7 @@ export class ResonatorBankFilter extends BaseDspFilter {
 
     this.pos = pos;
   }
+
 }
 
 export const filter: FilterModule = {

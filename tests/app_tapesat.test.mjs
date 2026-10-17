@@ -15,12 +15,32 @@ function load(file){
   vm.runInNewContext(code,{exports,Float32Array,Uint8ClampedArray,performance,console,require:name=>load(path.resolve(path.dirname(filename),name))},{filename});return exports;
 }
 const {eligibleTapeSat}=load('src/engine/backends/app-tapesat.ts');
+const {shouldEnableTapeSatGpu,shouldUseTapeSatGpu,isAccelerationBenchmark}=load('src/engine/backends/gpu-eligibility.ts');
 const {SonificationPipeline}=load('src/engine/pipeline.ts');
 function preset(){const stream={rawType:'INTERLEAVED',law:'NONE',sign:'UNSIGNED',bits:8,endianess:'LITTLE_ENDIAN',colorSpace:'RGB'};return {id:'test',name:'test',reader:{...stream},writer:{...stream},filters:[{id:'sat',type:'tapesat',enabled:true,sampleRate:44100,params:{drive:2.5,bias:.1,bump:.4,bumpHz:80,tone:8000}}],videoFilters:[],equalize:false,blendMode:'NONE',blendAmount:0};}
 test('application GPU eligibility is limited to the validated format and rack',()=>{
   const p=preset();assert.equal(eligibleTapeSat(p,1280,720),p.filters[0]);
   for(const mutate of [p=>p.reader.bits=16,p=>p.writer.rawType='PLANAR',p=>p.reader.law='A_LAW',p=>p.equalize=true,p=>p.blendMode='ADD',p=>p.filters[0].sampleRate=48000,p=>p.filters.push({...p.filters[0],id:'extra'}),p=>p.videoFilters.push({id:'v',type:'crt',enabled:true,params:{}})]){const candidate=preset();mutate(candidate);assert.equal(eligibleTapeSat(candidate,1280,720),undefined);}
   assert.equal(eligibleTapeSat(p,640,480),undefined);
+});
+test('production GPU policy uses automatic WebGPU with explicit JS and WASM overrides',()=>{
+  assert.equal(shouldEnableTapeSatGpu(null,true),true);
+  assert.equal(shouldEnableTapeSatGpu('auto',true),true);
+  assert.equal(shouldEnableTapeSatGpu(null,false,true),false);
+  assert.equal(shouldEnableTapeSatGpu('tapesat',false),false);
+  assert.equal(shouldEnableTapeSatGpu('tapesat',true),true);
+  assert.equal(shouldEnableTapeSatGpu('js',true),false);
+  assert.equal(shouldEnableTapeSatGpu('wasm',true),false);
+  assert.equal(shouldEnableTapeSatGpu('unknown',true),false);
+  assert.equal(shouldUseTapeSatGpu(null,true,true,false),true);
+  assert.equal(shouldUseTapeSatGpu(null,true,false,false),false);
+  assert.equal(shouldUseTapeSatGpu(null,true,true,true),false);
+  assert.equal(shouldUseTapeSatGpu(null,false,true,false),false);
+  assert.equal(shouldUseTapeSatGpu('tapesat',false,false,true),false);
+  assert.equal(isAccelerationBenchmark(null),false);
+  assert.equal(isAccelerationBenchmark('tapesat'),true);
+  assert.equal(isAccelerationBenchmark('js'),true);
+  assert.equal(isAccelerationBenchmark('wasm'),true);
 });
 test('pipeline state handoff preserves TapeSat continuity within f32 limits',()=>{
   const a=new SonificationPipeline(),b=new SonificationPipeline(),p=preset();

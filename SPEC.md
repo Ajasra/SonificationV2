@@ -6,6 +6,8 @@ Status: account and preset implementation is in place; VPS deployment and physic
 
 ## 1. Purpose and authority
 
+For the next app-optimization implementation, follow [App optimization implementation SPEC](docs/APP_OPTIMIZATION_SPEC.md). It defines the current route architecture, sequential milestones and bounded test budget, superseding the execution order of the older performance proposals while preserving product invariants.
+
 Make mobile camera switching, refresh, and recovery work without restarting the browser. Improve recording reliability and input validation, then reduce processing stalls using measured performance evidence.
 
 Add simple username/password accounts for separate user preset libraries, persistent browser login, and a searchable shared-preset collection. Camera use and QR playback remain available without an account. Exactly five default presets are shown to everyone; other presets belong to their creators. This account requirement supersedes the original documents' account exclusion and browser-only custom-preset storage design.

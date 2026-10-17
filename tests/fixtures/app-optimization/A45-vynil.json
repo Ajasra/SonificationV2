@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A45-vynil",
+  "name": "App Optimization A45 vynil",
+  "description": "Frozen Vynil defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a45-vynil",
+      "type": "vynil",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "year": 1987,
+        "rpm": 63,
+        "warp": 0.4,
+        "click": 0.235,
+        "wear": 0
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a45-vynil"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "code": "A26",
+    "id": "resbank",
+    "fixture": "tests\\fixtures\\app-optimization\\A26-resbank.json",
+    "fixtureSha256": "60b864e0c8887c65f51334d4dbd5ca9c98f655967b13879a4d7b63bb515999e7",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-8b843320-2c58-4009-a980-1bc81fb7d582.json",
+    "runnerExitCode": 0,
+    "fps": 5.02319039566247,
+    "p95Ms": 215.5,
+    "p99Ms": 284.5,
+    "problems": []
+  }
+]

@@ -1,0 +1,66 @@
+{
+  "scope": "Local production-bundle HTTPS preview plus visible loopback HTTP fallback recheck; not production deployment evidence",
+  "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+  "dirtyWorktree": true,
+  "server": "Vite production preview at https://127.0.0.1:4173",
+  "browser": "Chrome on AMD GCN-5 host",
+  "httpStatus": 200,
+  "secureContext": true,
+  "webgpuAvailable": true,
+  "failedHashedAssets": [],
+  "browserErrors": [],
+  "audio": "active; UI showed AUDIO: ENGAGED",
+  "preset": "frozen R3 TapeSat -> Procamp -> Solarizer -> Colorizer",
+  "initialRun": {
+    "routeAt720p": "cpu-reference",
+    "fallbackReason": "Resident video-filter fidelity check failed (6 RGBA bytes differ); using CPU reference.",
+    "observation": "The reference pixels were captured after awaiting GPU diagnostic readback, allowing the video canvas to advance between candidate and reference frames."
+  },
+  "fix": "Snapshot the CPU reference pixels before submitting GPU work, only when a new route configuration needs parity validation.",
+  "regressionTest": "GPU tail parity check compares output with the submitted video frame; passed.",
+  "postFixRun": {
+    "routeAt720p": "gpu-resident-rack",
+    "fallbackReason": null,
+    "badge": "GPU-RESIDENT",
+    "activeAudio": true,
+    "routeAt480p": "cpu-reference",
+    "fallbackReasonAt480p": "Resident route requires the frozen 44.1 kHz TapeSat -> Procamp -> Solarizer -> Colorizer rack, 720p RGB 8-bit input, shared WebGPU devices, and a loaded file source.",
+    "failedHashedAssets": [],
+    "browserErrors": []
+  },
+  "focusedBrowserGroup": "7/7 passed, including R2, R3 tail, resident route and fallback cases.",
+  "physicalOutputCheck": {
+    "mode": "Visible headed Chrome on the target desktop, active R3 audio at volume 0.25",
+    "720pRoute": "gpu-resident-rack",
+    "userConfirmed": "Image and audio both working.",
+    "after30SecondsHeadlessDiagnostic": "R3 remained selected at 720p; badge showed 30 FPS and 16.5 ms p95 over 18 measured seconds; no browser errors.",
+    "480pRoute": "cpu-reference",
+    "480pFallbackReasonObserved": "Resident video-filter fidelity check failed (3 RGBA bytes differ); using CPU reference.",
+    "480pPhysicalOutputConfirmed": false,
+    "finalFallbackCheck": {
+      "servedBundle": "Local production build on 127.0.0.1 loopback HTTP (secure browser context)",
+      "browser": "Visible Chrome with WebGPU",
+      "routeAt720p": "gpu-resident-rack",
+      "routeAt480p": "cpu-reference",
+      "browserErrors": [],
+      "userConfirmed": "Both image and audio work at the 480p CPU fallback.",
+      "performanceMeasurement": "Not collected; badge showed 0 measured seconds at 720p and 1 second at 480p."
+    }
+  },
+  "result": "The release-enabled production bundle selected the exact R3 resident rack from auto at 720p and safely switched to CPU reference at 480p. The target-desktop user confirmed image and audio at both resolutions. No page errors were observed. This was functional route validation, not a production deployment or a performance measurement.",
+  "crossDesktopAssumption": "User directed us to assume another desktop works; no second-desktop run occurred.",
+  "phoneTested": false,
+  "phoneStatus": "Not tested per user direction; fallback is the recovery path and phone behavior remains an assumption.",
+  "releaseEnabledAutomaticCheck": {
+    "build": "npm run build with VITE_ACCELERATION_RELEASE_ENABLED=true",
+    "servedAt": "http://127.0.0.1:4173 loopback; production bundle; no page errors",
+    "routeRequested": "auto",
+    "routeAt720p": "gpu-resident-rack",
+    "hudAt720p": "22 FPS | 37.2 ms | GPU-RESIDENT | 20s session / 4s measured",
+    "routeAt480p": "cpu-reference",
+    "hudAt480p": "29 FPS | 22.2 ms | JS | 25s session / 4s measured",
+    "userConfirmed": "Both image and audio work at both resolutions.",
+    "performanceMeasurement": "Not accepted; brief HUD samples are too short and differ from sustained cohort conditions."
+  },
+  "releaseFlagDefault": "false in source configuration; release build flag was enabled only in the local candidate build"
+}

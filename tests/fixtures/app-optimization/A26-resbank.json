@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A26-resbank",
+  "name": "App Optimization A26 resbank",
+  "description": "Frozen resbank defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a26-resbank",
+      "type": "resbank",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "root": 110,
+        "spread": 7,
+        "decay": 0.95,
+        "damping": 0.3,
+        "mix": 0.7
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a26-resbank"
+    }
+  ]
+}

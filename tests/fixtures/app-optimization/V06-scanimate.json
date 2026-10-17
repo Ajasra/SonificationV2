@@ -1,0 +1,92 @@
+{
+  "id": "app-optimization-V06-scanimate",
+  "name": "App Optimization V06 Scanimate",
+  "description": "Frozen R2 spatial rack followed by Scanimate for V06 CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [],
+  "videoFilters": [
+    {
+      "id": "r2-procamp",
+      "type": "procamp",
+      "enabled": true,
+      "params": {
+        "pedestal": 0,
+        "videoGain": 1,
+        "saturation": 1.1,
+        "chromaPhase": 0,
+        "whiteClip": 240
+      }
+    },
+    {
+      "id": "r2-solarizer",
+      "type": "solarizer",
+      "enabled": true,
+      "params": {
+        "threshold": 128,
+        "gamma": 1.4,
+        "pedestal": 10,
+        "invert": 1
+      }
+    },
+    {
+      "id": "r2-colorizer",
+      "type": "colorizer",
+      "enabled": true,
+      "params": {
+        "lowHue": 210,
+        "midHue": 35,
+        "highHue": 85,
+        "bands": 4,
+        "mix": 0.85
+      }
+    },
+    {
+      "id": "v06-scanimate",
+      "type": "scanimate",
+      "enabled": true,
+      "params": {
+        "density": 4,
+        "deflection": 16,
+        "beamGlow": 1.2,
+        "phosphor": 0,
+        "mix": 0.85
+      }
+    }
+  ],
+  "chain": [
+    {
+      "kind": "video",
+      "id": "r2-procamp"
+    },
+    {
+      "kind": "video",
+      "id": "r2-solarizer"
+    },
+    {
+      "kind": "video",
+      "id": "r2-colorizer"
+    },
+    {
+      "kind": "video",
+      "id": "v06-scanimate"
+    }
+  ]
+}

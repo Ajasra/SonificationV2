@@ -69,6 +69,8 @@ export class SolarizerFilter extends BaseVideoFilter {
     };
   }
 
+  getLut(): Uint8Array { return this.lut; }
+
   processFrame(rgba: Uint8ClampedArray, _ctx: VideoFrameContext): void {
     const len = rgba.length;
     const lut = this.lut;

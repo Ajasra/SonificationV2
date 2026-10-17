@@ -1,0 +1,39 @@
+{
+  "filter": "fourbyfour",
+  "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+  "dirtyTree": true,
+  "audioGain": 0.01,
+  "parityTest": {
+    "file": "tests/fourbyfour_optimization.test.mjs",
+    "blocks": 24,
+    "blockSizes": [1, 2, 127, 128, 4096],
+    "parameterConfigurations": 3,
+    "result": "exact sample and state parity"
+  },
+  "isolatedDiagnostic": {
+    "samples": 921600,
+    "warmupBlocks": 2,
+    "measuredBlocks": 10,
+    "referenceMeanMs": 107.16167,
+    "referenceP95Ms": 113.9603,
+    "candidateMeanMs": 21.74901,
+    "candidateP95Ms": 22.8093,
+    "speedup": 4.9272
+  },
+  "applicationScreen": {
+    "baselineReport": "app-benchmark-c63d7846-a00e-4069-8e9b-14e77859db1c.json",
+    "candidateReports": [
+      "app-benchmark-eab1f2ae-6dc4-445b-b99d-9045dcc89614.json",
+      "app-benchmark-12a2ea63-95d1-41a3-b33f-f3d062f28944.json"
+    ],
+    "baselineFps": 5.7846,
+    "candidateFps": [9.4874, 9.6687],
+    "baselineP95Ms": 201.1,
+    "candidateP95Ms": [145.7, 136.3],
+    "audio": "active",
+    "hud": "on",
+    "source": "source-720p30.mp4",
+    "durationSecondsPerRun": 5,
+    "note": "Short before/after screen on a dirty tree; diagnostic only, not an acceptance cohort."
+  }
+}

@@ -1,44 +1,39 @@
-# Acceleration test report and verdict
+# Acceleration test campaign: final verdict
 
-Date: 2026-10-14. Scope: proposals P00–P13 in [the test plan](../../NEXT_ACCELERATION_TEST_PLAN.md). The local automated test campaign and clean-build headless 30 fps benchmark passed. The full product/device rollout is **not approved**: several proposal subtests require visible-device runs or missing route controls.
+Date: 2026-10-14. The detailed proposal ledger is in [`TEST_PROGRESS.md`](TEST_PROGRESS.md), the complete report is [`docs/NEXT_ACCELERATION_TEST_REPORT.md`](../../NEXT_ACCELERATION_TEST_REPORT.md), and the experiment design is [`docs/NEXT_ACCELERATION_TEST_PLAN.md`](../../NEXT_ACCELERATION_TEST_PLAN.md).
 
-## Automated local result
+## Verdict
 
-`npm run test:acceleration` passed all 8/8 gates on clean revision `160b350a5cfdeb991139b2560d614e19b1e4334f` in Windows x64 / Node 22.12.0. The local report is `automated-runs/2026-10-14T014726-046Z-e71b9e17.json` (that directory is ignored; the report records clean tree, exact commands, durations and exit codes).
+**Local 720p30 TapeSat desktop acceptance: GPU PASS. Full P00–P13 hardware/product acceptance: NOT COMPLETE.** The candidate GPU route is source-fidelity gated and should remain limited to its supported path. This evidence does not approve automatic routing or mobile rollout.
 
-The gates were: Node suite 72/72; WASM conformance 11/11; production build; benchmark build; four benchmark/worker browser tests; two app-GPU integration tests; eight GPU kernel/temporal tests; and one separate compact-monitor/state-handoff test. The GPU suite is stable when split into separate Chrome processes. No tests failed or timed out; the run began with a clean tree.
+## New matched application evidence
 
-## 30 fps application benchmark
+The [three-round matrix](P00/app-backend-matrix-2026-10-14T023648-698Z-9c075513.json) contains three clean headed 60-second runs each for JS, scalar WASM arena and GPU TapeSat. All used the same ffprobe-verified 1280×720 30 fps source, clean revision `af54041d566575aa38b7a698dfc97e3529cd671e`, active browser audio context at volume 0.25, HUD on and profiling off.
 
-The source was transcoded from the checked-in 1280×720 clip to 30 fps and verified independently with `ffprobe`. Source SHA-256: `8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008`. A 60-second headless Chrome run used GPU TapeSat, active audio at volume 0.25, HUD on, validation on, and profile off. The AMD GCN-5 adapter reported fidelity pass and texture capture.
+| Route | Median throughput | Median frame-path p95 | Repetitions meeting ≥29.4 fps and ≤25 ms p95 |
+|---|---:|---:|---:|
+| JS reference | 29.999 fps | 28.6 ms | 3/3 fps; 1/3 p95 |
+| WASM arena | 29.980 fps | 24.1 ms | 3/3 fps; 2/3 p95 |
+| GPU TapeSat | 29.985 fps | 11.1 ms | 3/3 for both; fidelity 3/3 |
 
-The final clean-tree run processed 1,796 frames over 59.91 measured seconds: **29.98 fps**, frame-path p50/p95/p99 **9.7/13.1/18.3 ms**, zero missed-presented-callback proxy events. Fidelity passed, and the app selected texture capture. It meets numeric 720p30 throughput (≥29.4 fps) and p95 (≤25 ms) gates for this headless GPU TapeSat configuration. It does not prove physical display/audio. The earlier dirty bit was a Vite-generated temporary config bundle; the build-state helper now filters only that filename and a clean repeat reports `dirty=false`. See [clean raw report](P00/app-benchmark-80c46eaf-c1e6-41a2-9fe0-b7c1f02e6fcb.json) and [P00 decision](P00/DECISION.md).
+GPU's paired p95 advantage over JS was 13.4–21.0 ms and present in all three rounds. WASM's paired p95 changes were -8.0, +2.7 and -0.9 ms, so the apparent median gain is not consistent. The GPU's five-minute headed follow-up also passed: 29.982 fps, 10.7 ms p95, 12.7 ms p99, fidelity passed, one callback-gap proxy event. See the [raw sustained report](P00/app-benchmark-sustained-300s-645d3fec-3b8d-4e72-a876-1982d09977aa.json).
 
-## Proposal verdicts
+Transfer reports show 3,686,400 bytes/frame of CPU raster readback on JS and WASM; WASM uses an 11,059,200-byte/frame arena representation with zero explicit segment copies, but keeps the CPU capture cost. GPU texture mode reports no CPU raster readback/byte upload and returns a 32,776-byte compact packet; the 3,686,400-byte external-texture source value is a modelled lower bound. Hidden browser/driver copies and actual interconnect traffic are unknown.
 
-| ID | Verdict | Evidence and integration decision |
-|---|---|---|
-| P00 Baselines | **Conditional pass** | Repeatable local suite and verified 30 fps headless GPU result. Clean dirty-bit provenance, visible-device proof, equal app JS/WASM controls, and measured transfer ledger remain. |
-| P01 Capture/upload | **Conditional, per source** | Matched texture capture beat reference-byte mode in an earlier file cohort. The generated browser fixture failed texture pixel fidelity and selected reference bytes; the new 30 fps transcode passed the gate and selected texture. Gate capture by source/device and keep reference bytes as fallback; no zero-copy claim. |
-| P02 Dispatch | **Inconclusive** | Counterbalanced fused results did not separate from run variation; validation-off had no stable gain. Keep validation on and preserve the fused control. |
-| P03 Monitoring/HUD | **Keep current policy** | HUD-off throughput gain was noisy and p95 did not improve consistently. Compact monitor/state mapping passes; demand-driven gather variants and consumer-index coverage remain untested. Keep audio/HUD on. |
-| P04 Readback ring | **Conditional prototype** | Two slots improved a 20-frame synthetic Vidicon batch by 15–19%, with exact output and bounded queue. App source-generation, device-loss, audio-order and extra-age gates remain. Do not enable in app yet. |
-| P05 WASM arena | **Conditional prototype** | Owned arena removes two logical copies and preserves conformance. Three runs show mixed whole-path results; no physical bus saving or app-level win established. |
-| P06 Pointwise/audio kernels | **Selective CPU/WASM; GPU group rejected** | Amplify is cheap, Shiftr dominates the tested chain and is recurrent, Wavefolder is moderate. Shiftr scalar WASM is the only promising candidate; the full JS chain is not stateless GPU work. No app-level route comparison. |
-| P07 Spatial video | **Conditional Procamp only** | Procamp GPU prototype is byte-exact in tested fixtures and faster in isolated upload/dispatch/readback samples. Keep only inside a persistent compatible GPU segment; do not create a one-node island. Other spatial filters wait on resident-rack evidence. |
-| P08 Temporal video | **Conditional Vidicon only** | Twenty-frame GPU history, parameter edit and resize reset match exactly. Vidicon/ring remain isolated prototypes. Defer FrameDelay until its 56.25 MiB base history plus total resource budget and lifecycle tests are measured. |
-| P09 Recurrent CPU | **Selective candidate** | Shiftr scalar WASM improves its short DSP measurements; SIMD did not beat scalar. WASM TapeWow and Moog lose to JS. Keep JS as default; test Shiftr only as a contiguous CPU/WASM segment after app controls exist. |
-| P10 GPU TapeWow | **Reject current prototype** | Dry-pass identity error 1.0; wet RMS error 0.7213. Timing is invalid. Do not integrate. A fresh port must first pass a copy-kernel smoke test and exact state/control conformance. |
-| P11 Segment planner | **Defer** | The route cost matrix and cross-backend state migration evidence do not exist. Any automatic selector would encode assumptions. Use reference fallback until three matched pairs per legal route class are available. |
-| P12 Worker scheduler | **No adoption** | Three runs preserve exact Shiftr output, but worker round-trip p95 (16.5–32.9 ms) loses to JS (6.6–7.1 ms); timer samples do not prove a responsiveness benefit. |
-| P13 Export/device rollout | **Not approved** | Benchmark JSON export smoke test passes. Offline MP4 pixel/sample/timestamp/abort/history parity, 300-second sessions, camera path, physical Android/iPhone, HTTPS assets and deployed fallback/cache tests remain. |
+## Proposal decisions
 
-Per-proposal evidence is in [TEST_PROGRESS.md](TEST_PROGRESS.md) and the adjacent decision files. Negative and conditional outcomes are not production wins.
+- **Conditional keep:** P01 source-gated texture capture; P05 optional WASM CPU-segment candidate; P07 Procamp and P08 Vidicon prototypes; P04 two-slot readback prototype. These are limited to their tested source/segment and have open integration gates.
+- **Keep current policy:** P02 fused/validation behavior remains inconclusive; P03 retains current HUD/audio and monitor policy.
+- **Do not promote:** P06 pointwise GPU grouping lacks a full-chain win; P09 keeps JS default; P12 worker scheduling loses on measured round-trip throughput.
+- **Reject/defer:** P10 current GPU TapeWow fails fidelity and is rejected; P11 automatic segment planner is deferred for lack of multi-route costs and state migration.
+- **Local regression closed, rollout open:** P13 now covers basic MP4 finalization and export/live-history isolation, plus a five-minute GPU file session. Output parity/cancellation, camera, physical devices, and deployed assets remain.
 
-## Hardware boundary and next release gate
+## Automated gates
 
-Automation now runs every local correctness/build/browser/GPU group with `npm run test:acceleration`, writes an exact per-run JSON record, and fails on any failed or timed-out group. `npm run test:acceleration -- --skip-gpu` is only for hosts without WebGPU; that report explicitly marks the GPU groups skipped.
+The [latest automation run](automated-runs/2026-10-14T023028-816Z-50ab7305.json) passed **11/11 groups** on the clean matrix revision: 72 Node tests, 11 WASM conformance tests, both builds, JS/WASM/GPU route smokes, benchmark/worker/export browser tests, app-GPU integration, GPU kernel/temporal tests, and monitor/state handoff.
 
-This host cannot prove phone thermals, camera behavior, physical presentation/audio, offline MP4 fidelity, or deployment cache/fallback behavior. Those require named physical devices and the deployed HTTPS environment. Before broader app routing, compare equivalent app-level JS/WASM/GPU routes and test each route's transfers, synchronization, state handoff and consumer packet. A production planner remains off until that matrix contains at least three matched pairs per route class.
+The acceptance matrix was assembled from nine validated raw reports after excluding overlapping fallback attempts and repeating runs 8–9 serially. The corrected utility then passed a clean-worktree **9/9 five-second controller smoke**, preserved as a [separate smoke manifest](P00/app-backend-matrix-2026-10-14T031111-921Z-12ffe1c0.json). The short smoke verifies orchestration, source/revision/backend/audio/HUD/fidelity checks and artifact finalization; it is not an acceptance benchmark.
 
-For now, keep JS as the safe reference and GPU access opt-in with exact per-source fidelity fallback. When a route is proven, keep consecutive compatible stages resident on one owner and perform one entry transfer and one bounded result gather. Do not bounce each filter between CPU and GPU. Treat the WASM arena and two-slot ring as conditional implementation candidates; reject automatic routing and worker scheduling on current evidence.
+## What is still required
+
+The desktop browser confirms application processing, canvas/HUD work and a running audio context. It does not verify physical speaker audibility or display scan-out. No named Android/iPhone camera/thermal/memory run or deployed HTTPS asset/cache/fallback matrix is complete. Offline MP4 pixel/sample/timestamp parity, abort/repeated-export lifecycle, other accelerated filter racks, additional source/capture formats, and planner state migration also remain open. Consequently the overall product rollout decision is **hold**.

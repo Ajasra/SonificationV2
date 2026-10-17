@@ -1,0 +1,44 @@
+{
+  "id": "app-optimization-A24-pitchshift",
+  "name": "App Optimization A24 pitchshift",
+  "description": "Frozen pitchshift defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a24-pitchshift",
+      "type": "pitchshift",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "semitones": 7,
+        "window": 50,
+        "mix": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a24-pitchshift"
+    }
+  ]
+}

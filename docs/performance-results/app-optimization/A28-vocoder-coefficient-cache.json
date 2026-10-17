@@ -1,0 +1,22 @@
+{
+  "filter": "A28 vocoder",
+  "candidate": "Per-instance cache for band coefficients; removed after screening",
+  "fixture": "tests/fixtures/app-optimization/A28-vocoder.json",
+  "fixtureSha256": "e5cf4e82df53f40b722d371bcb7943bf89ca533efc1d27ce1c48b23d7e8c0ef8",
+  "correctness": "Temporary node parity test passed exact output/state and random consumption across 36 blocks, parameter changes, reset, saw/noise carrier, and edge block lengths; test/candidate removed after no useful performance gain.",
+  "before": {
+    "report": "app-benchmark-89c126d0-ed76-48d9-adae-c298d7bb3144.json",
+    "fps": 3.9238,
+    "p95Ms": 286.8,
+    "p99Ms": 299.3
+  },
+  "candidateRun": {
+    "report": "app-benchmark-2e2cfce7-d9f9-46f0-9fb9-8c90e80b52ce.json",
+    "fps": 3.7883,
+    "p95Ms": 280.7,
+    "p99Ms": 282.2
+  },
+  "conditions": "Five-second requested CPU reference app run; 720p30; active audio at 0.01; HUD on; profiling off; dirty working tree",
+  "status": "CPU ONLY",
+  "note": "Short unpaired screen; small p95 change and lower FPS do not show a useful, repeatable app gain."
+}

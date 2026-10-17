@@ -1,0 +1,26 @@
+{
+  "filter": "A44 multiband",
+  "candidate": "Skip Math.pow(10, 0) for zero band reduction; original retained as processBlockReference",
+  "fixture": "tests/fixtures/app-optimization/A44-multiband.json",
+  "fixtureSha256": "bf64d26df7f99f2c575baeedb9a42850c6990a2245f9397733db1d4570d2fadc",
+  "correctness": {
+    "test": "node --test tests/multiband_optimization.test.mjs",
+    "passed": true,
+    "coverage": "36 blocks; parameter extremes; reset; lengths 1, 2, 127, 128, 4096; exact samples, per-band envelopes and crossover state"
+  },
+  "baseline": {
+    "report": "app-benchmark-1c31b7f7-f6ea-423d-9f7e-1a83605553e1.json",
+    "fps": 3.526,
+    "p95Ms": 329.9,
+    "p99Ms": 334.1
+  },
+  "candidateRun": {
+    "report": "app-benchmark-e656f185-2d21-4c7b-859f-4dd1092d41d5.json",
+    "fps": 3.721,
+    "p95Ms": 305.8,
+    "p99Ms": 375
+  },
+  "conditions": "Five-second requested CPU app screens; 720p30; active audio at 0.01; HUD on; profiling off; dirty working tree",
+  "status": "VERIFIED EXPERIMENTAL",
+  "note": "Short diagnostic improvement; reference callable and normal backend route unchanged."
+}

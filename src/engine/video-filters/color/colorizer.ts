@@ -105,6 +105,12 @@ export class ColorizerFilter extends BaseVideoFilter {
     };
   }
 
+  getPackedColorLut(): Uint32Array {
+    const packed=new Uint32Array(256);
+    for(let i=0;i<256;i++)packed[i]=this.colorLutR[i]|(this.colorLutG[i]<<8)|(this.colorLutB[i]<<16);
+    return packed;
+  }
+
   processFrame(rgba: Uint8ClampedArray, _ctx: VideoFrameContext): void {
     const len = rgba.length;
     const wet = this.mix;

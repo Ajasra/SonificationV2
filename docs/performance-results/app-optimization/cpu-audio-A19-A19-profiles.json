@@ -1,0 +1,14 @@
+[
+  {
+    "code": "A19",
+    "id": "tremolo",
+    "fixture": "tests\\fixtures\\app-optimization\\A19-tremolo.json",
+    "fixtureSha256": "f1749ad35f6bbd4de613f45d725ec51bf7616dbefbc2de7e2ba9f87c0aacf9cd",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-b9d9e92c-7b09-44dd-b54d-33545dda3918.json",
+    "runnerExitCode": 0,
+    "fps": 26.343624643247747,
+    "p95Ms": 38.79999999701977,
+    "p99Ms": 41.70000000298023,
+    "problems": []
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "id": "app-optimization-R3",
+  "name": "App Optimization R3",
+  "description": "Frozen TapeSat -> Procamp -> Solarizer -> Colorizer rack.",
+  "reader": { "rawType": "INTERLEAVED", "law": "NONE", "sign": "UNSIGNED", "bits": 8, "endianess": "LITTLE_ENDIAN", "colorSpace": "RGB" },
+  "writer": { "rawType": "INTERLEAVED", "law": "NONE", "sign": "UNSIGNED", "bits": 8, "endianess": "LITTLE_ENDIAN", "colorSpace": "RGB" },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    { "id": "r3-tapesat", "type": "tapesat", "enabled": true, "sampleRate": 44100, "params": { "drive": 2.5, "bias": 0.1, "bump": 0.4, "bumpHz": 80, "tone": 8000 } }
+  ],
+  "videoFilters": [
+    { "id": "r3-procamp", "type": "procamp", "enabled": true, "params": { "pedestal": 0, "videoGain": 1, "saturation": 1.1, "chromaPhase": 0, "whiteClip": 240 } },
+    { "id": "r3-solarizer", "type": "solarizer", "enabled": true, "params": { "threshold": 128, "gamma": 1.4, "pedestal": 10, "invert": 1 } },
+    { "id": "r3-colorizer", "type": "colorizer", "enabled": true, "params": { "lowHue": 210, "midHue": 35, "highHue": 85, "bands": 4, "mix": 0.85 } }
+  ],
+  "chain": [
+    { "kind": "audio", "id": "r3-tapesat" },
+    { "kind": "video", "id": "r3-procamp" },
+    { "kind": "video", "id": "r3-solarizer" },
+    { "kind": "video", "id": "r3-colorizer" }
+  ]
+}

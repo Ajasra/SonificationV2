@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A50-telephone",
+  "name": "App Optimization A50 telephone",
+  "description": "Frozen Telephone defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a50-telephone",
+      "type": "telephone",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "lowCut": 300,
+        "highCut": 3400,
+        "noise": 0.05,
+        "crackle": 0.2
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a50-telephone"
+    }
+  ]
+}

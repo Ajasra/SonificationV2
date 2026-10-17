@@ -1,0 +1,26 @@
+[
+  {
+    "code": "A09",
+    "id": "canyondelay",
+    "fixture": "tests\\fixtures\\app-optimization\\A09-canyondelay.json",
+    "fixtureSha256": "f758dbe1f9d7e974ab8ac06bf01d76d8dcf23a47871256bccb807fd4a01d4f45",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-e57c9f62-64a8-4280-b359-cfe69c8e0958.json",
+    "runnerExitCode": 0,
+    "fps": 28.44252648097293,
+    "p95Ms": 32.099999994039536,
+    "p99Ms": 46.20000000298023,
+    "problems": []
+  },
+  {
+    "code": "A10",
+    "id": "reverb",
+    "fixture": "tests\\fixtures\\app-optimization\\A10-reverb.json",
+    "fixtureSha256": "d3df1be3a9925ccfb463525b03edb2b6c8250c1cf156801c42a30e308e24d50d",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-244cd3e8-5ab8-4035-bff1-4d13dd745e07.json",
+    "runnerExitCode": 0,
+    "fps": 29.69364351243273,
+    "p95Ms": 27,
+    "p99Ms": 46.79999999701977,
+    "problems": []
+  }
+]

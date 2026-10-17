@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "runId": "9cf3d05e-d559-4555-8fc6-1ce4ce790d1e",
+  "createdAt": "2026-10-14T11:53:40.059Z",
+  "build": {
+    "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+    "dirty": true,
+    "dirtyFiles": [
+      "PEC.md",
+      "docs/NEXT_ACCELERATION_TEST_PLAN.md",
+      "docs/NEXT_ACCELERATION_TEST_REPORT.md",
+      "docs/performance-results/next-acceleration/FINAL_REPORT.md",
+      "docs/performance-results/next-acceleration/P00/DECISION.md",
+      "docs/performance-results/next-acceleration/P13-DECISION.md",
+      "docs/performance-results/next-acceleration/TEST_PROGRESS.md",
+      "scripts/benchmark-app-gpu.mjs",
+      "scripts/test-acceleration.mjs",
+      "src/engine/backends/app-tapesat.ts",
+      "src/engine/backends/gpu-eligibility.ts",
+      "src/engine/backends/webgpu-tapesat.ts",
+      "src/engine/pipeline.ts",
+      "src/engine/video-filters/color/colorizer.ts",
+      "src/engine/video-filters/color/cvislicer.ts",
+      "src/engine/video-filters/color/solarizer.ts",
+      "src/main.ts",
+      "tests/app_tapesat.test.mjs",
+      "tests/browser/app-gpu.spec.ts",
+      "tests/pipeline_reference.test.mjs",
+      "vite.benchmark.config.ts",
+      "vite.config.ts",
+      "docs/APP_FILTER_OPTIMIZATION_PLAN.md",
+      "docs/APP_OPTIMIZATION_SPEC.md",
+      "docs/performance-results/app-optimization/",
+      "docs/performance-results/next-acceleration/P00/app-backend-matrix-2026-10-14T023648-698Z-9c075513.json",
+      "docs/performance-results/next-acceleration/P00/app-backend-matrix-2026-10-14T031111-921Z-12ffe1c0.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-01-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-02-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-03-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-04-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-05-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-06-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-07-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-08-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T023648-698Z-9c075513-09-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-01-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-02-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-03-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-04-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-05-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-06-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-07-js.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-08-gpu.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-matrix-2026-10-14T031111-921Z-12ffe1c0-09-wasm.json",
+      "docs/performance-results/next-acceleration/P00/app-benchmark-sustained-300s-645d3fec-3b8d-4e72-a876-1982d09977aa.json",
+      "scripts/benchmark-app-matrix.mjs",
+      "src/engine/backends/app-webgpu-video-tail.ts",
+      "src/engine/backends/webgpu-video-tail.ts",
+      "tests/app_routes.test.mjs",
+      "tests/browser/app-optimization.spec.ts",
+      "tests/fixtures/"
+    ]
+  },
+  "route": {
+    "requested": "cpu-gpu-video-tail",
+    "selectedRouteId": "cpu-gpu-video-tail",
+    "activeNodeIds": [
+      "r2-procamp",
+      "r2-solarizer",
+      "r2-colorizer",
+      "v05-differentiator"
+    ],
+    "cpuPrefixNodeIds": [
+      "r2-procamp"
+    ],
+    "videoSuffixNodeIds": [
+      "r2-solarizer",
+      "r2-colorizer",
+      "v05-differentiator"
+    ],
+    "fallbackReason": null,
+    "changes": [
+      {
+        "atSeconds": 1.4302000000029802,
+        "routeId": "cpu-gpu-video-tail"
+      }
+    ]
+  },
+  "source": {
+    "name": "source-720p30.mp4",
+    "bytes": 4168366,
+    "sha256": "77598dff31ced009ca67636798f4016a6669c506ae58c3240aabad0d1cc93160"
+  },
+  "backend": "experimental-app-gpu-video-tail",
+  "scope": "720p source capture, application processing, output presentation submission, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "app-optimization-V05-differentiator",
+    "name": "App Optimization V05 Differentiator",
+    "description": "Frozen R2 spatial rack followed by Differentiator for ordered V05 comparison.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [],
+    "videoFilters": [
+      {
+        "id": "r2-procamp",
+        "type": "procamp",
+        "enabled": true,
+        "params": {
+          "pedestal": 0,
+          "videoGain": 1,
+          "saturation": 1.1,
+          "chromaPhase": 0,
+          "whiteClip": 240
+        }
+      },
+      {
+        "id": "r2-solarizer",
+        "type": "solarizer",
+        "enabled": true,
+        "params": {
+          "threshold": 128,
+          "gamma": 1.4,
+          "pedestal": 10,
+          "invert": 1
+        }
+      },
+      {
+        "id": "r2-colorizer",
+        "type": "colorizer",
+        "enabled": true,
+        "params": {
+          "lowHue": 210,
+          "midHue": 35,
+          "highHue": 85,
+          "bands": 4,
+          "mix": 0.85
+        }
+      },
+      {
+        "id": "v05-differentiator",
+        "type": "differentiator",
+        "enabled": true,
+        "params": {
+          "gain": 3.5,
+          "bias": 0,
+          "bipolar": 1,
+          "invert": 0
+        }
+      }
+    ],
+    "chain": [
+      {
+        "kind": "video",
+        "id": "r2-procamp"
+      },
+      {
+        "kind": "video",
+        "id": "r2-solarizer"
+      },
+      {
+        "kind": "video",
+        "id": "r2-colorizer"
+      },
+      {
+        "kind": "video",
+        "id": "v05-differentiator"
+      }
+    ]
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 26.5655,
+  "measuredSeconds": 15.13529999999702,
+  "measuredFrames": 444,
+  "processedFps": 29.335394739455936,
+  "gpuFrames": 0,
+  "gpuVideoTailFrames": 444,
+  "gpuResidentFrames": 0,
+  "wasmFrames": 0,
+  "jsFrames": 0,
+  "missedPresentedCallbacks": 10,
+  "transferLedger": {
+    "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+    "measuredFrames": 444,
+    "perFrameBytes": {
+      "cpuImageDataReadback": 3686400,
+      "gpuVideoTailRgbaUpload": 3686400,
+      "gpuReferenceByteCaptureReadback": 0,
+      "gpuReferenceByteUpload": 0,
+      "gpuExternalTextureInputLowerBound": 0,
+      "gpuResidentExternalImageImportLowerBound": 0,
+      "gpuCompactMappedMonitor": 0,
+      "wasmResidentSampleArena": 0,
+      "explicitWasmSegmentCopies": 0,
+      "mainWorkerTransfers": 0
+    },
+    "measuredTotals": {
+      "cpuImageDataReadbackBytes": 1636761600,
+      "gpuReferenceByteCaptureReadbackBytes": 0,
+      "gpuReferenceByteUploadBytes": 0,
+      "gpuVideoTailRgbaUploadBytes": 1636761600,
+      "gpuExternalTextureInputLowerBoundBytes": 0,
+      "gpuResidentExternalImageImportLowerBoundBytes": 0,
+      "gpuCompactMappedMonitorBytes": 0,
+      "wasmResidentSampleArenaBytes": 0,
+      "explicitWasmSegmentCopyBytes": 0,
+      "mainWorkerTransferBytes": 0,
+      "totalCpuRasterReadbackBytes": 1636761600
+    },
+    "synchronizations": {
+      "gpuQueueSubmissions": 444,
+      "gpuMonitorMapOperations": 0,
+      "gpuValidationScopes": 0
+    },
+    "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+  },
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 0.09580000001192093,
+      "reason": "settings-changed"
+    },
+    {
+      "atSeconds": 1.4302000000029802,
+      "reason": "settings-changed"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 444,
+      "p50": 23.69999998807907,
+      "p95": 40.30000001192093,
+      "p99": 65.80000001192093
+    },
+    "captureMs": {
+      "count": 444,
+      "p50": 7.200000002980232,
+      "p95": 21.700000002980232,
+      "p99": 49.30000001192093
+    },
+    "preparationMs": {
+      "count": 444,
+      "p50": 13.899999991059303,
+      "p95": 18,
+      "p99": 35.5
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 444,
+      "p50": 2.7000000029802322,
+      "p95": 4.5,
+      "p99": 5.200000002980232
+    },
+    "audioSubmissionMs": {
+      "count": 444,
+      "p50": 0.09999999403953552,
+      "p95": 0.20000000298023224,
+      "p99": 0.5
+    },
+    "telemetryUpdateMs": {
+      "count": 444,
+      "p50": 0,
+      "p95": 0.09999999403953552,
+      "p99": 0.10000000894069672
+    },
+    "otherFrameWorkMs": {
+      "count": 444,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "hudRenderMs": {
+      "count": 623,
+      "p50": 1.7999999970197678,
+      "p95": 2.4000000059604645,
+      "p99": 3.0999999940395355
+    }
+  },
+  "audioMuted": false,
+  "audioVolume": 0,
+  "hudEnabled": true,
+  "gpuPerFrameValidation": false,
+  "gpuFusedApplyFinish": false,
+  "audioContextState": "running",
+  "sourcePaused": false,
+  "gpuValidation": null,
+  "gpuVideoTailValidation": {
+    "passed": true,
+    "checkedNodes": [
+      "r2-solarizer",
+      "r2-colorizer",
+      "v05-differentiator"
+    ],
+    "mismatchBytes": 0
+  },
+  "benchmarkConditions": {
+    "backendRequested": "cpu-gpu-video-tail",
+    "profileRequested": false,
+    "audioRequested": "active",
+    "hudRequested": "on",
+    "captureModeRequested": "auto",
+    "declaredSourceFps": 30,
+    "deviceLabel": null
+  },
+  "wasmBuild": null,
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "acceptance": "application-path measurements recorded; physical presentation/audio, decode-drop attribution, other presets and phone gates remain separate"
+}

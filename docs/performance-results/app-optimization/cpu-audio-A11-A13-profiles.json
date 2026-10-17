@@ -1,0 +1,38 @@
+[
+  {
+    "code": "A11",
+    "id": "phaser",
+    "fixture": "tests\\fixtures\\app-optimization\\A11-phaser.json",
+    "fixtureSha256": "dcad2ff5af2f892dd53cb2013b5dab62f797babdd14cb09f081ad7864b4753af",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-6fd33cda-5548-4678-a6fe-6850cbe4e1a1.json",
+    "runnerExitCode": 0,
+    "fps": 14.42466205078367,
+    "p95Ms": 75.30000001192093,
+    "p99Ms": 107.79999999701977,
+    "problems": []
+  },
+  {
+    "code": "A12",
+    "id": "wahwah",
+    "fixture": "tests\\fixtures\\app-optimization\\A12-wahwah.json",
+    "fixtureSha256": "cf780f7838e528a46350d9e9e62e83a8862303136e28db874a1e21cfdf210cf7",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-a98c0f25-bf41-403f-9e74-89bf902d60af.json",
+    "runnerExitCode": 0,
+    "fps": 25.394306120424563,
+    "p95Ms": 37.20000000298023,
+    "p99Ms": 40.400000005960464,
+    "problems": []
+  },
+  {
+    "code": "A13",
+    "id": "lfophaser",
+    "fixture": "tests\\fixtures\\app-optimization\\A13-lfophaser.json",
+    "fixtureSha256": "973486730551798d7ddcfb9511c5c756e3edb39f973d83bd64d0a0a0820ccc58",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-62dff544-230f-4419-9a65-f66383f949df.json",
+    "runnerExitCode": 0,
+    "fps": 18.0733427910578,
+    "p95Ms": 71.5,
+    "p99Ms": 82.90000000596046,
+    "problems": []
+  }
+]

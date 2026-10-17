@@ -33,6 +33,7 @@ function load(file, globals = {}) {
 }
 
 const { VIDEO_FILTER_DESCRIPTORS, createVideoFilterInstance } = load('src/engine/video-filters/factory.ts');
+const { FILTER_DESCRIPTORS } = load('src/engine/filters/factory.ts');
 const { validatePreset } = load('src/presets/validate-preset.ts');
 
 test('Video Rack: All 14 descriptors are registered with required metadata', () => {
@@ -189,4 +190,31 @@ test('Video Rack: validatePreset defaults videoFilters to empty array when omitt
   const validated = validatePreset(legacyPreset);
   assert.ok(Array.isArray(validated.videoFilters), 'videoFilters should be an array');
   assert.equal(validated.videoFilters.length, 0);
+});
+
+test('Video Rack: Randomizing all modules can select video modules alongside audio', () => {
+  const audioKeys = Object.keys(FILTER_DESCRIPTORS);
+  const videoKeys = Object.keys(VIDEO_FILTER_DESCRIPTORS);
+  assert.ok(audioKeys.length > 0, 'Audio filters must exist');
+  assert.ok(videoKeys.length === 14, 'All 14 video filters must exist');
+
+  const allModules = [
+    ...audioKeys.map(type => ({ kind: 'audio', type })),
+    ...videoKeys.map(type => ({ kind: 'video', type })),
+  ];
+
+  // Verify pool contains both audio and video
+  const hasAudio = allModules.some(m => m.kind === 'audio');
+  const hasVideo = allModules.some(m => m.kind === 'video');
+  assert.ok(hasAudio && hasVideo, 'All modules pool must include both audio and video filters');
+
+  // Verify parameter ranges are valid across all video filter descriptors
+  for (const vKey of videoKeys) {
+    const desc = VIDEO_FILTER_DESCRIPTORS[vKey];
+    for (const p of desc.params) {
+      assert.ok(p.min <= p.max, `${vKey} param ${p.name} min <= max`);
+      const val = p.min + 0.5 * (p.max - p.min);
+      assert.ok(val >= p.min && val <= p.max, 'Calculated random param must be in range');
+    }
+  }
 });

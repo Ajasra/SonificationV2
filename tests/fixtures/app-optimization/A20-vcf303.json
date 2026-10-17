@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A20-vcf303",
+  "name": "App Optimization A20 vcf303",
+  "description": "Frozen vcf303 defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a20-vcf303",
+      "type": "vcf303",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "cutoff": 0.5,
+        "resonance": 1,
+        "envMod": 0.5,
+        "decay": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a20-vcf303"
+    }
+  ]
+}

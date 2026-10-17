@@ -1,0 +1,44 @@
+{
+  "id": "app-optimization-A16-autopan",
+  "name": "App Optimization A16 autopan",
+  "description": "Frozen autopan defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a16-autopan",
+      "type": "autopan",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freq": 5,
+        "depth": 10,
+        "gain": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a16-autopan"
+    }
+  ]
+}

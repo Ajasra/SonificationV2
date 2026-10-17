@@ -1,0 +1,29 @@
+{
+  "filter": "A27 granular",
+  "candidate": "Index-ordered active-grain list; original CPU algorithm retained as processBlockReference",
+  "fixture": "tests/fixtures/app-optimization/A27-granular.json",
+  "fixtureSha256": "3adcc1ab4b2b8f032530ef9c03bd1f4f9acf71779cd2201e9ce29407ff7e8df1",
+  "correctness": {
+    "test": "node --test tests/granular_optimization.test.mjs",
+    "result": "passed",
+    "coverage": "36 deterministic blocks; density/parameter extremes; reset; block lengths 1, 2, 127, 128, 4096; exact output, RNG draw count, buffer and grain state"
+  },
+  "appScreen": {
+    "baseline": {
+      "report": "app-benchmark-45a6d6af-b63c-4840-b5a6-7a9e257bc280.json",
+      "fps": 2.8975,
+      "p95Ms": 367.6,
+      "p99Ms": 369.5
+    },
+    "candidate": {
+      "report": "app-benchmark-cda25454-ab0a-46a7-a101-7a64339c1b97.json",
+      "fps": 4.5637,
+      "p95Ms": 295.7,
+      "p99Ms": 693.2
+    },
+    "conditions": "5 second requested CPU reference app runs; 720p30; active audio at 0.01; HUD on; profiling off; dirty working tree",
+    "interpretation": "Screen diagnostic suggests improved FPS and p95, with a larger p99 outlier. Not a matched acceptance cohort."
+  },
+  "status": "VERIFIED EXPERIMENTAL",
+  "route": "CPU candidate remains available with exact original CPU method retained; no backend routing change."
+}

@@ -1,0 +1,43 @@
+{
+  "id": "app-optimization-A21-plucked",
+  "name": "App Optimization A21 plucked",
+  "description": "Frozen plucked defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a21-plucked",
+      "type": "plucked",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freq": 1000,
+        "sharp": 0.5
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a21-plucked"
+    }
+  ]
+}

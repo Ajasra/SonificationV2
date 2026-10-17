@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A12-wahwah",
+  "name": "App Optimization A12 wahwah",
+  "description": "Frozen wahwah defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a12-wahwah",
+      "type": "wahwah",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freq": 15,
+        "depth": 70,
+        "resonance": 25,
+        "freqOfs": 30
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a12-wahwah"
+    }
+  ]
+}

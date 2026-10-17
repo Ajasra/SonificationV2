@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A27-granular",
+  "name": "App Optimization A27 granular",
+  "description": "Frozen granular defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a27-granular",
+      "type": "granular",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "size": 80,
+        "density": 12,
+        "pitchScatter": 3,
+        "posJitter": 100,
+        "mix": 0.8
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a27-granular"
+    }
+  ]
+}

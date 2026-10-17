@@ -1,0 +1,26 @@
+{
+  "filter": "A46 bitcrusher",
+  "candidate": "Replace per-sample modulo with an integer wrapped counter; reference method retained",
+  "fixture": "tests/fixtures/app-optimization/A46-bitcrusher.json",
+  "fixtureSha256": "c59a3998a222b0497b42951e415a1ee2648111cf80180d9c86fd9d4498cddac9",
+  "correctness": {
+    "test": "node --test tests/bitcrusher_optimization.test.mjs",
+    "passed": true,
+    "coverage": "36 blocks; bit depths 1/6/16; downsample 1/8/64; reset and parameter changes; block lengths 1, 2, 127, 128, 4096; exact output/held sample/counter"
+  },
+  "baseline": {
+    "report": "app-benchmark-6e3d3efe-3a92-483e-8c40-e128c31b0ff2.json",
+    "fps": 28.0423,
+    "p95Ms": 31.7,
+    "p99Ms": 46
+  },
+  "candidateRun": {
+    "report": "app-benchmark-75433418-7502-4930-8c05-926a76ae0316.json",
+    "fps": 30.0078,
+    "p95Ms": 26.1,
+    "p99Ms": 28.1
+  },
+  "conditions": "Five-second requested CPU app screens; 720p30; active audio at 0.01; HUD on; profiling off; dirty working tree",
+  "status": "VERIFIED EXPERIMENTAL",
+  "note": "Short dirty-tree diagnostic improvement; backend unchanged."
+}

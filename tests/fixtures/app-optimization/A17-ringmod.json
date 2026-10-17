@@ -1,0 +1,44 @@
+{
+  "id": "app-optimization-A17-ringmod",
+  "name": "App Optimization A17 ringmod",
+  "description": "Frozen ringmod defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a17-ringmod",
+      "type": "ringmod",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freq": 440,
+        "waveform": 0,
+        "mix": 0.85
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a17-ringmod"
+    }
+  ]
+}

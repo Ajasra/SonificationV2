@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A01-djeq",
+  "name": "App Optimization A01 DjEQ",
+  "description": "Frozen DjEQ defaults for A01 CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a01-djeq",
+      "type": "djeq",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "lo": -10,
+        "mid": 1,
+        "hi": -10,
+        "peakBw": 0.3,
+        "shelfSlope": 1.5
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a01-djeq"
+    }
+  ]
+}

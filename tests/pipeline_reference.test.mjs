@@ -147,6 +147,56 @@ test('inputs remain unchanged; reused outputs and sample views have documented l
   assert.deepEqual(input, snapshot);
 });
 
+test('split CPU prefix and tail match unsplit frames and advance audio once', () => {
+  const { Pipeline, created } = harness(), full = new Pipeline(), split = new Pipeline(), cfg = preset();
+  cfg.videoFilters = [
+    { id: 'v1', type: 'test-video', enabled: true, params: { offset: 11 } },
+    { id: 'v2', type: 'test-video', enabled: true, params: { offset: 29 } },
+  ];
+  cfg.chain = [{ kind: 'audio', id: 'a' }, { kind: 'video', id: 'v1' }, { kind: 'video', id: 'v2' }];
+  for (let frame = 0; frame < 2; frame++) {
+    const input = pixels();
+    const expected = full.processFrame(input, 2, 1, cfg);
+    const prefix = split.processPrefix(input, 2, 1, cfg);
+    assert.deepEqual(Array.from(prefix.prefix.remainingVideoNodeIds), ['v1', 'v2']);
+    assert.deepEqual(Array.from(prefix.audioSamples), Array.from(expected.audioSamples));
+    assert.deepEqual(Array.from(prefix.rawAudioSamples), Array.from(expected.rawAudioSamples));
+    assert.equal(prefix.prefix.videoContext.audioRms, full['lastAudioRms']);
+    const actualPixels = split.processCpuTail(prefix.prefix);
+    assert.deepEqual(Array.from(actualPixels), Array.from(expected.outputRgba));
+  }
+  const videoNodes = created.filter(node => node.type === 'test-video');
+  assert.equal(videoNodes.length, 4);
+  assert.ok(videoNodes.every(node => node.calls === 2));
+  assert.throws(() => split.processCpuTail({ remainingVideoNodeIds: ['v1'], rgbaAtBoundary: pixels(), videoContext: {}, originalInput: pixels(), audioSamples: new Float32Array(), rawAudioSamples: new Float32Array() }), /No pending CPU video tail/);
+});
+
+test('split boundary can keep Procamp in the CPU prefix while dispatching only the final GPU suffix', () => {
+  const { Pipeline } = harness(), full = new Pipeline(), split = new Pipeline(), cfg = preset();
+  cfg.videoFilters = [
+    { id: 'p', type: 'test-video', enabled: true, params: { offset: 11 } },
+    { id: 's', type: 'test-video', enabled: true, params: { offset: 29 } },
+    { id: 'c', type: 'test-video', enabled: true, params: { offset: 43 } },
+  ];
+  cfg.chain = [{ kind: 'audio', id: 'a' }, { kind: 'video', id: 'p' }, { kind: 'video', id: 's' }, { kind: 'video', id: 'c' }];
+  const input = pixels();
+  const expected = full.processFrame(input, 2, 1, cfg);
+  const prefix = split.processPrefix(input, 2, 1, cfg, undefined, undefined, 2);
+  assert.deepEqual(Array.from(prefix.prefix.remainingVideoNodeIds), ['s', 'c']);
+  assert.deepEqual(Array.from(split.processCpuTail(prefix.prefix)), Array.from(expected.outputRgba));
+});
+
+test('a later prefix invalidates a stale tail token', () => {
+  const { Pipeline } = harness(), split = new Pipeline(), cfg = preset();
+  cfg.filters = [];
+  cfg.videoFilters = [{ id: 'v', type: 'test-video', enabled: true, params: {} }];
+  cfg.chain = [{ kind: 'video', id: 'v' }];
+  const stale = split.processPrefix(pixels(), 2, 1, cfg).prefix;
+  const current = split.processPrefix(pixels(), 2, 1, cfg).prefix;
+  assert.throws(() => split.processCpuTail(stale), /this frame/);
+  assert.doesNotThrow(() => split.processCpuTail(current));
+});
+
 test('overlapping input/output views are rejected; disjoint views are supported', () => {
   const { Pipeline } = harness(), pipeline = new Pipeline(), cfg = preset();
   const memory = new Uint8ClampedArray(24);

@@ -1,0 +1,35 @@
+{
+  "filter": "pitchshift",
+  "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+  "dirtyTree": true,
+  "fixtureSha256": "208f749df6fa89aa558a0a41c400651adac76824f8bf4af776f61abe661beefa",
+  "parityTest": "tests/pitchshift_optimization.test.mjs",
+  "parityResult": "Exact output, ring buffer, write position and grain phase across 24 blocks, lengths 1, 2, 127, 128, 4096, and parameter sets at +/-24 semitones and 10-200 ms windows.",
+  "isolatedDiagnostic": {
+    "samples": 921600,
+    "warmupBlocks": 2,
+    "measuredBlocks": 10,
+    "referenceMeanMs": 729.76023,
+    "referenceP95Ms": 859.64,
+    "candidateMeanMs": 684.23936,
+    "candidateP95Ms": 832.9643,
+    "speedup": 1.0665
+  },
+  "applicationScreen": {
+    "baselineReport": "app-benchmark-170b3bc8-d9f6-4ef3-ab21-2a458f2282b0.json",
+    "candidateReports": [
+      "app-benchmark-7289aa17-140d-4591-83bb-5d3ff24a7908.json",
+      "app-benchmark-b06976ed-2bb4-428b-861e-2209ec983e61.json"
+    ],
+    "baselineFps": 5.7439,
+    "candidateFps": [6.5726, 6.0088],
+    "baselineP95Ms": 230.5,
+    "candidateP95Ms": [177.0, 199.0],
+    "audio": "active",
+    "volume": 0.01,
+    "hud": "on",
+    "source": "source-720p30.mp4",
+    "durationSecondsPerRun": 5,
+    "note": "Short before/after diagnostic on a dirty tree; not an acceptance cohort."
+  }
+}

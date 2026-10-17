@@ -1,0 +1,14 @@
+[
+  {
+    "code": "A23",
+    "id": "drone",
+    "fixture": "tests\\fixtures\\app-optimization\\A23-drone.json",
+    "fixtureSha256": "63c4d529dc95738a3c35c9316c1018962a9d944e55a6535108b52392e270fef9",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-c5bfb03e-b07c-430c-857c-c4e05d34eaa9.json",
+    "runnerExitCode": 0,
+    "fps": 28.640306595529918,
+    "p95Ms": 39.8999999910593,
+    "p99Ms": 64.20000000298023,
+    "problems": []
+  }
+]

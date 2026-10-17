@@ -13,6 +13,8 @@ export class AppTapeSatGpu {
   private failed=false;
   private readonly internalTimings:{gpuPrepareSubmitMs:number[];gpuValidationCompletionMapMs:number[];gpuValidationErrorScopeMs:number[];gpuReadbackMapMs:number[];gpuMappedCopyMs:number[]}={gpuPrepareSubmitMs:[],gpuValidationCompletionMapMs:[],gpuValidationErrorScopeMs:[],gpuReadbackMapMs:[],gpuMappedCopyMs:[]};
   validation:unknown;
+  get sharedDevice():GPUDevice|undefined{return this.runtime?.sharedDevice;}
+  get captureMode():'texture'|'reference-bytes'|undefined{return this.runtime?.captureMode;}
   constructor(private readonly referenceCanvas:HTMLCanvasElement,private readonly profileInternalTimings=false,private readonly perFrameValidation=true,private readonly fusedApplyFinish=true,private readonly requestedCaptureMode:'auto'|'reference-bytes'='auto'){
     this.canvas.id='gpu-main-canvas';this.canvas.width=1280;this.canvas.height=720;this.canvas.style.display='none';
     referenceCanvas.insertAdjacentElement('afterend',this.canvas);
@@ -71,6 +73,22 @@ export class AppTapeSatGpu {
       return result;
     }catch(error){
       if(epoch===this.epoch){this.failed=true;this.showCpu();this.context?.unconfigure();this.runtime?.dispose();console.warn('Experimental GPU fallback',error);}
+      return;
+    }
+  }
+  async processResident(source:HTMLCanvasElement,params:Record<string,number>,state:{bumpLp:number;toneLp:number}):Promise<Float32Array | undefined>{
+    if(this.failed)return;
+    const epoch=this.epoch;
+    try{
+      this.initializing??=this.initialize(source);
+      if(!await this.initializing||epoch!==this.epoch||this.runtime?.captureMode!=='texture')return;
+      this.runtime!.seedState(state.bumpLp,state.toneLp);
+      const result=await this.runtime!.processImage(source,this.context!,params,this.profileInternalTimings,false,undefined,this.perFrameValidation);
+      this.collectInternalTimings();
+      if(epoch!==this.epoch)return;
+      return result;
+    }catch(error){
+      if(epoch===this.epoch){this.failed=true;this.showCpu();this.context?.unconfigure();this.runtime?.dispose();console.warn('Experimental resident TapeSat fallback',error);}
       return;
     }
   }

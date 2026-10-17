@@ -1,0 +1,26 @@
+{
+  "filter": "A42 transient",
+  "candidate": "Removed redundant conditional slow-envelope update; exact original retained as processBlockReference",
+  "fixture": "tests/fixtures/app-optimization/A42-transient.json",
+  "fixtureSha256": "ae8cead1cd8933056b1c4e7496ebd6c97db8d1e97237e28b0a7f2904e5dfc90c",
+  "correctness": {
+    "test": "node --test tests/transient_optimization.test.mjs",
+    "passed": true,
+    "coverage": "36 deterministic blocks; three attack/sustain settings; reset; lengths 1, 2, 127, 128, 4096; exact output and fast/slow/gain state"
+  },
+  "baseline": {
+    "report": "app-benchmark-41c7c66c-a553-4346-b56d-942d25393bd6.json",
+    "fps": 26.5463,
+    "p95Ms": 38.9,
+    "p99Ms": 49.5
+  },
+  "candidateRun": {
+    "report": "app-benchmark-4b7ba5bb-e393-4045-8ec8-784d1e07527f.json",
+    "fps": 27.4068,
+    "p95Ms": 35.9,
+    "p99Ms": 42.5
+  },
+  "conditions": "Five-second requested CPU app screens; 720p30; active audio at 0.01; HUD on; profiling off; dirty working tree",
+  "status": "VERIFIED EXPERIMENTAL",
+  "note": "Short unpaired diagnostic; CPU backend unchanged and no acceptance cohort remains."
+}

@@ -1,0 +1,43 @@
+{
+  "id": "app-optimization-reson",
+  "name": "App Optimization reson",
+  "description": "Frozen reson defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "reson",
+      "type": "reson",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freqControl": 500,
+        "bwControl": 1000
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "reson"
+    }
+  ]
+}

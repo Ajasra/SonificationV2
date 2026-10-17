@@ -1,0 +1,26 @@
+[
+  {
+    "code": "A07",
+    "id": "comb",
+    "fixture": "tests\\fixtures\\app-optimization\\A07-comb.json",
+    "fixtureSha256": "a79d671bf15fa871000cee4ad07d7cd966ba5c7c9bb82bcf5612f7c538c6e2bf",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-4913242f-fc9a-4d20-bc48-ab887822ef7e.json",
+    "runnerExitCode": 0,
+    "fps": 29.82896628679204,
+    "p95Ms": 27.100000008940697,
+    "p99Ms": 31.099999994039536,
+    "problems": []
+  },
+  {
+    "code": "A08",
+    "id": "echo",
+    "fixture": "tests\\fixtures\\app-optimization\\A08-echo.json",
+    "fixtureSha256": "2a2528f00b32da4644a550cb0b8b835153bf71043f6c98ab0711a3736da882d8",
+    "report": "docs\\performance-results\\app-optimization\\app-benchmark-c92a0a9b-4016-4677-9e20-e38f8bfd4c47.json",
+    "runnerExitCode": 0,
+    "fps": 28.813798383974742,
+    "p95Ms": 31.599999994039536,
+    "p99Ms": 50.099999994039536,
+    "problems": []
+  }
+]

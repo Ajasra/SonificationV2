@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A18-flanger",
+  "name": "App Optimization A18 flanger",
+  "description": "Frozen flanger defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a18-flanger",
+      "type": "flanger",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "rate": 0.4,
+        "depth": 3,
+        "feedback": 0.6,
+        "delayMs": 2,
+        "mix": 0.5
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a18-flanger"
+    }
+  ]
+}

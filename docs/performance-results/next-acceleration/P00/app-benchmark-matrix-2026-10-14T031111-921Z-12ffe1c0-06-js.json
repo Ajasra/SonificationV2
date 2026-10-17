@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "runId": "cabbbbdf-91c0-4af3-801d-f56748825ddc",
+  "createdAt": "2026-10-14T03:13:30.729Z",
+  "build": {
+    "revision": "af54041d566575aa38b7a698dfc97e3529cd671e",
+    "dirty": false,
+    "dirtyFiles": []
+  },
+  "source": {
+    "name": "sonification-acceleration-720p30.mp4",
+    "bytes": 50474167,
+    "sha256": "8a3bed3a381a76f9c8dd81d6ffa9045272c285212417671119a7fed8cc6ae008"
+  },
+  "backend": "javascript-reference",
+  "scope": "720p source capture, application processing, output presentation submission, live audio submission and HUD telemetry; HUD RAF competes for throughput; excludes physical display confirmation",
+  "preset": {
+    "id": "experimental-gpu-tapesat",
+    "name": "Experimental GPU TapeSat",
+    "description": "Single-filter TapeSat preset for the opt-in 720p WebGPU path.",
+    "reader": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "writer": {
+      "rawType": "INTERLEAVED",
+      "law": "NONE",
+      "sign": "UNSIGNED",
+      "bits": 8,
+      "endianess": "LITTLE_ENDIAN",
+      "colorSpace": "RGB"
+    },
+    "equalize": false,
+    "blendMode": "NONE",
+    "blendAmount": 0,
+    "filters": [
+      {
+        "id": "gpu-tapesat",
+        "type": "tapesat",
+        "enabled": true,
+        "sampleRate": 44100,
+        "params": {
+          "drive": 2.5,
+          "bias": 0.1,
+          "bump": 0.4,
+          "bumpHz": 80,
+          "tone": 8000
+        }
+      }
+    ],
+    "videoFilters": []
+  },
+  "width": 1280,
+  "height": 720,
+  "warmupSeconds": 10,
+  "sessionSeconds": 19.20129999999702,
+  "measuredSeconds": 5.225,
+  "measuredFrames": 157,
+  "processedFps": 30.047846889952154,
+  "gpuFrames": 0,
+  "wasmFrames": 0,
+  "jsFrames": 157,
+  "missedPresentedCallbacks": 0,
+  "transferLedger": {
+    "accounting": "API-observed logical payloads plus explicitly labeled source-pixel lower bounds; not physical bus traffic",
+    "measuredFrames": 157,
+    "perFrameBytes": {
+      "cpuImageDataReadback": 3686400,
+      "gpuReferenceByteCaptureReadback": 0,
+      "gpuReferenceByteUpload": 0,
+      "gpuExternalTextureInputLowerBound": 0,
+      "gpuCompactMappedMonitor": 0,
+      "wasmResidentSampleArena": 0,
+      "explicitWasmSegmentCopies": 0,
+      "mainWorkerTransfers": 0
+    },
+    "measuredTotals": {
+      "cpuImageDataReadbackBytes": 578764800,
+      "gpuReferenceByteCaptureReadbackBytes": 0,
+      "gpuReferenceByteUploadBytes": 0,
+      "gpuExternalTextureInputLowerBoundBytes": 0,
+      "gpuCompactMappedMonitorBytes": 0,
+      "wasmResidentSampleArenaBytes": 0,
+      "explicitWasmSegmentCopyBytes": 0,
+      "mainWorkerTransferBytes": 0,
+      "totalCpuRasterReadbackBytes": 578764800
+    },
+    "synchronizations": {
+      "gpuQueueSubmissions": 0,
+      "gpuMonitorMapOperations": 0,
+      "gpuValidationScopes": 0
+    },
+    "unmeasured": "GPU external-image import copies, browser/driver staging, physical bus traffic, GPU-local shader memory traffic, and compositor/display transfer"
+  },
+  "measurementResets": [
+    {
+      "atSeconds": 0,
+      "reason": "initial-settings"
+    },
+    {
+      "atSeconds": 3.97629999999702,
+      "reason": "settings-changed"
+    }
+  ],
+  "timings": {
+    "framePathMs": {
+      "count": 157,
+      "p50": 20.599999994039536,
+      "p95": 22.599999994039536,
+      "p99": 23.799999997019768
+    },
+    "captureMs": {
+      "count": 157,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "preparationMs": {
+      "count": 157,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "gpuCompletionAndReadbackMs": {
+      "count": 157,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "audioSubmissionMs": {
+      "count": 157,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "telemetryUpdateMs": {
+      "count": 157,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0
+    },
+    "otherFrameWorkMs": {
+      "count": 157,
+      "p50": 20.599999994039536,
+      "p95": 22.599999994039536,
+      "p99": 23.799999997019768
+    },
+    "hudRenderMs": {
+      "count": 502,
+      "p50": 1.8999999910593033,
+      "p95": 2.2000000029802322,
+      "p99": 2.3999999910593033
+    }
+  },
+  "audioMuted": false,
+  "audioVolume": 0.25,
+  "hudEnabled": true,
+  "gpuPerFrameValidation": false,
+  "gpuFusedApplyFinish": false,
+  "audioContextState": "running",
+  "sourcePaused": false,
+  "gpuValidation": null,
+  "benchmarkConditions": {
+    "backendRequested": "js",
+    "profileRequested": false,
+    "audioRequested": "active",
+    "hudRequested": "on",
+    "captureModeRequested": "auto",
+    "declaredSourceFps": 30,
+    "deviceLabel": "AMD GCN-5 smoke only"
+  },
+  "wasmBuild": null,
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 16
+  },
+  "acceptance": "application-path measurements recorded; physical presentation/audio, decode-drop attribution, other presets and phone gates remain separate"
+}

@@ -1,0 +1,67 @@
+{
+  "id": "app-optimization-R2",
+  "name": "App Optimization R2",
+  "description": "Frozen Procamp to Solarizer to Colorizer spatial rack with the implicit identity audio stage.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [],
+  "videoFilters": [
+    {
+      "id": "r2-procamp",
+      "type": "procamp",
+      "enabled": true,
+      "params": {
+        "pedestal": 0,
+        "videoGain": 1,
+        "saturation": 1.1,
+        "chromaPhase": 0,
+        "whiteClip": 240
+      }
+    },
+    {
+      "id": "r2-solarizer",
+      "type": "solarizer",
+      "enabled": true,
+      "params": {
+        "threshold": 128,
+        "gamma": 1.4,
+        "pedestal": 10,
+        "invert": 1
+      }
+    },
+    {
+      "id": "r2-colorizer",
+      "type": "colorizer",
+      "enabled": true,
+      "params": {
+        "lowHue": 210,
+        "midHue": 35,
+        "highHue": 85,
+        "bands": 4,
+        "mix": 0.85
+      }
+    }
+  ],
+  "chain": [
+    { "kind": "video", "id": "r2-procamp" },
+    { "kind": "video", "id": "r2-solarizer" },
+    { "kind": "video", "id": "r2-colorizer" }
+  ]
+}

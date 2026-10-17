@@ -7,7 +7,9 @@ const status=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim
 const {revisionIndependentDirty:dirty,dirtyFiles}=buildStateFromPorcelain(status);
 
 export default defineConfig({
-  define:{__APP_BUILD__:JSON.stringify({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),dirty,dirtyFiles})},
+  define:{
+    __APP_BUILD__:JSON.stringify({revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),dirty,dirtyFiles}),
+  },
   plugins: [
     basicSsl(),
   ],

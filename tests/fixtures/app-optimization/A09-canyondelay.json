@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A09-canyondelay",
+  "name": "App Optimization A09 canyondelay",
+  "description": "Frozen canyondelay defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a09-canyondelay",
+      "type": "canyondelay",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "ltrTime": 0.5,
+        "rtlTime": 0.5,
+        "ltrFeedback": 0.1,
+        "rtlFeedback": -0.1,
+        "cutoff": 1000
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a09-canyondelay"
+    }
+  ]
+}

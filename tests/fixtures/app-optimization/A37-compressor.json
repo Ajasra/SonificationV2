@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A37-compressor",
+  "name": "App Optimization A37 compressor",
+  "description": "Frozen Compressor defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a37-compressor",
+      "type": "compressor",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "threshold": -18,
+        "ratio": 4,
+        "attack": 10,
+        "release": 100,
+        "makeupGain": 3
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a37-compressor"
+    }
+  ]
+}

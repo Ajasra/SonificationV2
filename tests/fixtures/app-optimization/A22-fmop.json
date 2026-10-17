@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A22-fmop",
+  "name": "App Optimization A22 fmop",
+  "description": "Frozen fmop defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a22-fmop",
+      "type": "fmop",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "freq": 220,
+        "index": 3,
+        "feedback": 0,
+        "mix": 0.8
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a22-fmop"
+    }
+  ]
+}

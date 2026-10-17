@@ -2,7 +2,7 @@
 
 Date: 2026-10-13. Planning baseline: `d48b74099e3ce0b6f5c7e67006b57a22800966bc`, branch `codex/video-acceleration`.
 
-Status: proposal queue, not completed experiments. This document continues [the original plan](PERFORMANCE_IMPLEMENTATION_PLAN.md); historical results stay intact. Execute one proposal at a time, record its verdict, then select the next eligible proposal. Passing an isolated kernel test never promotes an application backend.
+Status: proposal queue executed as far as the available desktop host permits; see the [final test report](NEXT_ACCELERATION_TEST_REPORT.md) for completed evidence, proposal verdicts, and outstanding device/deployment gates. This document continues [the original plan](PERFORMANCE_IMPLEMENTATION_PLAN.md); historical results stay intact. Passing an isolated kernel test never promotes an application backend.
 
 An independent [planning review](NEXT_ACCELERATION_PLAN_REVIEW.md) checked the initial draft against the live code and primary sources. Its measurement, state-queue, filter-classification and planner corrections are incorporated below.
 

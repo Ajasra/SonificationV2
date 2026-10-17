@@ -4,6 +4,7 @@ import type { AccountManager, StoredPreset } from '../account/account-manager.ts
 import type { SonificationPreset } from '../types/index.ts';
 import { validatePreset } from '../presets/validate-preset.ts';
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
+import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
 
 export interface PresetControllerOptions {
   presetManager: PresetManager;
@@ -153,6 +154,19 @@ export class PresetController {
         const currentVal = f.params[p.name] !== undefined ? f.params[p.name] : p.value;
         const newVal = Math.min(p.max, Math.max(p.min, currentVal + jitter));
         f.params[p.name] = Number(newVal.toFixed(p.step < 0.01 ? 3 : 2));
+      }
+    }
+    if (active.videoFilters) {
+      for (const vf of active.videoFilters) {
+        const desc = VIDEO_FILTER_DESCRIPTORS[vf.type];
+        if (!desc) continue;
+        for (const p of desc.params) {
+          const range = p.max - p.min;
+          const jitter = (nextRandom() - 0.5) * 0.4 * range;
+          const currentVal = vf.params[p.name] !== undefined ? vf.params[p.name] : p.value;
+          const newVal = Math.min(p.max, Math.max(p.min, currentVal + jitter));
+          vf.params[p.name] = Number(newVal.toFixed(p.step < 0.01 ? 3 : 2));
+        }
       }
     }
 

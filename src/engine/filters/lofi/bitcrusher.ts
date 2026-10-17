@@ -59,16 +59,36 @@ export class BitcrusherFilter extends BaseDspFilter {
       const inSample = samples[i];
 
       // Sample-and-hold decimation
-      if (cnt % ds === 0) {
+      if (cnt === 0) {
         // Bit-depth quantization
         held = Math.round(inSample * steps) * invSteps;
       }
-      cnt++;
+      if (++cnt >= ds) cnt = 0;
 
       const out = inSample * dry + held * mix;
       samples[i] = out < -1.0 ? -1.0 : out > 1.0 ? 1.0 : out;
     }
 
+    this.heldSample = held;
+    this.sampleCounter = cnt;
+  }
+
+  processBlockReference(samples: Float32Array): void {
+    const len = samples.length;
+    const steps = Math.pow(2, this.bits - 1);
+    const invSteps = 1.0 / steps;
+    const ds = Math.max(1, this.downsample);
+    const mix = this.mix;
+    const dry = 1.0 - mix;
+    let held = this.heldSample;
+    let cnt = this.sampleCounter;
+    for (let i = 0; i < len; i++) {
+      const inSample = samples[i];
+      if (cnt % ds === 0) held = Math.round(inSample * steps) * invSteps;
+      cnt++;
+      const out = inSample * dry + held * mix;
+      samples[i] = out < -1.0 ? -1.0 : out > 1.0 ? 1.0 : out;
+    }
     this.heldSample = held;
     this.sampleCounter = cnt % ds;
   }

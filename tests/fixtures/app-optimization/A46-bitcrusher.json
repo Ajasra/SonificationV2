@@ -1,0 +1,44 @@
+{
+  "id": "app-optimization-A46-bitcrusher",
+  "name": "App Optimization A46 bitcrusher",
+  "description": "Frozen Bitcrusher defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a46-bitcrusher",
+      "type": "bitcrusher",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "bits": 6,
+        "downsample": 8,
+        "mix": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a46-bitcrusher"
+    }
+  ]
+}

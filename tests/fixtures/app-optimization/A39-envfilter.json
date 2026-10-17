@@ -1,0 +1,46 @@
+{
+  "id": "app-optimization-A39-envfilter",
+  "name": "App Optimization A39 envfilter",
+  "description": "Frozen Envelope Filter defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a39-envfilter",
+      "type": "envfilter",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "sensitivity": 4,
+        "minFreq": 200,
+        "maxFreq": 4000,
+        "q": 4,
+        "mode": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a39-envfilter"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A02-basstreble",
+  "name": "App Optimization A02 Bass Treble",
+  "description": "Frozen Bass and Treble defaults for A02 CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a02-basstreble",
+      "type": "basstreble",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "dBBass": 0,
+        "dBTreble": 0,
+        "hzBass": 250,
+        "hzTreble": 4000
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a02-basstreble"
+    }
+  ]
+}

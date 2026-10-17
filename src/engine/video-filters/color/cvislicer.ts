@@ -116,6 +116,20 @@ export class CviSlicerFilter extends BaseVideoFilter {
     }
   }
 
+  /** Packed lookup tables for the optional resident GPU executor. */
+  getGpuLookupTables(audioRms = 0): { quant: Uint32Array; edge: Uint32Array } {
+    let numLevels = this.levels;
+    if (audioRms > 0.1) numLevels = clamp(Math.round(numLevels - audioRms * 3), 2, 16);
+    this.updateQuantLut(numLevels, this.contourMix);
+    const quant = new Uint32Array(256);
+    const edge = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      quant[i] = this.quantLutR[i]! | (this.quantLutG[i]! << 8) | (this.quantLutB[i]! << 16);
+      edge[i] = this.edgeLutR[i]! | (this.edgeLutG[i]! << 8) | (this.edgeLutB[i]! << 16);
+    }
+    return { quant, edge };
+  }
+
   randomize(): void {
     this.levels = Math.floor(3 + Math.random() * 10);
     this.palette = Math.floor(Math.random() * 5);

@@ -1,0 +1,43 @@
+{
+  "id": "app-optimization-A10-reverb",
+  "name": "App Optimization A10 reverb",
+  "description": "Frozen reverb defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a10-reverb",
+      "type": "reverb",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "delayMs": 2000,
+        "decay": 0.5
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a10-reverb"
+    }
+  ]
+}

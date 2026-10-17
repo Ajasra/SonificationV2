@@ -1,0 +1,45 @@
+{
+  "id": "app-optimization-A13-lfophaser",
+  "name": "App Optimization A13 lfophaser",
+  "description": "Frozen lfophaser defaults for CPU-path profiling.",
+  "reader": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "writer": {
+    "rawType": "INTERLEAVED",
+    "law": "NONE",
+    "sign": "UNSIGNED",
+    "bits": 8,
+    "endianess": "LITTLE_ENDIAN",
+    "colorSpace": "RGB"
+  },
+  "equalize": false,
+  "blendMode": "NONE",
+  "blendAmount": 0,
+  "filters": [
+    {
+      "id": "a13-lfophaser",
+      "type": "lfophaser",
+      "enabled": true,
+      "sampleRate": 44100,
+      "params": {
+        "lfoRate": 0.001,
+        "lfoDepth": 0.5,
+        "fb": 0,
+        "spread": 1
+      }
+    }
+  ],
+  "videoFilters": [],
+  "chain": [
+    {
+      "kind": "audio",
+      "id": "a13-lfophaser"
+    }
+  ]
+}
