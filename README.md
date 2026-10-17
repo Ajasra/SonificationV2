@@ -84,9 +84,23 @@ Guests can search Explore, open public links, and use all five Defaults. Saving 
 
 If PocketBase is offline, camera use, defaults, and parameter snapshot links continue to work. Account sign-in, My presets, Explore, and shared-record QR lookup require the VPS.
 
-## Recording
+## Audio Controls and Recording
 
-Real-time recording uses canvas capture and Web Audio through MediaRecorder. Codec support depends on the browser. Video-file export also has an offline WebCodecs path. Confirm that an exported recording contains moving video and audible audio on each target device.
+The `01 / SOUND` module and mobile drawer provide independent rotary and slider controls for both sound paths:
+
+- **`AUDIO: MUTED` / `AUDIO: ENGAGED`**: Master toggle for physical speaker monitoring.
+- **`SYNTH` (Generated Gain)**: Controls the volume level of the DSP sonification audio synthesized from image/video pixel data.
+- **`SOURCE` (Input Gain)**: Controls incoming source audio:
+  - When a **video file** is loaded, it adjusts the video's original audio track volume.
+  - In **live camera mode**, it acquires the microphone stream and adjusts the live microphone level.
+
+### Recording Mix
+
+Real-time recording uses canvas capture and Web Audio through MediaRecorder. Both audio sources (`SYNTH` and `SOURCE`) route into an independent recording bus (`recordGainNode` -> `streamDest`) scaled by their respective volume knob positions:
+
+$$\text{Recording Audio} = (\text{Generated Synth} \times \text{SYNTH Vol}) + (\text{Source Audio} \times \text{SOURCE Vol})$$
+
+Toggling the speaker mute button (`AUDIO: MUTED`) silences physical monitor output without muting the recording bus, so both sound sources continue recording at their configured levels. Video-file export also provides an offline WebCodecs path. Confirm that an exported recording contains moving video and audible audio on each target device.
 
 
 ## Project documents
