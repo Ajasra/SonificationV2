@@ -33,6 +33,7 @@ export class MediaController {
   private loadedVideoElement: HTMLVideoElement | null = null;
   private loadedVideoFile: File | null = null;
   private loadedVideoAudioBuffer: AudioBuffer | null = null;
+  private loadedVideoAudioPromise: Promise<AudioBuffer | null> | null = null;
   private loadedImageElement: HTMLImageElement | null = null;
   private liveResolution: '360p' | '480p' | '720p' | 'native' = '480p';
   private lastVideoTime = -1;
@@ -154,6 +155,7 @@ export class MediaController {
     this.sourceInfo=null;
     this.loadedVideoFile = null;
     this.loadedVideoAudioBuffer = null;
+    this.loadedVideoAudioPromise = null;
     this.opts.stopFrameLoop('media-source-stopped-or-replaced');
     this.hideVideoLoading();
     this.videoTimeline.detachVideo();
@@ -176,7 +178,9 @@ export class MediaController {
     this.loadedVideoFile = file;
 
     // Decode audio track asynchronously for offline export mixing
-    void this.opts.audioEngine.decodeAudioFile(file).then((buf) => {
+    const decodePromise = this.opts.audioEngine.decodeAudioFile(file);
+    this.loadedVideoAudioPromise = decodePromise;
+    void decodePromise.then((buf) => {
       if (this.loadedVideoFile === file) {
         this.loadedVideoAudioBuffer = buf;
       }
@@ -437,8 +441,14 @@ export class MediaController {
     const loop = this.videoTimeline.getLoopRange();
 
     try {
-      // If audio buffer not yet decoded, attempt decode before rendering
+      // If audio buffer not yet decoded, wait for pending decode promise or attempt decode
       let sourceAudio = this.loadedVideoAudioBuffer;
+      if (!sourceAudio && this.loadedVideoAudioPromise) {
+        try {
+          sourceAudio = await this.loadedVideoAudioPromise;
+          this.loadedVideoAudioBuffer = sourceAudio;
+        } catch (_) {}
+      }
       if (!sourceAudio && this.loadedVideoFile) {
         try {
           sourceAudio = await this.opts.audioEngine.decodeAudioFile(this.loadedVideoFile);

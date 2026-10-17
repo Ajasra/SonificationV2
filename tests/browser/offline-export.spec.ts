@@ -90,3 +90,81 @@ test('offline MP4 export uses isolated DSP history and returns a finalized MP4',
   expect(result.sourceRestored).toBe(true);
   await test.info().attach('offline-export-smoke.json', { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
 });
+
+test('offline MP4 export mixes source audio buffer and synth audio with respective volumes', async ({ page }) => {
+  await page.goto('/benchmark.html');
+  const supported = await page.evaluate(async () => {
+    if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') return false;
+    const vResult = await VideoEncoder.isConfigSupported({
+      codec: 'avc1.42001f', width: 64, height: 48, bitrate: 250_000, framerate: 5,
+    });
+    const aResult = await AudioEncoder.isConfigSupported({
+      codec: 'mp4a.40.2', sampleRate: 44100, numberOfChannels: 1, bitrate: 128_000,
+    });
+    return vResult.supported && aResult.supported;
+  });
+  test.skip(!supported, 'Browser does not support required WebCodecs video/audio encoders.');
+
+  const result = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 48;
+    const context = canvas.getContext('2d')!;
+    const media = canvas.captureStream(30);
+    const chunks: Blob[] = [];
+    const sourceRecorder = new MediaRecorder(media, { mimeType: 'video/webm;codecs=vp8' });
+    sourceRecorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+    const stopped = new Promise<void>(resolve => { sourceRecorder.onstop = () => resolve(); });
+    let frame = 0;
+    const draw = setInterval(() => {
+      context.fillStyle = `rgb(${(frame * 19) % 256},${(frame * 31) % 256},${(frame * 47) % 256})`;
+      context.fillRect(0, 0, 64, 48);
+      frame++;
+    }, 33);
+    sourceRecorder.start();
+    await new Promise(resolve => setTimeout(resolve, 800));
+    sourceRecorder.stop(); await stopped; clearInterval(draw);
+    media.getTracks().forEach(track => track.stop());
+
+    const video = document.createElement('video');
+    video.muted = true; video.preload = 'auto';
+    video.src = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+    document.body.append(video);
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('Failed to load WebM'));
+    });
+
+    const actx = new AudioContext({ sampleRate: 44100 });
+    const sourceAudioBuf = actx.createBuffer(1, 44100, 44100);
+    const chData = sourceAudioBuf.getChannelData(0);
+    for (let i = 0; i < chData.length; i++) chData[i] = 0.6; // constant amplitude test signal
+
+    const { SonificationPipeline } = await import('/src/engine/pipeline.ts');
+    const { OfflineVideoRecorder } = await import('/src/record/offline-video-recorder.ts');
+    const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' };
+    const preset = {
+      id: 'audio-mix-test', name: 'audio-mix-test', reader: stream, writer: stream,
+      filters: [], videoFilters: [], equalize: false, blendMode: 'NONE', blendAmount: 0,
+    } as const;
+
+    const recorder = new OfflineVideoRecorder();
+    const output = await recorder.render({
+      video, canvas, pipelineFactory: () => new SonificationPipeline(),
+      activePreset: preset as never, targetFps: 10, audioSampleRate: 44100,
+      startTime: 0, endTime: 0.5,
+      synthVolume: 0.1,
+      sourceVolume: 0.7,
+      sourceAudioBuffer: sourceAudioBuf,
+    });
+
+    URL.revokeObjectURL(video.src); video.remove();
+    return {
+      outputBytes: output?.blob.size ?? 0,
+      outputExt: output?.ext ?? null,
+    };
+  });
+
+  expect(result.outputExt).toBe('mp4');
+  expect(result.outputBytes).toBeGreaterThan(1000);
+});
+

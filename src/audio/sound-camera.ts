@@ -248,8 +248,13 @@ export class SoundCameraAudio {
     this.init();
     if (!this.ctx || typeof this.ctx.decodeAudioData !== 'function') return null;
     try {
-      const buffer = await file.arrayBuffer();
-      return await this.ctx.decodeAudioData(buffer);
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume().catch(() => {});
+      }
+      const rawBuffer = await file.arrayBuffer();
+      // Slice buffer copy to prevent detached ArrayBuffer errors
+      const bufferCopy = rawBuffer.slice(0);
+      return await this.ctx.decodeAudioData(bufferCopy);
     } catch (err) {
       console.warn('Could not decode audio track from video file:', err);
       return null;
