@@ -617,8 +617,7 @@ class SonificationApp {
     const presetTrigger = document.getElementById('preset-display-trigger');
     if (presetTrigger) {
       presetTrigger.addEventListener('click', () => {
-        const isDefault = this.presetManager.isFactoryPreset(this.activePreset.id);
-        this.presetController.openPresetLibrary(isDefault ? 'defaults' : 'mine');
+        this.presetController.openPresetLibrary('mine');
       });
     }
 
