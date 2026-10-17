@@ -239,6 +239,23 @@ export class SoundCameraAudio {
     this.isRecording = false;
   }
 
+  getContext(): AudioContext | null {
+    this.init();
+    return this.ctx;
+  }
+
+  async decodeAudioFile(file: File | Blob): Promise<AudioBuffer | null> {
+    this.init();
+    if (!this.ctx || typeof this.ctx.decodeAudioData !== 'function') return null;
+    try {
+      const buffer = await file.arrayBuffer();
+      return await this.ctx.decodeAudioData(buffer);
+    } catch (err) {
+      console.warn('Could not decode audio track from video file:', err);
+      return null;
+    }
+  }
+
   getAudioMediaStream(): MediaStream | null {
     this.init();
     return this.streamDest?.stream || null;

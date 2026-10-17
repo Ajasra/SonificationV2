@@ -31,6 +31,8 @@ export interface MediaControllerOptions {
 
 export class MediaController {
   private loadedVideoElement: HTMLVideoElement | null = null;
+  private loadedVideoFile: File | null = null;
+  private loadedVideoAudioBuffer: AudioBuffer | null = null;
   private loadedImageElement: HTMLImageElement | null = null;
   private liveResolution: '360p' | '480p' | '720p' | 'native' = '480p';
   private lastVideoTime = -1;
@@ -150,6 +152,8 @@ export class MediaController {
 
   public stopVideoFile(): void {
     this.sourceInfo=null;
+    this.loadedVideoFile = null;
+    this.loadedVideoAudioBuffer = null;
     this.opts.stopFrameLoop('media-source-stopped-or-replaced');
     this.hideVideoLoading();
     this.videoTimeline.detachVideo();
@@ -169,6 +173,16 @@ export class MediaController {
 
     this.stopVideoFile();
     this.loadedImageElement = null;
+    this.loadedVideoFile = file;
+
+    // Decode audio track asynchronously for offline export mixing
+    void this.opts.audioEngine.decodeAudioFile(file).then((buf) => {
+      if (this.loadedVideoFile === file) {
+        this.loadedVideoAudioBuffer = buf;
+      }
+    }).catch((err) => {
+      console.warn('Audio decoding skipped or unsupported for file:', err);
+    });
 
     this.showVideoLoading('Opening video stream...', file.name);
 
@@ -423,6 +437,15 @@ export class MediaController {
     const loop = this.videoTimeline.getLoopRange();
 
     try {
+      // If audio buffer not yet decoded, attempt decode before rendering
+      let sourceAudio = this.loadedVideoAudioBuffer;
+      if (!sourceAudio && this.loadedVideoFile) {
+        try {
+          sourceAudio = await this.opts.audioEngine.decodeAudioFile(this.loadedVideoFile);
+          this.loadedVideoAudioBuffer = sourceAudio;
+        } catch (_) {}
+      }
+
       const res = await this.opts.offlineVideoRecorder.render({
         video: v,
         canvas: this.opts.canvas,
@@ -431,6 +454,9 @@ export class MediaController {
         audioSampleRate: this.opts.getBusRate(),
         startTime: loop.start,
         endTime: loop.end,
+        synthVolume: this.opts.audioEngine.getVolume(),
+        sourceVolume: this.opts.audioEngine.getInputVolume(),
+        sourceAudioBuffer: sourceAudio,
         onProgress: (prog) => {
           if (progressFill) progressFill.style.width = `${prog.percent}%`;
           if (progressCounter) {

@@ -19,6 +19,9 @@ export interface OfflineRenderOptions {
   audioSampleRate?: number;
   startTime?: number;
   endTime?: number;
+  synthVolume?: number;
+  sourceVolume?: number;
+  sourceAudioBuffer?: AudioBuffer | null;
   onProgress?: (progress: OfflineRenderProgress) => void;
 }
 
@@ -172,6 +175,17 @@ export class OfflineVideoRecorder {
     let audioTimestampUs = 0;
     const samplesPerVideoFrame = Math.round(audioSampleRate / targetFps);
 
+    // Audio mixing parameters
+    const synthVol = options.synthVolume !== undefined ? Math.max(0, options.synthVolume) : 1.0;
+    const srcVol = options.sourceVolume !== undefined ? Math.max(0, options.sourceVolume) : 1.0;
+    const sourceAudio = options.sourceAudioBuffer || null;
+    const sourceChannelData: Float32Array[] = [];
+    if (sourceAudio) {
+      for (let c = 0; c < sourceAudio.numberOfChannels; c++) {
+        sourceChannelData.push(sourceAudio.getChannelData(c));
+      }
+    }
+
     const startTime = performance.now();
     let encodedFrames = 0;
 
@@ -214,11 +228,32 @@ export class OfflineVideoRecorder {
         videoFrame.close();
         encodedFrames++;
 
-        // Process audio samples for this frame
-        if (audioEncoder && res.audioSamples && res.audioSamples.length > 0) {
-          const stride = Math.max(1, Math.floor(res.audioSamples.length / samplesPerVideoFrame));
+        // Process and blend audio samples for this frame
+        if (audioEncoder) {
+          const hasSynthAudio = res.audioSamples && res.audioSamples.length > 0;
+          const synthStride = hasSynthAudio ? Math.max(1, Math.floor(res.audioSamples.length / samplesPerVideoFrame)) : 1;
+
           for (let s = 0; s < samplesPerVideoFrame; s++) {
-            audioQueue.push(res.audioSamples[s * stride] || 0);
+            let synthSample = 0;
+            if (hasSynthAudio) {
+              synthSample = (res.audioSamples[s * synthStride] || 0) * synthVol;
+            }
+
+            let sourceSample = 0;
+            if (sourceAudio && sourceChannelData.length > 0) {
+              const sampleTime = targetTime + (s / audioSampleRate);
+              const sampleIdx = Math.floor(sampleTime * sourceAudio.sampleRate);
+              if (sampleIdx >= 0 && sampleIdx < sourceAudio.length) {
+                // Downmix channels to mono for AAC track
+                let sum = 0;
+                for (let ch = 0; ch < sourceChannelData.length; ch++) {
+                  sum += sourceChannelData[ch][sampleIdx] || 0;
+                }
+                sourceSample = (sum / sourceChannelData.length) * srcVol;
+              }
+            }
+
+            audioQueue.push(synthSample + sourceSample);
           }
 
           // AAC frames require 1024 samples
