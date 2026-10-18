@@ -81,8 +81,6 @@ export class DebugVideoOverlay {
   private panel(x: number, y: number, w: number, h: number, fill: string): void {
     this.ctx.fillStyle = fill;
     this.ctx.fillRect(x, y, w, h);
-    this.ctx.strokeStyle = 'rgba(200, 214, 101, 0.68)';
-    this.ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
   }
 
   private wave(samples: ArrayLike<number>, x: number, y: number, w: number, h: number, color: string): void {
