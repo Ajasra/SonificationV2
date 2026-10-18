@@ -79,7 +79,11 @@ export class DebugVideoOverlay {
   }
 
   private panel(x: number, y: number, w: number, h: number, fill: string): void {
-    this.ctx.fillStyle = fill;
+    const gradient = this.ctx.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.12, x + w / 2, y + h / 2, Math.hypot(w / 2, h / 2));
+    gradient.addColorStop(0, fill);
+    gradient.addColorStop(0.58, fill);
+    gradient.addColorStop(1, 'rgba(5, 8, 5, 0)');
+    this.ctx.fillStyle = gradient;
     this.ctx.fillRect(x, y, w, h);
   }
 
