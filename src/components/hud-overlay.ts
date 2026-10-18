@@ -36,6 +36,7 @@ export class HudOverlay {
 
   private enabled: boolean = false;
   private dpr: number = 1;
+  private resizeObserver: ResizeObserver | null = null;
   private startTime: number = performance.now();
   private scanPhase: number = 0;
 
@@ -60,6 +61,8 @@ export class HudOverlay {
     this.initSegmentedMeters();
     this.handleResize();
 
+    this.resizeObserver = new ResizeObserver(() => this.handleResize());
+    this.resizeObserver.observe(this.container);
     window.addEventListener('resize', () => this.handleResize());
 
     if (this.enabled) {
@@ -176,6 +179,7 @@ export class HudOverlay {
   private handleResize(): void {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = this.container.getBoundingClientRect();
+    if (rect.width <= 1 || rect.height <= 1) return;
     const w = Math.max(1, Math.floor(rect.width * this.dpr));
     const h = Math.max(1, Math.floor(rect.height * this.dpr));
 
@@ -184,8 +188,7 @@ export class HudOverlay {
       this.hudCanvas.height = h;
       this.trailCanvas.width = w;
       this.trailCanvas.height = h;
-      this.trailCtx.fillStyle = '#000000';
-      this.trailCtx.fillRect(0, 0, w, h);
+      this.trailCtx.clearRect(0, 0, w, h);
     }
   }
 

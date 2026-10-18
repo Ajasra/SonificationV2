@@ -1,5 +1,6 @@
 // Mobile Viewport, Touch Drawer & Mobile Action Bar Controller
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
+import { t } from './i18n.ts';
 import type { PresetManager } from '../presets/preset-manager.ts';
 import type { SonificationPreset } from '../types/index.ts';
 import { createResolutionSlider } from './resolution-slider.ts';
@@ -26,6 +27,10 @@ export class MobileController {
   private currentMode: 'cam' | 'scope' | 'rack' = 'cam';
 
   constructor(private opts: MobileControllerOptions) {
+    window.addEventListener('sonification-language-change', () => {
+      const modeLabel = document.getElementById('mobile-mode-label');
+      if (modeLabel) modeLabel.textContent = `[ ${t(this.currentMode.toUpperCase())} ▾ ]`;
+    });
     this.init();
   }
 
@@ -75,7 +80,7 @@ export class MobileController {
     const modeLabel = document.getElementById('mobile-mode-label');
 
     if (modeLabel) {
-      modeLabel.textContent = `[ ${mode.toUpperCase()} ▾ ]`;
+      modeLabel.textContent = `[ ${t(mode.toUpperCase())} ▾ ]`;
     }
 
     // Update active class on mode buttons

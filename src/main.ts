@@ -21,6 +21,7 @@ import { AccountManager, type StoredPreset } from './account/account-manager.ts'
 import { validatePreset } from './presets/validate-preset.ts';
 import { HudOverlay } from './components/hud-overlay.ts';
 import { createResolutionSlider } from './ui/resolution-slider.ts';
+import { getLanguage, initializeI18n, setLanguage, t, type AppLanguage } from './ui/i18n.ts';
 
 // Extracted UI Controllers
 import { QrModalController } from './ui/qr-modal.ts';
@@ -183,6 +184,7 @@ class SonificationApp {
   }
 
   constructor() {
+    this.initializeLanguageControl();
     this.initPreset();
     this.initCanvasPlaceholder();
     this.initHudOverlay();
@@ -234,6 +236,22 @@ class SonificationApp {
       if (document.hidden) releaseCamera();
       else if (this.mediaController?.getLoadedVideo()) this.mediaController.startVideoFileLoop();
     });
+  }
+
+  private initializeLanguageControl(): void {
+    const toggle = document.getElementById('language-toggle') as HTMLButtonElement | null;
+    const applyProfileLanguage = (): void => {
+      const stored = this.accountManager.user?.language;
+      if (stored === 'en' || stored === 'zh-CN') setLanguage(stored as AppLanguage);
+      else if (this.accountManager.userId) void this.accountManager.saveLanguage(getLanguage()).catch(error => console.warn('Could not save language preference', error));
+    };
+    toggle?.addEventListener('click', () => {
+      const language = getLanguage() === 'zh-CN' ? 'en' : 'zh-CN';
+      setLanguage(language);
+      void this.accountManager.saveLanguage(language).catch(error => console.warn('Could not save language preference', error));
+    });
+    this.accountManager.onChange(() => applyProfileLanguage());
+    applyProfileLanguage();
   }
 
   private initControllers(): void {
@@ -1177,7 +1195,7 @@ class SonificationApp {
     const h = this.canvas.height;
 
     if (this.statusResolution) {
-      this.statusResolution.textContent = `MODEL RESOLUTION ${w} × ${h}`;
+      this.statusResolution.textContent = `${t('MODEL RESOLUTION')} ${w} × ${h}`;
     }
 
     if (this.currentViewMode === 'source') {
@@ -1489,5 +1507,6 @@ class SonificationApp {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  initializeI18n();
   new SonificationApp();
 });

@@ -2,6 +2,7 @@
 // Base component for the unified audio/video chain rack
 import { RotaryKnob } from '../components/rotary-knob.ts';
 import type { FilterParam } from '../types/index.ts';
+import { t } from './i18n.ts';
 
 export interface BaseModuleConfig {
   id: string;
@@ -33,6 +34,7 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
 
   constructor(protected opts: ModularRackOptions<TConfig, TId>) {
     this.container = opts.container;
+    window.addEventListener('sonification-language-change', () => this.render());
     this.render();
   }
 
@@ -104,19 +106,19 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
       const catBadge = document.createElement('span');
       const catKey = desc ? desc.category : 'distortion';
       catBadge.className = `module-cat-pill cat-${catKey}`;
-      catBadge.textContent = this.opts.categoryShortNames[catKey] || catKey.toUpperCase();
-      catBadge.title = `Category: ${catKey.toUpperCase()}`;
+      catBadge.textContent = t(this.opts.categoryShortNames[catKey] || catKey.toUpperCase());
+      catBadge.title = `${t('Category:')} ${t(catKey.toUpperCase())}`;
 
       const title = document.createElement('span');
       title.className = 'module-title-text';
-      title.textContent = `${String(idx + 1).padStart(2, '0')} / ${desc ? desc.name : config.type}`;
+      title.textContent = `${String(idx + 1).padStart(2, '0')} / ${t(desc ? desc.name : config.type)}`;
 
       titleGroup.appendChild(grip);
       if (kind) {
         const kindBadge = document.createElement('span');
         kindBadge.className = `module-kind-pill kind-${kind}`;
         kindBadge.textContent = kind === 'audio' ? 'AUD' : kind === 'video' ? 'VID' : kind.toUpperCase();
-        kindBadge.title = kind === 'audio' ? 'Audio DSP module' : kind === 'video' ? 'Video module' : kind;
+        kindBadge.title = kind === 'audio' ? t('Audio DSP module') : kind === 'video' ? t('Video module') : kind;
         titleGroup.appendChild(kindBadge);
       }
       titleGroup.appendChild(catBadge);
@@ -127,8 +129,8 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
 
       const toggleBtn = document.createElement('button');
       toggleBtn.className = `btn-module-toggle ${config.enabled ? 'is-active' : 'is-bypassed'}`;
-      toggleBtn.textContent = config.enabled ? 'ON' : 'BYP';
-      toggleBtn.title = 'Bypass or engage module';
+      toggleBtn.textContent = config.enabled ? t('ON') : t('BYP');
+      toggleBtn.title = t('Bypass or engage module');
       toggleBtn.onclick = () => {
         config.enabled = !config.enabled;
         this.render();
@@ -138,7 +140,7 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
       const removeBtn = document.createElement('button');
       removeBtn.className = 'btn-module-remove';
       removeBtn.textContent = '✕';
-      removeBtn.title = 'Remove module from rack';
+      removeBtn.title = t('Remove module from rack');
       removeBtn.onclick = () => {
         const currentList = this.opts.getModules();
         currentList.splice(idx, 1);
@@ -161,8 +163,8 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
           const val = config.params[p.name] !== undefined ? config.params[p.name] : p.value;
 
           const knobTooltip = p.tooltip
-            ? `${p.label}: ${p.tooltip} [Range: ${p.min} to ${p.max}]`
-            : `${p.label} [Range: ${p.min} to ${p.max}]`;
+            ? `${t(p.label)}: ${t(p.tooltip)} [${t('Range:')} ${p.min} ${t('to')} ${p.max}]`
+            : `${t(p.label)} [${t('Range:')} ${p.min} ${t('to')} ${p.max}]`;
 
           const knob = new RotaryKnob({
             min: p.min,
@@ -170,8 +172,8 @@ export class ModularRackController<TConfig extends BaseModuleConfig, TId extends
             step: p.step,
             value: val,
             defaultValue: p.value,
-            label: p.label.split(' ')[0], // Compact label
-            tooltip: knobTooltip,
+            label: t(p.label.split(' ')[0]), // Compact label
+            tooltip: t(knobTooltip),
             size: 34,
             onChange: (newVal) => {
               config.params[p.name] = newVal;

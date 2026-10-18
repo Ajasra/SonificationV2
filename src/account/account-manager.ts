@@ -18,6 +18,7 @@ export class AccountManager {
   readonly client = new PocketBase(API_URL);
   private refreshPromise: Promise<void> | null = null;
   private lastRefreshAt = 0;
+  private languageSaveQueue: Promise<void> = Promise.resolve();
 
   constructor() {
     this.client.autoCancellation(false);
@@ -63,6 +64,15 @@ export class AccountManager {
 
   logout(): void {
     this.client.authStore.clear();
+  }
+
+  async saveLanguage(language: 'en' | 'zh-CN'): Promise<void> {
+    const userId = this.userId;
+    if (!userId) return;
+    this.languageSaveQueue = this.languageSaveQueue.catch(() => undefined).then(async () => {
+      await this.client.collection('users').update(userId, { language });
+    });
+    await this.languageSaveQueue;
   }
 
   private async ensureAuth(): Promise<void> {

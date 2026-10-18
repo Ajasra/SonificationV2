@@ -3,8 +3,16 @@
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
 import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
 import type { FilterId, VideoFilterId } from '../types/index.ts';
+import { t } from './i18n.ts';
 
 export type ModuleDomain = 'audio' | 'video';
+
+const categoryLabels: Record<string, string> = {
+  dynamics: 'DYNAMICS & LEVEL', eq: 'EQ & SPECTRAL', delay: 'DELAY & SPACE', modulation: 'MODULATION', synth: 'SYNTHESIS',
+  distortion: 'DISTORTION', lofi: 'LO-FI', raster: 'RASTER & DEFLECTION', color: 'COLOR & VOLTAGE SLICE',
+  sync: 'SYNC & TIMEBASE ERROR', tape: 'TAPE & SUBCARRIER', optic: 'OPTIC & PHOSPHOR',
+};
+const catLabel = (category: string): string => categoryLabels[category] ?? category.toUpperCase();
 
 export interface FilterLibraryModalOptions {
   onAddAudioFilter: (type: FilterId) => void;
@@ -46,7 +54,19 @@ export class FilterLibraryModalController {
   ];
 
   constructor(private opts: FilterLibraryModalOptions) {
+    window.addEventListener('sonification-language-change', () => this.refreshLanguage());
     this.bindEvents();
+    this.renderCategoryTabs();
+    this.renderList();
+  }
+
+  private refreshLanguage(): void {
+    const isAudio = this.activeDomain === 'audio';
+    if (this.modalTitle) this.modalTitle.textContent = t(isAudio ? 'Select DSP Hardware Module' : 'Select Analog Video Module');
+    if (this.modalSub) this.modalSub.textContent = t(isAudio ? 'Eurorack Filters, Delays, Resonators & Modulation' : 'CRT Deflection, TBC Skew, Colorizers & Video Synthesis');
+    if (this.filterSearchInput) this.filterSearchInput.placeholder = t(isAudio
+      ? 'Search DSP modules by name, category, or characteristics...'
+      : 'Search analog video modules by name, category, or characteristics...');
     this.renderCategoryTabs();
     this.renderList();
   }
@@ -165,7 +185,7 @@ export class FilterLibraryModalController {
     const allBtn = document.createElement('button');
     allBtn.className = `filter-cat-btn ${this.activeLibraryCategory === 'all' ? 'active' : ''}`;
     allBtn.dataset.cat = 'all';
-    allBtn.textContent = 'ALL';
+    allBtn.textContent = t('ALL');
     allBtn.onclick = () => {
       this.filterCategoryTabs?.querySelectorAll('.filter-cat-btn').forEach((b) => b.classList.remove('active'));
       allBtn.classList.add('active');
@@ -179,7 +199,7 @@ export class FilterLibraryModalController {
       const btn = document.createElement('button');
       btn.className = `filter-cat-btn ${this.activeLibraryCategory === cat.id ? 'active' : ''}`;
       btn.dataset.cat = cat.id;
-      btn.textContent = cat.id.toUpperCase();
+      btn.textContent = t(cat.label);
       btn.onclick = () => {
         this.filterCategoryTabs?.querySelectorAll('.filter-cat-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
@@ -207,9 +227,9 @@ export class FilterLibraryModalController {
         return false;
       }
       if (query) {
-        const matchName = desc.name.toLowerCase().includes(query);
-        const matchDesc = desc.description.toLowerCase().includes(query);
-        const matchCat = desc.category.toLowerCase().includes(query);
+        const matchName = desc.name.toLowerCase().includes(query) || t(desc.name).toLowerCase().includes(query);
+        const matchDesc = desc.description.toLowerCase().includes(query) || t(desc.description).toLowerCase().includes(query);
+        const matchCat = desc.category.toLowerCase().includes(query) || t(catLabel(desc.category)).toLowerCase().includes(query);
         const matchId = desc.id.toLowerCase().includes(query);
         return matchName || matchDesc || matchCat || matchId;
       }
@@ -221,9 +241,9 @@ export class FilterLibraryModalController {
       empty.className = 'library-empty-state';
       empty.innerHTML = `
         <div style="font-size: 1.6rem; margin-bottom: 8px;">🔍</div>
-        <div style="color: var(--text-primary); font-weight: 600;">No ${isAudio ? 'DSP' : 'analog video'} modules found</div>
-        <div style="margin-top: 4px; font-size: 0.68rem; color: var(--text-muted);">No modules matched "${query || activeCat}"</div>
-        <button class="btn-hw btn-hw-secondary btn-sm" style="margin-top: 12px;" id="btn-reset-unified-library">Reset Filters</button>
+        <div style="color: var(--text-primary); font-weight: 600;">${t(`No ${isAudio ? 'DSP' : 'analog video'} modules found`)}</div>
+        <div style="margin-top: 4px; font-size: 0.68rem; color: var(--text-muted);">${t('No modules matched')} "${query || activeCat}"</div>
+        <button class="btn-hw btn-hw-secondary btn-sm" style="margin-top: 12px;" id="btn-reset-unified-library">${t('Reset Filters')}</button>
       `;
       this.filterLibraryList.appendChild(empty);
       empty.querySelector('#btn-reset-unified-library')?.addEventListener('click', () => {
@@ -258,7 +278,7 @@ export class FilterLibraryModalController {
       const groupHeader = document.createElement('div');
       groupHeader.className = 'library-group-section';
       groupHeader.innerHTML = `
-        <span class="library-group-title cat-${catSection.id}">[ ${catSection.label} ]</span>
+        <span class="library-group-title cat-${catSection.id}">[ ${t(catSection.label)} ]</span>
         <span class="library-group-count">(${catItems.length})</span>
       `;
       this.filterLibraryList.appendChild(groupHeader);
@@ -269,14 +289,14 @@ export class FilterLibraryModalController {
         item.innerHTML = `
           <div>
             <div class="library-item-header">
-              <b class="library-item-title">${desc.name}</b>
-              <span class="library-item-badge cat-${desc.category}">${desc.category.toUpperCase()}</span>
+              <b class="library-item-title">${t(desc.name)}</b>
+              <span class="library-item-badge cat-${desc.category}">${t(catLabel(desc.category))}</span>
             </div>
-            <div class="library-item-desc">${desc.description}</div>
+            <div class="library-item-desc">${t(desc.description)}</div>
           </div>
           <div class="library-item-footer">
-            <span class="library-item-meta">${desc.params.length} control${desc.params.length === 1 ? '' : 's'}</span>
-            <button class="btn-library-add" title="Add ${desc.name} to ${isAudio ? 'DSP' : 'video'} rack">+</button>
+            <span class="library-item-meta">${desc.params.length} ${t('controls')}</span>
+            <button class="btn-library-add" title="${t('Add')} ${t(desc.name)} ${t(isAudio ? 'to DSP rack' : 'to video rack')}">+</button>
           </div>
         `;
         item.onclick = () => {

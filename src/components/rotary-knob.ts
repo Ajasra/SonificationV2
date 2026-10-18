@@ -1,6 +1,8 @@
 // Tactile Hardware Rotary Knob Component for Sonification V2
 // Inspired by Eurorack synth modules, Sound Devices hardware, and laboratory gear
 
+import { t } from '../ui/i18n.ts';
+
 export interface RotaryKnobOptions {
   min: number;
   max: number;
@@ -26,6 +28,7 @@ export class RotaryKnob {
   private needleElement!: SVGLineElement;
   private tickLines: SVGLineElement[] = [];
   private valueDisplay!: HTMLElement;
+  private labelElement!: HTMLElement;
 
   private static readonly START_ANGLE = -135; // degrees (7 o'clock)
   private static readonly TOTAL_ANGLE = 270;
@@ -39,7 +42,20 @@ export class RotaryKnob {
     };
     this.currentValue = this.clamp(this.options.value);
     this.element = this.buildElement();
+    window.addEventListener('sonification-language-change', () => this.localizeLabels());
     this.updateVisuals();
+  }
+
+  private localizeLabels(): void {
+    if (this.labelElement) {
+      this.labelElement.textContent = t(this.options.label);
+      this.labelElement.title = t(this.options.tooltip || this.options.label);
+    }
+    if (this.element) {
+      this.element.title = t(this.options.tooltip || '');
+      this.element.querySelector<HTMLElement>('.knob-assembly')?.setAttribute('title', t(this.options.tooltip || ''));
+    }
+    if (this.valueDisplay) this.valueDisplay.title = t('Double-click to reset, click to type');
   }
 
   private clamp(val: number): number {
@@ -79,21 +95,22 @@ export class RotaryKnob {
     const container = document.createElement('div');
     container.className = 'knob-container';
     if (this.options.tooltip) {
-      container.title = this.options.tooltip;
+    container.title = t(this.options.tooltip);
     }
 
     // Label on top (PCB silkscreen style)
     const labelEl = document.createElement('div');
     labelEl.className = 'knob-label';
-    labelEl.textContent = this.options.label;
-    labelEl.title = this.options.tooltip || this.options.label;
+    labelEl.textContent = t(this.options.label);
+    labelEl.title = t(this.options.tooltip || this.options.label);
+    this.labelElement = labelEl;
     container.appendChild(labelEl);
 
     // Knob assembly wrapper
     const assembly = document.createElement('div');
     assembly.className = 'knob-assembly';
     if (this.options.tooltip) {
-      assembly.title = this.options.tooltip;
+      assembly.title = t(this.options.tooltip);
     }
     const sz = this.options.size!;
     assembly.style.width = `${sz}px`;
@@ -152,12 +169,12 @@ export class RotaryKnob {
     this.valueDisplay = document.createElement('div');
     this.valueDisplay.className = 'knob-readout';
     this.valueDisplay.textContent = this.formatValue(this.currentValue);
-    this.valueDisplay.title = 'Double-click to reset, click to type';
+    this.valueDisplay.title = t('Double-click to reset, click to type');
 
     // Allow user to click value display to enter manual value
     this.valueDisplay.onclick = (e) => {
       e.stopPropagation();
-      const entered = prompt(`Set value for ${this.options.label}:`, String(this.currentValue));
+      const entered = prompt(`${t('Set value for')} ${t(this.options.label)}:`, String(this.currentValue));
       if (entered !== null) {
         const parsed = parseFloat(entered);
         if (!isNaN(parsed)) {
