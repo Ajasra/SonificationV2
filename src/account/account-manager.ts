@@ -70,7 +70,12 @@ export class AccountManager {
     const userId = this.userId;
     if (!userId) return;
     this.languageSaveQueue = this.languageSaveQueue.catch(() => undefined).then(async () => {
-      await this.client.collection('users').update(userId, { language });
+      if (this.userId !== userId) return;
+      const token = this.client.authStore.token;
+      const updated = await this.client.collection('users').update(userId, { language });
+      if (this.userId === userId && this.client.authStore.token === token) {
+        this.client.authStore.save(token, updated);
+      }
     });
     await this.languageSaveQueue;
   }

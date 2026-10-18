@@ -96,10 +96,13 @@ function localizeElement(element: Element): void {
 }
 
 export function getLanguage(): AppLanguage { return current; }
+export function getSavedLanguagePreference(): AppLanguage | null {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' || stored === 'zh-CN' ? stored : null;
+}
 export function t(value: string): string { return translate(value); }
 export function initializeI18n(): AppLanguage {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const initial = stored === 'en' || stored === 'zh-CN' ? stored : (navigator.language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en');
+  const initial = getSavedLanguagePreference() ?? (navigator.language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en');
   setLanguage(initial, false);
   const observer = new MutationObserver(records => {
     for (const record of records) {

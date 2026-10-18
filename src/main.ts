@@ -21,7 +21,7 @@ import { AccountManager, type StoredPreset } from './account/account-manager.ts'
 import { validatePreset } from './presets/validate-preset.ts';
 import { HudOverlay } from './components/hud-overlay.ts';
 import { createResolutionSlider } from './ui/resolution-slider.ts';
-import { getLanguage, initializeI18n, setLanguage, t, type AppLanguage } from './ui/i18n.ts';
+import { getLanguage, getSavedLanguagePreference, initializeI18n, setLanguage, t, type AppLanguage } from './ui/i18n.ts';
 
 // Extracted UI Controllers
 import { QrModalController } from './ui/qr-modal.ts';
@@ -241,9 +241,18 @@ class SonificationApp {
   private initializeLanguageControl(): void {
     const toggle = document.getElementById('language-toggle') as HTMLButtonElement | null;
     const applyProfileLanguage = (): void => {
-      const stored = this.accountManager.user?.language;
-      if (stored === 'en' || stored === 'zh-CN') setLanguage(stored as AppLanguage);
-      else if (this.accountManager.userId) void this.accountManager.saveLanguage(getLanguage()).catch(error => console.warn('Could not save language preference', error));
+      const profileLanguage = this.accountManager.user?.language;
+      const savedPreference = getSavedLanguagePreference();
+      if (savedPreference) {
+        if (getLanguage() !== savedPreference) setLanguage(savedPreference);
+        if (this.accountManager.userId && profileLanguage !== savedPreference) {
+          void this.accountManager.saveLanguage(savedPreference).catch(error => console.warn('Could not save language preference', error));
+        }
+      } else if (profileLanguage === 'en' || profileLanguage === 'zh-CN') {
+        setLanguage(profileLanguage as AppLanguage);
+      } else if (this.accountManager.userId) {
+        void this.accountManager.saveLanguage(getLanguage()).catch(error => console.warn('Could not save language preference', error));
+      }
     };
     toggle?.addEventListener('click', () => {
       const language = getLanguage() === 'zh-CN' ? 'en' : 'zh-CN';
