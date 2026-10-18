@@ -8,6 +8,7 @@ import { VideoTimeline } from './video-timeline.ts';
 
 export interface MediaControllerOptions {
   canvas: HTMLCanvasElement;
+  debugOverlayCanvas?: HTMLCanvasElement;
   offscreenCanvas: HTMLCanvasElement;
   offscreenCtx: CanvasRenderingContext2D;
   pipeline: SonificationPipeline;
@@ -532,7 +533,7 @@ export class MediaController {
       this.opts.canvas.height = Math.max(2, this.opts.canvas.height & ~1);
 
       this.opts.audioEngine.setIsRecording(true);
-      this.opts.videoRecorder.startRecording(this.opts.canvas, this.opts.audioEngine.getAudioMediaStream());
+      this.opts.videoRecorder.startRecording(this.opts.canvas, this.opts.audioEngine.getAudioMediaStream(), this.opts.debugOverlayCanvas);
       btnRec?.classList.add('recording');
       btnMobileRec?.classList.add('recording');
       if (recText) recText.textContent = 'STOP';

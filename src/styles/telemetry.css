@@ -39,6 +39,21 @@
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.95);
 }
 
+/* Video instrumentation is instantiated only for the explicit ?debug flag. */
+.canvas-frame > .debug-video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 /* Right Side Telemetry & CRT Bay (Desktop) */
 .telemetry-hud-bay {
   width: 380px;

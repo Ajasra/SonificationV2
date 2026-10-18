@@ -4,9 +4,35 @@ export class VideoRecorder {
   private recordedChunks: Blob[] = [];
   private isRecording = false;
   private chosenMime = '';
+  private compositeCanvas: HTMLCanvasElement | null = null;
+  private compositeFrame = 0;
 
-  startRecording(canvas: HTMLCanvasElement, audioStream?: MediaStream | null): void {
+  startRecording(canvas: HTMLCanvasElement, audioStream?: MediaStream | null, overlayCanvas?: HTMLCanvasElement): void {
     this.recordedChunks = [];
+
+    let captureCanvas = canvas;
+    if (overlayCanvas) {
+      const composite = document.createElement('canvas');
+      composite.width = canvas.width;
+      composite.height = canvas.height;
+      const compositeCtx = composite.getContext('2d');
+      if (compositeCtx) {
+        this.compositeCanvas = composite;
+        const drawComposite = () => {
+          if (!this.compositeCanvas) return;
+          if (composite.width !== canvas.width || composite.height !== canvas.height) {
+            composite.width = canvas.width;
+            composite.height = canvas.height;
+          }
+          compositeCtx.clearRect(0, 0, composite.width, composite.height);
+          compositeCtx.drawImage(canvas, 0, 0, composite.width, composite.height);
+          compositeCtx.drawImage(overlayCanvas, 0, 0, composite.width, composite.height);
+          this.compositeFrame = requestAnimationFrame(drawComposite);
+        };
+        drawComposite();
+        captureCanvas = composite;
+      }
+    }
 
     // Ensure even width and height for H.264/VP8/VP9 hardware encoders (especially on mobile)
     if (canvas.width % 2 !== 0) canvas.width = Math.max(2, canvas.width & ~1);
@@ -43,7 +69,7 @@ export class VideoRecorder {
     // the video track while continuing to record audio, resulting in audio-only recordings.
     let canvasStream: MediaStream;
     try {
-      canvasStream = canvas.captureStream(30);
+      canvasStream = captureCanvas.captureStream(30);
     } catch (_) {
       try {
         canvasStream = (canvas as any).mozCaptureStream ? (canvas as any).mozCaptureStream(30) : canvas.captureStream();
@@ -142,6 +168,9 @@ export class VideoRecorder {
         const ext = mime.toLowerCase().includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(this.recordedChunks, { type: mime });
         this.isRecording = false;
+        if (this.compositeFrame) cancelAnimationFrame(this.compositeFrame);
+        this.compositeFrame = 0;
+        this.compositeCanvas = null;
         resolve({ blob, mime, ext });
       };
 
