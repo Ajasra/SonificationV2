@@ -1,4 +1,4 @@
-// Tactile Hardware Rotary Knob Component for Sonification V2
+// Tactile Hardware Rotary Knob Component for Sonopticon
 // Inspired by Eurorack synth modules, Sound Devices hardware, and laboratory gear
 
 import { t } from '../ui/i18n.ts';

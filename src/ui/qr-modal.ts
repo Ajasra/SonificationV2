@@ -1,10 +1,10 @@
 // QR Code Share and Mobile Device Link Modal Controller
 import type { PresetManager } from '../presets/preset-manager.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 
 export interface QrModalOptions {
   presetManager: PresetManager;
-  getActivePreset: () => SonificationPreset;
+  getActivePreset: () => SonopticonPreset;
   getCustomHost: () => string;
   setCustomHost: (host: string) => void;
   getShareBaseUrl: () => string;

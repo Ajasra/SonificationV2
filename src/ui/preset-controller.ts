@@ -1,7 +1,7 @@
 // Preset Bar, Exploration Library & Hardware Seed / Bus Telemetry Controller
 import type { PresetManager } from '../presets/preset-manager.ts';
 import type { AccountManager, StoredPreset } from '../account/account-manager.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import { validatePreset } from '../presets/validate-preset.ts';
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
 import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
@@ -9,8 +9,8 @@ import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
 export interface PresetControllerOptions {
   presetManager: PresetManager;
   accountManager: AccountManager;
-  getActivePreset: () => SonificationPreset;
-  setActivePreset: (preset: SonificationPreset, saved?: StoredPreset) => void;
+  getActivePreset: () => SonopticonPreset;
+  setActivePreset: (preset: SonopticonPreset, saved?: StoredPreset) => void;
   onPresetChanged: () => void;
   onOpenAccountModal: (mode?: 'login' | 'register') => void;
   onShowQrForHash: (hash: string) => Promise<void>;

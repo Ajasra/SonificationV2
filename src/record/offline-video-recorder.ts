@@ -1,6 +1,6 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
-import { SonificationPipeline, PipelineResult } from '../engine/pipeline.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import { SonopticonPipeline, PipelineResult } from '../engine/pipeline.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 
 export interface OfflineRenderProgress {
   currentFrame: number;
@@ -13,8 +13,8 @@ export interface OfflineRenderOptions {
   video: HTMLVideoElement;
   canvas: HTMLCanvasElement;
   /** Create an isolated pipeline for this export; defaults to the JS reference pipeline. */
-  pipelineFactory?: () => SonificationPipeline;
-  activePreset: SonificationPreset;
+  pipelineFactory?: () => SonopticonPipeline;
+  activePreset: SonopticonPreset;
   targetFps?: number;
   audioSampleRate?: number;
   startTime?: number;
@@ -58,7 +58,7 @@ export class OfflineVideoRecorder {
     // Offline rendering must not advance the live preview's stateful filters.
     // Keep exports on the reference backend unless a separately verified factory
     // is explicitly supplied.
-    const pipeline = options.pipelineFactory?.() ?? new SonificationPipeline();
+    const pipeline = options.pipelineFactory?.() ?? new SonopticonPipeline();
 
     // Preserve original video state
     const originalTime = video.currentTime;
@@ -204,7 +204,7 @@ export class OfflineVideoRecorder {
         offCtx.drawImage(video, 0, 0, width, height);
         const srcData = offCtx.getImageData(0, 0, width, height);
 
-        // Process through the DSP sonification pipeline
+        // Process through the DSP sonopticon pipeline
         const res: PipelineResult = pipeline.processFrame(
           srcData.data,
           width,

@@ -1,4 +1,4 @@
-// Fast Lookup Tables & Inlined Math for Sonification V2
+// Fast Lookup Tables & Inlined Math for Sonopticon
 // Precalculated tables to eliminate Math.pow, Math.cbrt, Math.log, Math.exp inside pixel loops
 
 const A = 87.6;

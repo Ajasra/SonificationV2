@@ -1,4 +1,4 @@
-// Types and configuration for Sonification V2
+// Types and configuration for Sonopticon
 
 export type ColorSpace = 'RGB' | 'OHTA' | 'CMY' | 'XYZ' | 'YXY' | 'HCL' | 'LUV' | 'LAB';
 export type RawType = 'PLANAR' | 'INTERLEAVED';
@@ -131,7 +131,7 @@ export interface ChainNodeRef {
   id: string;
 }
 
-export interface SonificationPreset {
+export interface SonopticonPreset {
   id: string;
   name: string;
   description?: string;
@@ -146,5 +146,6 @@ export interface SonificationPreset {
   chain?: ChainNodeRef[];
 }
 
-export type InputSourceMode = 'image' | 'camera' | 'video_file';
+export type SonificationPreset = SonopticonPreset;
 
+export type InputSourceMode = 'image' | 'camera' | 'video_file';

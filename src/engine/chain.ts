@@ -1,6 +1,6 @@
 // Unified processing chain: one ordered list that interleaves audio DSP and video nodes.
 // Storage stays in `preset.filters` / `preset.videoFilters`; `preset.chain` only holds the order.
-import type { FilterNodeConfig, SonificationPreset, VideoFilterNodeConfig } from '../types/index.ts';
+import type { FilterNodeConfig, SonopticonPreset, VideoFilterNodeConfig } from '../types/index.ts';
 
 export type ChainEntry =
   | { kind: 'audio'; cfg: FilterNodeConfig }
@@ -11,7 +11,7 @@ export type ChainEntry =
  * from `chain` are appended (audio first, then video), so legacy presets keep the
  * historical order: audio DSP, then video rack.
  */
-export function resolveChain(preset: SonificationPreset): ChainEntry[] {
+export function resolveChain(preset: SonopticonPreset): ChainEntry[] {
   const audio = preset.filters || [];
   const video = preset.videoFilters || [];
   const out: ChainEntry[] = [];
@@ -35,7 +35,7 @@ export function resolveChain(preset: SonificationPreset): ChainEntry[] {
 }
 
 /** Write an ordered node list back into the preset (filters, videoFilters and chain). */
-export function commitChain(preset: SonificationPreset, entries: ChainEntry[]): void {
+export function commitChain(preset: SonopticonPreset, entries: ChainEntry[]): void {
   const audio: FilterNodeConfig[] = [];
   const video: VideoFilterNodeConfig[] = [];
   for (const e of entries) {

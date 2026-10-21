@@ -1,4 +1,6 @@
-# Sonification V2
+# Sonopticon
+
+*Formerly known as Sonification V2.*
 
 Browser studio and mobile camera for processing image pixels through audio DSP filters. Inputs include still images, video files, and a live camera. The studio includes a filter library, rotary controls, factory studies, custom presets, QR sharing, snapshots, and video recording.
 

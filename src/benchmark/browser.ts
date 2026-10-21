@@ -1,6 +1,6 @@
-import { SonificationPipeline } from '../engine/pipeline.ts';
+import { SonopticonPipeline } from '../engine/pipeline.ts';
 import type { PipelineTimings } from '../engine/pipeline.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import { FILTER_DESCRIPTORS, createFilterInstance } from '../engine/filters/factory.ts';
 import { TapeWowFilter } from '../engine/filters/lofi/tapewow.ts';
 import { FixtureRandom } from '../engine/fixtures/random.ts';
@@ -100,7 +100,7 @@ source.addEventListener('change', async () => {
   } catch (error) { if (currentGeneration === generation) status.textContent = String(error); }
 });
 
-function makePreset(): SonificationPreset {
+function makePreset(): SonopticonPreset {
   const stream = { rawType: 'INTERLEAVED', law: 'NONE', sign: 'UNSIGNED', bits: 8, endianess: 'LITTLE_ENDIAN', colorSpace: 'RGB' } as const;
   const types = presetSelect.value === 'tape' ? ['tapesat', 'tapewow'] as const :
     presetSelect.value === 'tapesat' ? ['tapesat'] as const :
@@ -179,8 +179,8 @@ runButton.addEventListener('click', async () => {
       return;
     }
   }
-  const pipeline = runtime ? new SonificationPipeline(runtime.createFilter, runtime.processSegment) :
-    new SonificationPipeline((type, rate) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
+  const pipeline = runtime ? new SonopticonPipeline(runtime.createFilter, runtime.processSegment) :
+    new SonopticonPipeline((type, rate) => type === 'tapewow' ? new TapeWowFilter(rate, new FixtureRandom(4821).next) : createFilterInstance(type, rate));
   const outputImage = displayContext.createImageData(1280, 720);
   const samples: Record<string, number[]> = { captureMs: [], pipelineMs: [], outputSubmitMs: [], completeCpuPathMs: [], callbackIntervalMs: [] };
   let warmupStart: number | undefined, measurementStart: number | undefined;

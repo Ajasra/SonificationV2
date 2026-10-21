@@ -1,4 +1,4 @@
-// Reusable detented (stepped) fader for Sonification V2.
+// Reusable detented (stepped) fader for Sonopticon.
 // Wraps a native <input type="range"> so keyboard, touch and a11y work for free;
 // adds a copper-ticked rail, clickable detent labels and a live readout.
 

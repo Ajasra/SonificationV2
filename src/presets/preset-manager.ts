@@ -1,12 +1,12 @@
 // Preset Manager: LocalStorage, URL Hash encoding/decoding, and QR Code generation
 import QRCode from 'qrcode';
 import { deflateSync, inflateSync, strToU8, strFromU8 } from 'fflate';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import { FACTORY_PRESETS } from './factory-presets.ts';
 
-const STORAGE_KEY = 'sonification_v2_presets';
-const HIDDEN_PRESETS_KEY = 'sonification_v2_hidden_presets';
-export const LEGACY_PRESETS_STORAGE_KEY = STORAGE_KEY;
+const STORAGE_KEY = 'sonopticon_presets';
+const HIDDEN_PRESETS_KEY = 'sonopticon_hidden_presets';
+export const LEGACY_PRESETS_STORAGE_KEY = 'sonification_v2_presets';
 export const DEFAULT_PRESETS = FACTORY_PRESETS;
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -34,7 +34,7 @@ function fromBase64Url(str: string): Uint8Array {
   return bytes;
 }
 
-function compactPreset(p: SonificationPreset): unknown[] {
+function compactPreset(p: SonopticonPreset): unknown[] {
   return [
     p.id,
     p.name,
@@ -70,7 +70,7 @@ function compactPreset(p: SonificationPreset): unknown[] {
   ];
 }
 
-function uncompactPreset(arr: unknown): SonificationPreset | null {
+function uncompactPreset(arr: unknown): SonopticonPreset | null {
   if (!Array.isArray(arr) || (arr.length !== 9 && arr.length !== 11)) return null;
   const readerArr = arr[3];
   const writerArr = arr[4];
@@ -122,7 +122,7 @@ function uncompactPreset(arr: unknown): SonificationPreset | null {
 }
 
 export class PresetManager {
-  private presets: SonificationPreset[] = [];
+  private presets: SonopticonPreset[] = [];
   private hiddenPresetIds: Set<string> = new Set();
 
   constructor() {
@@ -132,7 +132,7 @@ export class PresetManager {
 
   private loadHiddenPresets(): void {
     try {
-      const stored = localStorage.getItem(HIDDEN_PRESETS_KEY);
+      const stored = localStorage.getItem(HIDDEN_PRESETS_KEY) ?? localStorage.getItem('sonification_v2_hidden_presets');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -158,26 +158,26 @@ export class PresetManager {
       .map(preset => JSON.parse(JSON.stringify(preset)));
   }
 
-  getAllPresets(): SonificationPreset[] {
+  getAllPresets(): SonopticonPreset[] {
     return this.presets;
   }
 
-  getDefaultPresets(): SonificationPreset[] {
+  getDefaultPresets(): SonopticonPreset[] {
     return this.presets;
   }
 
-  getPresetById(id: string): SonificationPreset | undefined {
+  getPresetById(id: string): SonopticonPreset | undefined {
     return this.presets.find((p) => p.id === id) || FACTORY_PRESETS.find((p) => p.id === id);
   }
 
-  getLegacyUserPresets(): SonificationPreset[] {
+  getLegacyUserPresets(): SonopticonPreset[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_PRESETS_STORAGE_KEY);
       if (!saved) return [];
       const decoded: unknown = JSON.parse(saved);
       if (!Array.isArray(decoded)) return [];
-      return decoded.filter((item): item is SonificationPreset =>
-        !!item && typeof item === 'object' && !this.isFactoryPreset((item as SonificationPreset).id)
+      return decoded.filter((item): item is SonopticonPreset =>
+        !!item && typeof item === 'object' && !this.isFactoryPreset((item as SonopticonPreset).id)
       );
     } catch (e) {
       console.warn('Could not read legacy browser presets', e);
@@ -185,7 +185,7 @@ export class PresetManager {
     }
   }
 
-  savePreset(preset: SonificationPreset): void {
+  savePreset(preset: SonopticonPreset): void {
     const existingIdx = this.presets.findIndex((p) => p.id === preset.id);
     if (existingIdx >= 0) {
       this.presets[existingIdx] = preset;
@@ -230,7 +230,7 @@ export class PresetManager {
   }
 
   // Compress preset into compact URL hash string
-  encodePresetToHash(preset: SonificationPreset): string {
+  encodePresetToHash(preset: SonopticonPreset): string {
     // If preset matches a factory preset by ID, prefer the clean short hash
     const factory = FACTORY_PRESETS.find((fp) => fp.id === preset.id);
     if (factory && JSON.stringify(factory) === JSON.stringify(preset)) {
@@ -251,7 +251,7 @@ export class PresetManager {
   }
 
   // Decode preset from URL hash string
-  decodePresetFromHash(hashStr: string): SonificationPreset | null {
+  decodePresetFromHash(hashStr: string): SonopticonPreset | null {
     const cleanHash = hashStr.startsWith('#') ? hashStr.slice(1) : hashStr;
 
     if (cleanHash.startsWith('preset=')) {
@@ -284,7 +284,7 @@ export class PresetManager {
         } catch {
           jsonStr = atob(b64);
         }
-        return JSON.parse(jsonStr) as SonificationPreset;
+        return JSON.parse(jsonStr) as SonopticonPreset;
       } catch (e) {
         console.error('Invalid preset URL hash', e);
         return null;
@@ -295,7 +295,7 @@ export class PresetManager {
   }
 
   // Generate QR Code data URL for instant mobile scan
-  async generatePresetQrCode(preset: SonificationPreset, baseUrl?: string): Promise<string> {
+  async generatePresetQrCode(preset: SonopticonPreset, baseUrl?: string): Promise<string> {
     const hash = this.encodePresetToHash(preset);
     let base = baseUrl || (window.location.origin + window.location.pathname);
     // Always enforce https:// protocol so mobile cameras and WebRTC APIs work out of the box

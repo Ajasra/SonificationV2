@@ -7,7 +7,8 @@ import { ModularRackController } from './rack-controller.ts';
 import type {
   FilterId,
   FilterNodeConfig,
-  SonificationPreset,
+  SonopticonPreset,
+  
   VideoFilterId,
   VideoFilterNodeConfig,
 } from '../types/index.ts';
@@ -16,7 +17,7 @@ type AnyNodeConfig = FilterNodeConfig | VideoFilterNodeConfig;
 type NodeKind = 'audio' | 'video';
 
 export interface ChainRackControllerOptions {
-  getActivePreset: () => SonificationPreset;
+  getActivePreset: () => SonopticonPreset;
   onRequestRender: () => void;
 }
 

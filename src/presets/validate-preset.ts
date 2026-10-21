@@ -1,6 +1,6 @@
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
 import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 
 const COLOR_SPACES = new Set(['RGB', 'OHTA', 'CMY', 'XYZ', 'YXY', 'HCL', 'LUV', 'LAB']);
 const RAW_TYPES = new Set(['PLANAR', 'INTERLEAVED']);
@@ -9,7 +9,7 @@ const SIGNS = new Set(['SIGNED', 'UNSIGNED']);
 const ENDIANNESS = new Set(['LITTLE_ENDIAN', 'BIG_ENDIAN']);
 const BLENDS = new Set(['NONE', 'OVERLAY', 'SCREEN', 'MULTIPLY', 'DIFFERENCE', 'ADD', 'EXCLUSION']);
 
-export function validatePreset(value: unknown): SonificationPreset {
+export function validatePreset(value: unknown): SonopticonPreset {
   const fail = (message: string): never => { throw new Error(`Invalid preset: ${message}`); };
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('expected an object');
   const preset = value as Record<string, unknown>;
@@ -89,5 +89,5 @@ export function validatePreset(value: unknown): SonificationPreset {
       stringField(ref.id, 'chain entry id', 128);
     }
   }
-  return JSON.parse(JSON.stringify(preset)) as SonificationPreset;
+  return JSON.parse(JSON.stringify(preset)) as SonopticonPreset;
 }

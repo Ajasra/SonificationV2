@@ -49,4 +49,4 @@ npm run build:backend
 pm2 startOrRestart ecosystem.config.cjs --update-env
 pm2 save
 
-echo "Sonification V2 is running under PM2. Check with: pm2 status"
+echo "Sonopticon is running under PM2. Check with: pm2 status"

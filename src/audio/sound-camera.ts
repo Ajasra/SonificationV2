@@ -1,4 +1,4 @@
-// Web Audio API Player for Sonification V2
+// Web Audio API Player for Sonopticon
 // Reusable pre-allocated AudioBuffer to prevent GC stutter
 export class SoundCameraAudio {
   private ctx: AudioContext | null = null;

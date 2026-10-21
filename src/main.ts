@@ -1,7 +1,7 @@
-// Main application entry point for Sonification V2
+// Main application entry point for Sonopticon
 // Modular architecture: Photographic Studio aesthetic, Audio Rack / PCB hardware details, and Tactile Rotary Knobs
-import type { ColorSpace, CompandingLaw, FilterId, RawType, SonificationPreset, VideoFilterId } from './types/index.ts';
-import { SonificationPipeline } from './engine/pipeline.ts';
+import type { ColorSpace, CompandingLaw, FilterId, RawType, SonopticonPreset, VideoFilterId } from './types/index.ts';
+import { SonopticonPipeline } from './engine/pipeline.ts';
 import type {AppTapeSatGpu} from './engine/backends/app-tapesat.ts';
 import type {AppWebGpuVideoTail} from './engine/backends/app-webgpu-video-tail.ts';
 import type {WasmDspRuntime} from './engine/backends/wasm.ts';
@@ -33,8 +33,8 @@ import { MobileController } from './ui/mobile-controller.ts';
 import { MediaController } from './ui/media-controller.ts';
 import { PresetController } from './ui/preset-controller.ts';
 
-class SonificationApp {
-  private pipeline = new SonificationPipeline();
+export class SonopticonApp {
+  private pipeline = new SonopticonPipeline();
   private presetManager = new PresetManager();
   private accountManager = new AccountManager();
   private audioEngine = new SoundCameraAudio();
@@ -45,7 +45,7 @@ class SonificationApp {
   private offlineVideoRecorder = new OfflineVideoRecorder();
   private isSyncMode = true;
 
-  private activePreset!: SonificationPreset;
+  private activePreset!: SonopticonPreset;
 
   // DOM Elements
   private canvas = document.getElementById('main-canvas') as HTMLCanvasElement;
@@ -208,7 +208,7 @@ class SonificationApp {
       void import('./engine/backends/wasm.ts').then(async module=>{
         const runtime=await module.WasmDspRuntime.load();
         this.wasmRuntime=runtime;
-        this.pipeline=new SonificationPipeline(runtime.createFilter,runtime.processSegment,runtime.getSampleBuffer);
+        this.pipeline=new SonopticonPipeline(runtime.createFilter,runtime.processSegment,runtime.getSampleBuffer);
         this.perfBadge.dataset.benchmarkBackend='WASM';
         this.requestRender();
       }).catch(error=>{
@@ -501,7 +501,7 @@ class SonificationApp {
   }
 
   private initPreset(): void {
-    let hashPreset: SonificationPreset | null = null;
+    let hashPreset: SonopticonPreset | null = null;
     try {
       const decoded = this.presetManager.decodePresetFromHash(window.location.hash);
       if (decoded) hashPreset = validatePreset(decoded);
@@ -624,7 +624,7 @@ class SonificationApp {
     }
   }
 
-  private applyPreset(preset: SonificationPreset, saved?: StoredPreset): void {
+  private applyPreset(preset: SonopticonPreset, saved?: StoredPreset): void {
     this.activePreset = JSON.parse(JSON.stringify(validatePreset(preset)));
     this.presetController.setSavedPresetMeta(saved?.id || null, saved?.owner || null);
     this.syncFormWithPreset();
@@ -655,7 +655,7 @@ class SonificationApp {
     const isLocal = typeof window !== 'undefined' && window.location && ['localhost', '127.0.0.1'].includes(window.location.hostname);
     if (isLocal && !this.customMobileHost) throw new Error('Enter your computer’s Wi-Fi address to make a phone link.');
     if (this.customMobileHost) return `https://${this.customMobileHost}${window.location.pathname}`;
-    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://sonification.vasily.onl';
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://sonopticon.vasily.onl';
     const path = typeof window !== 'undefined' && window.location ? window.location.pathname : '/';
     return `${origin}${path}`.replace(/^http:\/\//, 'https://');
   }
@@ -729,7 +729,7 @@ class SonificationApp {
       const url = URL.createObjectURL(data);
       const downloadAnchor = document.createElement('a');
       downloadAnchor.href = url;
-      downloadAnchor.download = `sonification_preset_${Date.now()}.json`;
+      downloadAnchor.download = `sonopticon_preset_${Date.now()}.json`;
       downloadAnchor.click();
       URL.revokeObjectURL(url);
     });
@@ -1548,7 +1548,10 @@ class SonificationApp {
   }
 }
 
+export const SonificationApp = SonopticonApp;
+export type SonificationApp = SonopticonApp;
+
 window.addEventListener('DOMContentLoaded', () => {
   initializeI18n();
-  new SonificationApp();
+  new SonopticonApp();
 });

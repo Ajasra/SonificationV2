@@ -1,7 +1,7 @@
-// Curated Factory Presets for Sonification V2
-import type { SonificationPreset } from '../types/index.ts';
+// Curated Factory Presets for Sonopticon
+import type { SonopticonPreset } from '../types/index.ts';
 
-export const FACTORY_PRESETS: SonificationPreset[] = [
+export const FACTORY_PRESETS: SonopticonPreset[] = [
   {
     id: 'master_tape_warmth',
     name: 'Master Tape Warmth',

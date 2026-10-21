@@ -2,7 +2,7 @@
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import { t } from './i18n.ts';
 import type { PresetManager } from '../presets/preset-manager.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import type { AccountManager, StoredPreset } from '../account/account-manager.ts';
 import { createResolutionSlider } from './resolution-slider.ts';
 
@@ -10,9 +10,9 @@ export interface MobileControllerOptions {
   audioEngine: SoundCameraAudio;
   presetManager: PresetManager;
   accountManager?: AccountManager;
-  getActivePreset: () => SonificationPreset;
+  getActivePreset: () => SonopticonPreset;
   getSavedPresetId?: () => string | null;
-  setActivePreset: (preset: SonificationPreset, saved?: StoredPreset) => void;
+  setActivePreset: (preset: SonopticonPreset, saved?: StoredPreset) => void;
   onPresetChanged: () => void;
   onOpenAccountModal?: (mode?: 'login' | 'register') => void;
   onOpenPresetLibrary?: (mode?: 'mine' | 'explore') => void;

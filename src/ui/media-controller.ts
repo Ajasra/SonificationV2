@@ -1,9 +1,9 @@
 import type { VideoRecorder } from '../record/video-recorder.ts';
 import type { OfflineVideoRecorder } from '../record/offline-video-recorder.ts';
-import type { SonificationPipeline } from '../engine/pipeline.ts';
+import type { SonopticonPipeline } from '../engine/pipeline.ts';
 import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import type { CameraManager } from '../camera/camera-manager.ts';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import { VideoTimeline } from './video-timeline.ts';
 
 export interface MediaControllerOptions {
@@ -11,12 +11,12 @@ export interface MediaControllerOptions {
   debugOverlayCanvas?: HTMLCanvasElement;
   offscreenCanvas: HTMLCanvasElement;
   offscreenCtx: CanvasRenderingContext2D;
-  pipeline: SonificationPipeline;
+  pipeline: SonopticonPipeline;
   videoRecorder: VideoRecorder;
   offlineVideoRecorder: OfflineVideoRecorder;
   audioEngine: SoundCameraAudio;
   cameraManager: CameraManager;
-  getActivePreset: () => SonificationPreset;
+  getActivePreset: () => SonopticonPreset;
   getBusRate: () => number;
   getIsSyncMode: () => boolean;
   isMobileDevice: () => boolean;
@@ -407,7 +407,7 @@ export class MediaController {
     exportCtx.putImageData(outData, 0, 0);
 
     const link = document.createElement('a');
-    link.download = `sonification_${fullW}x${fullH}_${Date.now()}.png`;
+    link.download = `sonopticon_${fullW}x${fullH}_${Date.now()}.png`;
     link.href = exportCanvas.toDataURL('image/png');
     link.click();
   }
@@ -483,7 +483,7 @@ export class MediaController {
         const url = URL.createObjectURL(res.blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sonification_offline_${Date.now()}.${res.ext}`;
+        a.download = `sonopticon_offline_${Date.now()}.${res.ext}`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -569,14 +569,14 @@ export class MediaController {
       if (recText) recText.textContent = 'REC';
 
       if (this.opts.isMobileDevice() && typeof navigator.share === 'function') {
-        const file = new File([blob], `sonification_${Date.now()}.${ext}`, {
+        const file = new File([blob], `sonopticon_${Date.now()}.${ext}`, {
           type: blob.type || (ext === 'mp4' ? 'video/mp4' : 'video/webm'),
         });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
-              title: 'Sonification Recording',
+              title: 'Sonopticon Recording',
             });
             return;
           } catch (shareErr) {
@@ -590,7 +590,7 @@ export class MediaController {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sonification_${Date.now()}.${ext}`;
+      a.download = `sonopticon_${Date.now()}.${ext}`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {

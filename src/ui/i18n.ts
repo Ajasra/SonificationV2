@@ -1,10 +1,10 @@
 export type AppLanguage = 'en' | 'zh-CN';
 
-const STORAGE_KEY = 'sonification_v2_language';
+const STORAGE_KEY = 'sonopticon_language';
 
 const zh: Record<string, string> = {
   'Presets': '预设', 'Log in': '登录', 'Account': '账户', 'About': '关于', 'Send to phone ↗': '发送到手机 ↗',
-  'Open Presets Library': '打开预设库', 'Share Preset via QR Code to Phone': '通过二维码分享预设到手机', 'About Sonification V2': '关于 Sonification V2',
+  'Open Presets Library': '打开预设库', 'Share Preset via QR Code to Phone': '通过二维码分享预设到手机', 'About Sonopticon': '关于 Sonopticon', 'About Sonification V2': '关于 Sonopticon',
   'PATCH ARCHITECTURE': '效果链架构', 'Drawn by': '由', 'resonance': '共振', 'PATCH': '效果链', 'SEED': '种子', 'BUS': '总线',
   '00 / INPUT': '00 / 输入', 'Media & Sensor Source': '媒体与传感器输入', 'Collapse/Expand': '折叠/展开', 'Load Still Image': '加载静态图像', 'Open image': '打开图像', 'Load Video': '加载视频', 'Open video': '打开视频', 'Live Camera Feed': '实时摄像头', 'Live camera': '实时摄像头', 'Flip Camera': '切换摄像头', 'Flip': '切换', 'PREVIEW RESOLUTION': '预览分辨率',
   '01 / SOUND': '01 / 声音', 'Transducer & Master Gain': '转换器与主增益', 'Toggle Sound Output': '切换声音输出', 'AUDIO: MUTED': '音频：静音', 'AUDIO: ENGAGED': '音频：已启用',
@@ -35,9 +35,9 @@ const zh: Record<string, string> = {
   'Record Video': '录制视频', 'Toggle Audio Output': '切换音频输出', 'Toggle Audio': '切换音频', 'Close': '关闭', 'Previous': '上一页', 'Next': '下一页', 'Clear search': '清除搜索', 'Search hardware modules by name, category, or characteristics...': '按名称、类别或特征搜索硬件模块…', 'Search names, descriptions, or creators': '搜索名称、描述或作者', 'MY PRESETS': '我的预设', 'SHARED': '共享', 'AUDIO DSP MODULES': '音频 DSP 模块', 'ANALOG VIDEO MODULES': '模拟视频模块', 'USERNAME': '用户名', 'PASSWORD': '密码', 'CONFIRM PASSWORD': '确认密码', 'Log out': '退出登录', 'Import browser presets': '导入浏览器预设', 'Publish this saved preset': '公开分享此预设', 'Copy preset link ↗': '复制预设链接 ↗', 'Update QR': '更新二维码',
   'Mobile Sensor Link': '移动传感器链接', 'Scan with your phone to use its camera as a handheld sound sensor:': '用手机扫描，将手机摄像头用作手持声音传感器：', 'Preset QR Code': '预设二维码', 'LAN / WI-FI IP (FOR MOBILE ACCESS)': '局域网 / Wi-Fi IP（移动访问）', 'Browsing on localhost? Enter your computer\'s local Wi-Fi IP so your phone can reach this dev server.': '正在浏览本机地址？请输入电脑的本地 Wi-Fi IP，让手机访问此开发服务器。', 'Save and share presets': '保存并分享预设', 'Sign in to keep your presets across devices. Camera and QR presets work without an account.': '登录后可在不同设备间同步预设。摄像头与二维码预设无需账户即可使用。',
   'Switch Preset': '切换预设', 'ACTIVE STUDIES': '当前方案', 'Switch to Live Camera Feed': '切换到实时摄像头', 'Presets Library': '预设库', 'AUDIO MASTER OUTPUT': '音频主输出', 'CAMERA RESOLUTION': '摄像头分辨率', 'OPTICAL RETICLE & TELEMETRY': '光学准星与监测', 'TOGGLE RETICLE HUD': '切换准星 HUD', 'Toggle Full Desktop Studio Rack': '切换完整桌面工作室效果架',
-  'AUDIO-VISUAL DATABENDING & SOUND CAMERA': '视听数据弯折与声音摄像机', 'DIRECT DSP TRANSDUCTION': '直接 DSP 转换', 'BUS A: DIRECT DAC': '总线 A：直接 DAC', 'GND ⊕': '接地 ⊕', 'Audio DSP + Analog Video, any order': '音频 DSP + 模拟视频，可任意排序', 'MODEL RESOLUTION': '模型分辨率', 'SYNC': '同步', 'REC': '录制', 'Drop Image or Video Here': '将图像或视频拖放到此处', 'OFFLINE FRAME RENDERING': '离线帧渲染', 'CANCEL': '取消', 'DECODING VIDEO STREAM': '正在解码视频流', 'Buffering video frames into client memory...': '正在将视频帧缓冲到客户端内存…', 'LOOP ALL': '循环全部', 'POS': '位置', 'DUR': '时长', 'SAMPLE BUS': '采样总线', 'PEAK LEVEL': '峰值电平', 'SIGNAL RMS': '信号均方根', 'SCAN SEED': '扫描种子', 'TRANSDUCER SENSOR': '转换器传感器', 'LIVE CAMERA FEED': '实时摄像头画面', 'Tap anywhere to activate direct optical stream & audio transducer': '点击任意位置启用直接光学数据流与音频转换器', 'SONIFICATION V2 • AUDIO-VISUAL DATABENDING': 'SONIFICATION V2 • 视听数据弯折', 'DIRECT 32-BIT FLOATING DSP PIPELINE • FULL-RESOLUTION TRANSDUCTION': '直接 32 位浮点 DSP 流程 • 全分辨率转换', 'Live Sound Camera & Audio-Visual Databending Studio': '实时声音摄像机与视听数据弯折工作室',
+  'AUDIO-VISUAL DATABENDING & SOUND CAMERA': '视听数据弯折与声音摄像机', 'DIRECT DSP TRANSDUCTION': '直接 DSP 转换', 'BUS A: DIRECT DAC': '总线 A：直接 DAC', 'GND ⊕': '接地 ⊕', 'Audio DSP + Analog Video, any order': '音频 DSP + 模拟视频，可任意排序', 'MODEL RESOLUTION': '模型分辨率', 'SYNC': '同步', 'REC': '录制', 'Drop Image or Video Here': '将图像或视频拖放到此处', 'OFFLINE FRAME RENDERING': '离线帧渲染', 'CANCEL': '取消', 'DECODING VIDEO STREAM': '正在解码视频流', 'Buffering video frames into client memory...': '正在将视频帧缓冲到客户端内存…', 'LOOP ALL': '循环全部', 'POS': '位置', 'DUR': '时长', 'SAMPLE BUS': '采样总线', 'PEAK LEVEL': '峰值电平', 'SIGNAL RMS': '信号均方根', 'SCAN SEED': '扫描种子', 'TRANSDUCER SENSOR': '转换器传感器', 'LIVE CAMERA FEED': '实时摄像头画面', 'Tap anywhere to activate direct optical stream & audio transducer': '点击任意位置启用直接光学数据流与音频转换器', 'SONOPTICON • AUDIO-VISUAL DATABENDING': 'SONOPTICON • 视听数据弯折', 'SONIFICATION V2 • AUDIO-VISUAL DATABENDING': 'SONOPTICON • 视听数据弯折', 'DIRECT 32-BIT FLOATING DSP PIPELINE • FULL-RESOLUTION TRANSDUCTION': '直接 32 位浮点 DSP 流程 • 全分辨率转换', 'Live Sound Camera & Audio-Visual Databending Studio': '实时声音摄像机与视听数据弯折工作室',
   'RGB (Linear Byte Map)': 'RGB（线性字节映射）', 'LAB (Perceptual Opponent)': 'LAB（感知对立色）', 'LUV (Uniform Chromaticity)': 'LUV（均匀色度）', 'HCL (Chroma & Hue Polarity)': 'HCL（色度与色相极性）', 'XYZ (CIE Colorimetric Tristimulus)': 'XYZ（CIE 色度三刺激值）', 'Yxy (Luminance Chromaticity)': 'Yxy（亮度色度）', 'CMY (Subtractive Print Dyes)': 'CMY（印刷减色）', 'OHTA (Decoupled Color Variance)': 'OHTA（分离色彩变化）', 'Model Resolution': '模型分辨率',
-  'Sonification V2 turns pictures and live camera feeds into sound.': 'Sonification V2 将图片与实时摄像头画面转化为声音。', 'The app reads pixel data directly from your screen or webcam, feeds it into an audio synthesizer rack as raw signal, and paints the sound back onto the image in real time.': '应用直接读取屏幕或摄像头的像素数据，将其作为原始信号送入音频合成器效果架，再实时将声音映射回图像。', 'Pixels and audio samples are just bytes.': '像素与音频采样都只是字节。', 'When you feed an image into a synth filter, you hear textures and edges as tones and noise.': '将图像送入合成滤波器时，你会以音调与噪声听见纹理和边缘。', 'When you route that audio back into the picture, the sound bends the frame.': '将音频再路由回图像时，声音会弯折画面。', 'It is a two-way loop where visual art and electronic music run on the exact same signal wire.': '这是一个双向回路，视觉艺术与电子音乐沿着同一条信号线运行。', 'Stream smartphone or desktop optical sensors into continuous transduction loops. Use': '将手机或桌面光学传感器接入连续转换回路。使用', 'to transfer session parameters via QR code.': '通过二维码传输当前会话参数。', 'Chain modules including diode ladders, state-variable filters, Karplus-Strong physical models, Buchla-style wavefolders, and delay lines.': '串接二极管梯形滤波器、状态变量滤波器、Karplus-Strong 物理模型、Buchla 风格波形折叠器与延迟线。', 'Persist parameter configurations, save study revisions, inspect community patches, and export raw recordings.': '保存参数配置与方案版本、浏览社区效果链并导出原始录音。',
+  'Sonopticon turns pictures and live camera feeds into sound.': 'Sonopticon 将图片与实时摄像头画面转化为声音。', 'Sonification V2 turns pictures and live camera feeds into sound.': 'Sonopticon 将图片与实时摄像头画面转化为声音。', 'The app reads pixel data directly from your screen or webcam, feeds it into an audio synthesizer rack as raw signal, and paints the sound back onto the image in real time.': '应用直接读取屏幕或摄像头的像素数据，将其作为原始信号送入音频合成器效果架，再实时将声音映射回图像。', 'Pixels and audio samples are just bytes.': '像素与音频采样都只是字节。', 'When you feed an image into a synth filter, you hear textures and edges as tones and noise.': '将图像送入合成滤波器时，你会以音调与噪声听见纹理和边缘。', 'When you route that audio back into the picture, the sound bends the frame.': '将音频再路由回图像时，声音会弯折画面。', 'It is a two-way loop where visual art and electronic music run on the exact same signal wire.': '这是一个双向回路，视觉艺术与电子音乐沿着同一条信号线运行。', 'Stream smartphone or desktop optical sensors into continuous transduction loops. Use': '将手机或桌面光学传感器接入连续转换回路。使用', 'to transfer session parameters via QR code.': '通过二维码传输当前会话参数。', 'Chain modules including diode ladders, state-variable filters, Karplus-Strong physical models, Buchla-style wavefolders, and delay lines.': '串接二极管梯形滤波器、状态变量滤波器、Karplus-Strong 物理模型、Buchla 风格波形折叠器与延迟线。', 'Persist parameter configurations, save study revisions, inspect community patches, and export raw recordings.': '保存参数配置与方案版本、浏览社区效果链并导出原始录音。',
   'SOURCE': '输入源', 'SYNTH': '合成器', 'Direct DSP Transduction': '直接 DSP 转换',
   'Switch language': '切换语言', 'Switch to Chinese': '切换到中文', 'Switch to English': '切换到英语', 'EN': 'EN', '中文': '中文', 'Send to phone': '发送到手机',
   '04 / CHAIN': '04 / 效果链', '[PCB RACK REV 2.4]': '[PCB 效果架版本 2.4]',
@@ -97,7 +97,7 @@ function localizeElement(element: Element): void {
 
 export function getLanguage(): AppLanguage { return current; }
 export function getSavedLanguagePreference(): AppLanguage | null {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('sonification_v2_language');
   return stored === 'en' || stored === 'zh-CN' ? stored : null;
 }
 export function t(value: string): string { return translate(value); }
@@ -116,9 +116,12 @@ export function initializeI18n(): AppLanguage {
 export function setLanguage(language: AppLanguage, persist = true): void {
   current = language;
   document.documentElement.lang = language === 'zh-CN' ? 'zh-CN' : 'en';
-  document.title = language === 'zh-CN' ? 'Sonification V2 — 实时声音摄像机与数据弯折工作室' : 'Sonification V2 — Live Sound Camera & Databending Studio';
+  document.title = language === 'zh-CN' ? 'Sonopticon — 实时声音摄像机与数据弯折工作室' : 'Sonopticon — Live Sound Camera & Databending Studio';
   if (persist) localStorage.setItem(STORAGE_KEY, language);
   if (document.body) localizeElement(document.body);
   updateLanguageControl();
-  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('sonification-language-change', { detail: language }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('sonopticon-language-change', { detail: language }));
+    window.dispatchEvent(new CustomEvent('sonification-language-change', { detail: language }));
+  }
 }

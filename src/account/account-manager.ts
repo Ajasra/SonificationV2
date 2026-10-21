@@ -1,5 +1,5 @@
 import PocketBase, { type RecordModel } from 'pocketbase';
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset, SonificationPreset } from '../types/index.ts';
 import { validatePreset } from '../presets/validate-preset.ts';
 
 export interface StoredPreset extends RecordModel {
@@ -111,20 +111,20 @@ export class AccountManager {
     return { items: result.items, totalPages: result.totalPages };
   }
 
-  async getPublic(id: string): Promise<SonificationPreset> {
+  async getPublic(id: string): Promise<SonopticonPreset> {
     const record = await this.client.collection('presets').getOne<StoredPreset>(id, { fields: 'id,name,description,payload,visibility' });
     if (record.visibility !== 'public' || !record.payload) throw new Error('This shared preset is no longer public.');
     return validatePreset(record.payload);
   }
 
-  async getOwned(id: string): Promise<SonificationPreset> {
+  async getOwned(id: string): Promise<SonopticonPreset> {
     await this.ensureAuth();
     const record = await this.client.collection('presets').getOne<StoredPreset>(id, { fields: 'id,owner,name,description,payload,visibility' });
     if (record.owner !== this.userId || !record.payload) throw new Error('This preset is not in your library.');
     return validatePreset(record.payload);
   }
 
-  async save(preset: SonificationPreset): Promise<StoredPreset> {
+  async save(preset: SonopticonPreset): Promise<StoredPreset> {
     await this.ensureAuth();
     const valid = validatePreset(preset);
     return this.client.collection('presets').create<StoredPreset>({ owner: this.userId, name: valid.name, description: valid.description || '', payload: valid, schemaVersion: 1, visibility: 'private', authorName: this.user?.username || '' });

@@ -1,9 +1,9 @@
-# Sonification V2 — Product Requirements Document (PRD)
+# Sonopticon — Product Requirements Document (PRD)
 
 ---
 
 ## 1. Product Overview
-**Sonification V2** is a real-time web application and creative mobile sound camera that translates digital imagery into audio waveforms, applies audio digital signal processing (DSP), and reconstructs the output into glitched visuals accompanied by synthesized audio.
+**Sonopticon** is a real-time web application and creative mobile sound camera that translates digital imagery into audio waveforms, applies audio digital signal processing (DSP), and reconstructs the output into glitched visuals accompanied by synthesized audio.
 
 ---
 

@@ -3,7 +3,7 @@
 //   audio segment: Color Transform -> Stream Encode -> fused DSP chain -> Stream Decode -> Color Revert
 //   video segment: in-place RGBA filters
 // Equalize and Blend run once, right after the last audio segment.
-import type { SonificationPreset, BlendMode, VideoFrameContext } from '../types/index.ts';
+import type { SonopticonPreset, BlendMode, VideoFrameContext } from '../types/index.ts';
 import { convertToColorSpace, convertFromColorSpace } from './colorspaces.ts';
 import { imageToAudioStream, audioStreamToImage } from './streams.ts';
 import { equalizeHistogram } from './equalizer.ts';
@@ -59,8 +59,8 @@ type Segment =
   | { kind: 'audio'; filters: IDspFilter[]; isLast: boolean }
   | { kind: 'video'; filters: IVideoFilter[] };
 
-export class SonificationPipeline {
-  tapeSatState(preset:SonificationPreset,width:number,height:number,id:string,state?:ReturnType<TapeSaturationFilter['exportState']>) {
+export class SonopticonPipeline {
+  tapeSatState(preset:SonopticonPreset,width:number,height:number,id:string,state?:ReturnType<TapeSaturationFilter['exportState']>) {
     this.syncChain(preset,width,height);
     const filter=this.instanceCache.get(`audio:${id}`)?.inst;
     if(!(filter instanceof TapeSaturationFilter))throw new Error('TapeSat instance unavailable');
@@ -113,7 +113,7 @@ export class SonificationPipeline {
 
     if (this.lastChunkSamples !== numSamples) {
       this.chunkViews = [];
-      const CHUNK_SIZE = SonificationPipeline.CHUNK_SIZE;
+      const CHUNK_SIZE = SonopticonPipeline.CHUNK_SIZE;
       for (let offset = 0; offset < numSamples; offset += CHUNK_SIZE) {
         const end = Math.min(offset + CHUNK_SIZE, numSamples);
         this.chunkViews.push(this.workAudioBuffer.subarray(offset, end));
@@ -123,7 +123,7 @@ export class SonificationPipeline {
   }
 
   /** Rebuild segments if the chain structure changed; otherwise push params in place. */
-  private syncChain(preset: SonificationPreset, width: number, height: number): void {
+  private syncChain(preset: SonopticonPreset, width: number, height: number): void {
     // UI edits may mutate arrays/configs in place. Reference equality cannot detect
     // enabled/order/type/rate changes, and replacement configs need fresh params.
     const ordered = resolveChain(preset);
@@ -218,7 +218,7 @@ export class SonificationPipeline {
     inputRgba: Uint8ClampedArray,
     width: number,
     height: number,
-    preset: SonificationPreset,
+    preset: SonopticonPreset,
     outputTargetRgba?: Uint8ClampedArray,
     options?: PipelineFrameOptions
   ): PipelineResult {
@@ -230,7 +230,7 @@ export class SonificationPipeline {
     inputRgba: Uint8ClampedArray,
     width: number,
     height: number,
-    preset: SonificationPreset,
+    preset: SonopticonPreset,
     outputTargetRgba?: Uint8ClampedArray,
     options?: PipelineFrameOptions,
     videoTailCount?: number
@@ -254,7 +254,7 @@ export class SonificationPipeline {
     inputRgba: Uint8ClampedArray,
     width: number,
     height: number,
-    preset: SonificationPreset,
+    preset: SonopticonPreset,
     outputTargetRgba: Uint8ClampedArray|undefined,
     options: PipelineFrameOptions|undefined,
     splitFinalVideo: boolean,
@@ -511,3 +511,6 @@ export class SonificationPipeline {
     }
   }
 }
+
+export const SonificationPipeline = SonopticonPipeline;
+export type SonificationPipeline = SonopticonPipeline;

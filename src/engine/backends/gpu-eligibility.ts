@@ -1,4 +1,4 @@
-import type {SonificationPreset,FilterNodeConfig,VideoFilterNodeConfig} from '../../types/index.ts';
+import type {SonopticonPreset,FilterNodeConfig,VideoFilterNodeConfig} from '../../types/index.ts';
 import {resolveChain} from '../chain.ts';
 
 /** Implementations the app can route to a GPU executor; this is inventory, not auto-route approval. */
@@ -37,7 +37,7 @@ export interface ApplicationRoutePlan {
   fallbackReason?:string;
 }
 
-export function planApplicationRoute(input:{requested:ApplicationRouteId;preset:SonificationPreset;width:number;height:number;webGpuAvailable:boolean;videoTailAvailable?:boolean;fileVideo:boolean;cameraActive:boolean}):ApplicationRoutePlan {
+export function planApplicationRoute(input:{requested:ApplicationRouteId;preset:SonopticonPreset;width:number;height:number;webGpuAvailable:boolean;videoTailAvailable?:boolean;fileVideo:boolean;cameraActive:boolean}):ApplicationRoutePlan {
   const active=resolveChain(input.preset).filter(entry=>entry.cfg.enabled);
   const activeNodeIds=active.map(entry=>entry.cfg.id);
   const videoSuffix:{kind:'video';cfg:typeof active[number]['cfg']}[]=[];
@@ -95,7 +95,7 @@ export function isAccelerationBenchmark(requestedBackend:string|null):boolean {
   return requestedBackend==='js' || requestedBackend==='wasm' || requestedBackend==='tapesat' || requestedBackend==='auto' || requestedBackend==='cpu-reference' || requestedBackend==='cpu-gpu-video-tail' || requestedBackend==='gpu-resident-rack';
 }
 
-export function eligibleTapeSat(preset:SonificationPreset,width:number,height:number):FilterNodeConfig | undefined {
+export function eligibleTapeSat(preset:SonopticonPreset,width:number,height:number):FilterNodeConfig | undefined {
   if(width!==1280 || height!==720 || preset.equalize || preset.blendMode!=='NONE')return;
   for(const config of [preset.reader,preset.writer])if(config.bits!==8 || config.sign!=='UNSIGNED' || config.rawType!=='INTERLEAVED' || config.law!=='NONE' || config.colorSpace!=='RGB')return;
   const active=resolveChain(preset).filter(entry=>entry.cfg.enabled);
@@ -103,7 +103,7 @@ export function eligibleTapeSat(preset:SonificationPreset,width:number,height:nu
   return active[0].cfg;
 }
 
-export function eligibleResidentVideoRack(preset:SonificationPreset,width:number,height:number):{audio:FilterNodeConfig;video:VideoFilterNodeConfig[]}|undefined {
+export function eligibleResidentVideoRack(preset:SonopticonPreset,width:number,height:number):{audio:FilterNodeConfig;video:VideoFilterNodeConfig[]}|undefined {
   if(width!==1280||height!==720||preset.equalize||preset.blendMode!=='NONE')return;
   for(const config of [preset.reader,preset.writer])if(config.bits!==8||config.sign!=='UNSIGNED'||config.rawType!=='INTERLEAVED'||config.law!=='NONE'||config.colorSpace!=='RGB')return;
   const active=resolveChain(preset).filter(entry=>entry.cfg.enabled);

@@ -14,7 +14,7 @@ port = port || '38472';
 module.exports = {
   apps: [
     {
-      name: 'sonification-v2',
+      name: 'sonopticon',
       script: path.join(appDir, 'pocketbase'),
       interpreter: 'none',
       cwd: appDir,

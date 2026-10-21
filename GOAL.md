@@ -1,9 +1,9 @@
-# Sonification V2 — Project Goals
+# Sonopticon — Project Goals
 
 ## 1. Vision Statement
 Transform the legacy 2015–2016 desktop Processing image-sonification sketch (`Tomasz Sulej & Bob Verkouteren`) into a modern, high-performance, real-time web application and mobile **"Sound Camera"**. 
 
-Sonification V2 bridges visual databending and auditory synthesis: it treats digital image pixels and live video scanlines as continuous 1D audio waveforms, passes them through classic audio DSP plugin chains (biquad EQs, recursive delays, phasers, TB-303 acid filters, vinyl noise, analog tube saturation), renders the resulting glitched visuals at 60 FPS, and plays back the sonic waveform directly through device speakers.
+Sonopticon bridges visual databending and auditory synthesis: it treats digital image pixels and live video scanlines as continuous 1D audio waveforms, passes them through classic audio DSP plugin chains (biquad EQs, recursive delays, phasers, TB-303 acid filters, vinyl noise, analog tube saturation), renders the resulting glitched visuals at 60 FPS, and plays back the sonic waveform directly through device speakers.
 
 ---
 

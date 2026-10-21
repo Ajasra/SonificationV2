@@ -1,4 +1,4 @@
-import type { SonificationPreset } from '../types/index.ts';
+import type { SonopticonPreset } from '../types/index.ts';
 import { FILTER_DESCRIPTORS } from '../engine/filters/factory.ts';
 import { VIDEO_FILTER_DESCRIPTORS } from '../engine/video-filters/factory.ts';
 import { resolveChain } from '../engine/chain.ts';
@@ -17,7 +17,7 @@ export class DebugVideoOverlay {
     frame.appendChild(this.canvas);
   }
 
-  update(preset: SonificationPreset, width: number, height: number, raw?: ArrayLike<number>, output?: ArrayLike<number>): void {
+  update(preset: SonopticonPreset, width: number, height: number, raw?: ArrayLike<number>, output?: ArrayLike<number>): void {
     if (raw) this.rawSamples = raw;
     if (output) this.outputSamples = output;
     if (this.canvas.width !== width || this.canvas.height !== height) {
@@ -27,7 +27,7 @@ export class DebugVideoOverlay {
     this.draw(preset);
   }
 
-  private draw(preset: SonificationPreset): void {
+  private draw(preset: SonopticonPreset): void {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
