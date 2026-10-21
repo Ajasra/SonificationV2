@@ -52,11 +52,9 @@ export class DebugVideoOverlay {
     });
     if (nodes.length > maxRows && rows.length) rows[rows.length - 1] = `… +${nodes.length - maxRows} MODULES`;
     const maxTextWidth = Math.min(Math.round(w * 0.44), Math.round(w * 0.5));
-    const pipelineWidth = Math.min(maxTextWidth, Math.max(Math.round(w * 0.28), ...rows.map(row => Math.ceil(ctx.measureText(row).width + pad * 2))));
     const pipelineHeight = pad * 2 + line * (rows.length + 1);
     const left = pad;
     const bottom = h - pad;
-    this.panel(left, bottom - pipelineHeight, pipelineWidth, pipelineHeight, 'rgba(5, 8, 5, 0.52)');
     ctx.fillStyle = '#c8d665';
     ctx.fillText('PIPE / A→V', left + pad, bottom - pipelineHeight + pad + line / 2);
     rows.forEach((row, index) => {
@@ -69,22 +67,12 @@ export class DebugVideoOverlay {
     const graphHeight = Math.max(Math.round(h * 0.16), Math.round(58 * scale));
     const x = w - pad - graphWidth;
     const y = h - pad - graphHeight;
-    this.panel(x, y, graphWidth, graphHeight, 'rgba(5, 8, 5, 0.50)');
     ctx.fillStyle = '#c8d665';
     ctx.fillText('SCOPE / RAW · OUT', x + pad, y + pad + line / 2);
     const graphTop = y + pad + line;
     const graphBottom = h - pad - pad;
     this.wave(this.rawSamples, x + pad, graphTop, graphWidth - pad * 2, graphBottom - graphTop, 'rgba(212, 163, 115, 0.85)');
     this.wave(this.outputSamples, x + pad, graphTop, graphWidth - pad * 2, graphBottom - graphTop, '#c8d665');
-  }
-
-  private panel(x: number, y: number, w: number, h: number, fill: string): void {
-    const gradient = this.ctx.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.12, x + w / 2, y + h / 2, Math.hypot(w / 2, h / 2));
-    gradient.addColorStop(0, fill);
-    gradient.addColorStop(0.58, fill);
-    gradient.addColorStop(1, 'rgba(5, 8, 5, 0)');
-    this.ctx.fillStyle = gradient;
-    this.ctx.fillRect(x, y, w, h);
   }
 
   private wave(samples: ArrayLike<number>, x: number, y: number, w: number, h: number, color: string): void {
