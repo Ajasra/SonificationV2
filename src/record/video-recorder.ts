@@ -44,24 +44,20 @@ export class VideoRecorder {
       (/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
 
     // Codec negotiation:
-    // iOS/Safari requires MP4 (H.264 + AAC) and does not support WebM.
-    // Android/Chrome/Firefox perform best with WebM (VP8/H.264 + Opus).
-    const preferredMimes = isIOSorSafari
-      ? [
-          'video/mp4;codecs=avc1,mp4a.40.2',
-          'video/mp4;codecs=avc1',
-          'video/mp4',
-          'video/webm;codecs=vp8,opus',
-          'video/webm',
-        ]
-      : [
-          'video/webm;codecs=vp8,opus',
-          'video/webm;codecs=h264,opus',
-          'video/webm;codecs=vp9,opus',
-          'video/webm',
-          'video/mp4;codecs=avc1,mp4a.40.2',
-          'video/mp4',
-        ];
+    // Prioritize MP4 (H.264/AVC + AAC) across all platforms (iOS, Android, desktop)
+    // for direct compatibility with social platforms (Instagram, WeChat, TikTok) without transcoding.
+    // Falls back gracefully to WebM (VP8/VP9/H.264 + Opus) if the browser's MediaRecorder lacks MP4 support.
+    const preferredMimes = [
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4;codecs=avc1.4d401f,mp4a.40.2',
+      'video/mp4;codecs=avc1',
+      'video/mp4',
+      'video/webm;codecs=h264,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9,opus',
+      'video/webm',
+    ];
 
     // Capture canvas stream at steady 30 FPS.
     // DO NOT use captureStream(0) on mobile: captureStream(0) lacks monotonic presentation timestamps,
