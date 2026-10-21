@@ -178,7 +178,6 @@ export class MobileController {
     if (isMobile) {
       this.setFullscreenMode(true, false);
       this.setMode('cam');
-      this.opts.onStartCamera().catch(() => {});
     }
 
     document.getElementById('btn-mobile-burger')?.addEventListener('click', () => {
