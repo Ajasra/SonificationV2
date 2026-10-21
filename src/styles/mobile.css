@@ -802,6 +802,28 @@ body.is-fullscreen .mobile-start-overlay {
   }
 
   .drawer-account-actions { display: grid; gap: 8px; margin-top: 12px; }
+  .drawer-top-auth { margin-bottom: 6px; }
+  .drawer-shared-actions { display: grid; gap: 8px; margin-top: 12px; margin-bottom: 4px; }
+  .mobile-preset-empty {
+    padding: 16px 12px;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-mid);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .mobile-preset-empty-msg {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .mobile-preset-loading {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--accent-phosphor);
+    font-family: var(--font-mono);
+  }
 
   .account-modal-card { width: min(440px, calc(100vw - 32px)); }
   .account-input { width: 100%; margin: 5px 0 12px; }

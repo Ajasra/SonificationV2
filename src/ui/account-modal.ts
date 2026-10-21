@@ -128,8 +128,16 @@ export class AccountModalController {
 
     const accountBtn = document.getElementById('btn-account');
     if (accountBtn) accountBtn.textContent = user ? user.username : 'Account';
-    const mobileBtn = document.getElementById('btn-account-mobile') || document.getElementById('btn-drawer-account');
-    if (mobileBtn) mobileBtn.textContent = user ? user.username : 'Log in';
+    const mobileBtn = document.getElementById('btn-drawer-account') || document.getElementById('btn-account-mobile');
+    if (mobileBtn) {
+      if (user) {
+        mobileBtn.textContent = `Account: ${user.username}`;
+        mobileBtn.className = 'btn-hw btn-hw-secondary btn-block';
+      } else {
+        mobileBtn.textContent = 'Log in';
+        mobileBtn.className = 'btn-hw btn-hw-primary btn-block';
+      }
+    }
     const libBtn = document.getElementById('btn-library-account');
     if (libBtn) libBtn.textContent = user ? `Signed in as ${user.username}` : 'Log in to sync';
 

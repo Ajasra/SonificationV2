@@ -81,3 +81,16 @@ test('Mobile view safety net: Image and video upload hidden on mobile screens', 
   assert.ok(mobileCss.includes('#input-video-file'), 'mobile.css must target #input-video-file for mobile hiding');
   assert.ok(mobileCss.includes('.file-label'), 'mobile.css must target .file-label for mobile hiding');
 });
+
+test("Mobile drawer safety net: Top auth button, user presets list, and shared presets explore link exist in order", () => {
+  const accountBtnPos = htmlContent.indexOf('id="btn-drawer-account"');
+  const presetListPos = htmlContent.indexOf('id="mobile-preset-list"');
+  const exploreBtnPos = htmlContent.indexOf('id="btn-drawer-explore"');
+
+  assert.ok(accountBtnPos !== -1, "Login/Account button must exist in mobile drawer");
+  assert.ok(presetListPos !== -1, "Preset list must exist in mobile drawer");
+  assert.ok(exploreBtnPos !== -1, "Explore shared presets button must exist in mobile drawer");
+
+  assert.ok(accountBtnPos < presetListPos, "Login/Account button must be located before the preset list (at the top of the menu)");
+  assert.ok(presetListPos < exploreBtnPos, "Explore shared presets link must be located below the preset list");
+});

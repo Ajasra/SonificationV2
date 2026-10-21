@@ -609,13 +609,17 @@
       </div>
 
       <div class="drawer-scrollable">
-        <button id="btn-drawer-camera" class="btn-hw btn-hw-primary btn-block" style="margin-bottom: 8px;">
+        <div class="drawer-top-auth">
+          <button id="btn-drawer-account" class="btn-hw btn-hw-primary btn-block">Log in</button>
+        </div>
+        <button id="btn-drawer-camera" class="btn-hw btn-hw-secondary btn-block" style="margin-bottom: 12px;">
           Switch to Live Camera Feed
         </button>
+        <div class="drawer-section-title">MY PRESETS</div>
         <div id="mobile-preset-list" class="mobile-preset-list"></div>
-        <div class="drawer-account-actions">
-          <button id="btn-drawer-presets" class="btn-hw btn-hw-secondary btn-block">Presets Library</button>
-          <button id="btn-drawer-account" class="btn-hw btn-hw-secondary btn-block">Log in</button>
+        <div class="drawer-shared-actions">
+          <button id="btn-drawer-explore" class="btn-hw btn-hw-secondary btn-block">Explore shared presets →</button>
+          <button id="btn-drawer-presets" class="hidden" aria-hidden="true"></button>
         </div>
 
         <div class="drawer-section">

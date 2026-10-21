@@ -3,14 +3,19 @@ import type { SoundCameraAudio } from '../audio/sound-camera.ts';
 import { t } from './i18n.ts';
 import type { PresetManager } from '../presets/preset-manager.ts';
 import type { SonificationPreset } from '../types/index.ts';
+import type { AccountManager, StoredPreset } from '../account/account-manager.ts';
 import { createResolutionSlider } from './resolution-slider.ts';
 
 export interface MobileControllerOptions {
   audioEngine: SoundCameraAudio;
   presetManager: PresetManager;
+  accountManager?: AccountManager;
   getActivePreset: () => SonificationPreset;
-  setActivePreset: (preset: SonificationPreset) => void;
+  getSavedPresetId?: () => string | null;
+  setActivePreset: (preset: SonificationPreset, saved?: StoredPreset) => void;
   onPresetChanged: () => void;
+  onOpenAccountModal?: (mode?: 'login' | 'register') => void;
+  onOpenPresetLibrary?: (mode?: 'mine' | 'explore') => void;
   onToggleCamera: () => Promise<void>;
   onStartCamera: () => Promise<boolean>;
   onFlipCamera: () => Promise<void>;
@@ -25,6 +30,8 @@ export interface MobileControllerOptions {
 export class MobileController {
   private isFullscreenMode = false;
   private currentMode: 'cam' | 'scope' | 'rack' = 'cam';
+  private userPresets: StoredPreset[] = [];
+  private isLoadingUserPresets = false;
 
   constructor(private opts: MobileControllerOptions) {
     window.addEventListener('sonification-language-change', () => {
@@ -112,8 +119,30 @@ export class MobileController {
     this.opts.onModeChanged?.(mode);
   }
 
+  public async refreshUserPresets(): Promise<void> {
+    if (!this.opts.accountManager?.userId) {
+      this.userPresets = [];
+      this.renderPresetDrawer();
+      return;
+    }
+
+    this.isLoadingUserPresets = true;
+    try {
+      const result = await this.opts.accountManager.listMine(1, '');
+      this.userPresets = result.items;
+    } catch (e) {
+      console.warn('Failed to load user presets for mobile drawer', e);
+    } finally {
+      this.isLoadingUserPresets = false;
+      this.renderPresetDrawer();
+    }
+  }
+
   public openDrawer(): void {
     this.renderPresetDrawer();
+    if (this.opts.accountManager?.userId) {
+      void this.refreshUserPresets();
+    }
     document.getElementById('mobile-preset-drawer')?.classList.add('open');
     document.getElementById('mobile-drawer-backdrop')?.classList.remove('hidden');
     document.getElementById('mobile-drawer-backdrop')?.classList.add('open');
@@ -131,12 +160,41 @@ export class MobileController {
     const list = document.getElementById('mobile-preset-list');
     if (!list) return;
     list.innerHTML = '';
-    const presets = this.opts.presetManager.getAllPresets();
-    const active = this.opts.getActivePreset();
 
-    for (const p of presets) {
+    const isLoggedIn = !!this.opts.accountManager?.userId;
+    const active = this.opts.getActivePreset();
+    const activeSavedId = this.opts.getSavedPresetId ? this.opts.getSavedPresetId() : null;
+
+    if (!isLoggedIn) {
+      const emptyCard = document.createElement('div');
+      emptyCard.className = 'mobile-preset-empty';
+      emptyCard.innerHTML = '<p class="mobile-preset-empty-msg">Log in to view and switch your personal presets.</p>';
+      list.appendChild(emptyCard);
+      this.updatePresetBadge();
+      return;
+    }
+
+    if (this.isLoadingUserPresets && this.userPresets.length === 0) {
+      const loadingCard = document.createElement('div');
+      loadingCard.className = 'mobile-preset-loading';
+      loadingCard.textContent = 'Loading your presets…';
+      list.appendChild(loadingCard);
+      this.updatePresetBadge();
+      return;
+    }
+
+    if (this.userPresets.length === 0) {
+      const emptyCard = document.createElement('div');
+      emptyCard.className = 'mobile-preset-empty';
+      emptyCard.innerHTML = '<p class="mobile-preset-empty-msg">No personal presets saved yet. Customize parameters and save your preset to see it here.</p>';
+      list.appendChild(emptyCard);
+      this.updatePresetBadge();
+      return;
+    }
+
+    for (const p of this.userPresets) {
       const item = document.createElement('div');
-      const isActive = p.id === active.id;
+      const isActive = activeSavedId ? activeSavedId === p.id : (active.name === p.name);
       item.className = `mobile-preset-item ${isActive ? 'active' : ''}`;
       item.innerHTML = `
         <div class="mobile-preset-item-header">
@@ -145,11 +203,19 @@ export class MobileController {
         </div>
         ${p.description ? `<p class="mobile-preset-item-desc">${this.escapeHtml(p.description)}</p>` : ''}
       `;
-      item.onclick = () => {
-        this.opts.setActivePreset(JSON.parse(JSON.stringify(p)));
-        this.opts.onPresetChanged();
-        this.updatePresetBadge();
-        this.closeDrawer();
+      item.onclick = async () => {
+        try {
+          if (this.opts.accountManager) {
+            const fullPreset = await this.opts.accountManager.getOwned(p.id);
+            this.opts.setActivePreset(fullPreset, p);
+            this.opts.onPresetChanged();
+            this.updatePresetBadge();
+            this.renderPresetDrawer();
+            this.closeDrawer();
+          }
+        } catch (err) {
+          console.error('Failed to load user preset', err);
+        }
       };
       list.appendChild(item);
     }
@@ -195,6 +261,16 @@ export class MobileController {
       }
       await this.opts.onStartCamera();
       this.closeDrawer();
+    });
+
+    document.getElementById('btn-drawer-explore')?.addEventListener('click', () => {
+      this.closeDrawer();
+      this.opts.onOpenPresetLibrary?.('explore');
+    });
+
+    document.getElementById('btn-drawer-account')?.addEventListener('click', () => {
+      this.closeDrawer();
+      this.opts.onOpenAccountModal?.('login');
     });
 
     document.getElementById('btn-close-mobile-drawer')?.addEventListener('click', () => {
@@ -333,6 +409,9 @@ export class MobileController {
     }
 
     this.renderPresetDrawer();
+    if (this.opts.accountManager?.userId) {
+      void this.refreshUserPresets();
+    }
     this.updatePresetBadge();
   }
 }

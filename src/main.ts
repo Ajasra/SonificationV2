@@ -317,10 +317,25 @@ class SonificationApp {
 
     this.accountModalController = new AccountModalController({
       accountManager: this.accountManager,
-      onAuthStateChanged: () => {
+      onAuthStateChanged: async () => {
         this.presetController?.renderPresetDropdown();
         this.presetController?.updatePresetButtonsState();
-        if (this.accountManager.userId) void this.presetController?.loadPresetLibrary();
+        if (this.accountManager.userId) {
+          void this.presetController?.loadPresetLibrary();
+          if (!window.location.hash && this.presetManager.isFactoryPreset(this.activePreset?.id)) {
+            try {
+              const userPresets = await this.accountManager.listMine(1, "");
+              if (userPresets.items.length > 0) {
+                const firstRecord = userPresets.items[0];
+                const owned = await this.accountManager.getOwned(firstRecord.id);
+                this.applyPreset(owned, firstRecord);
+              }
+            } catch (err) {
+              console.warn("Could not auto-load user preset on login/restore", err);
+            }
+          }
+        }
+        await this.mobileController?.refreshUserPresets();
       },
       getPendingAccountSave: () => this.pendingAccountSave,
       setPendingAccountSave: (val) => { this.pendingAccountSave = val; },
@@ -347,6 +362,7 @@ class SonificationApp {
         this.rackController?.render();
         this.mobileController?.renderPresetDrawer();
         this.mobileController?.updatePresetBadge();
+        void this.mobileController?.refreshUserPresets();
       },
       onOpenAccountModal: (mode) => this.accountModalController.open(mode),
       onShowQrForHash: (hash) => this.qrModalController.showQrForHash(hash),
@@ -395,14 +411,18 @@ class SonificationApp {
     this.mobileController = new MobileController({
       audioEngine: this.audioEngine,
       presetManager: this.presetManager,
+      accountManager: this.accountManager,
       getActivePreset: () => this.activePreset,
-      setActivePreset: (p) => this.applyPreset(p),
+      getSavedPresetId: () => this.presetController ? this.presetController.getSavedPresetId() : null,
+      setActivePreset: (p, saved) => this.applyPreset(p, saved),
       onPresetChanged: () => {
         this.syncFormWithPreset();
         this.presetController.renderPresetDropdown();
         this.rackController.render();
         this.requestRender();
       },
+      onOpenPresetLibrary: (mode) => this.presetController?.openPresetLibrary(mode),
+      onOpenAccountModal: (mode) => this.accountModalController?.open(mode),
       onToggleCamera: () => this.toggleLiveCameraFeed(),
       onStartCamera: () => this.startLiveCameraFeed(),
       onFlipCamera: () => this.flipCamera(),

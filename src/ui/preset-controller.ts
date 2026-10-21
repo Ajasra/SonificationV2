@@ -391,16 +391,21 @@ export class PresetController {
     }
 
     // Preset library triggers
+    const closeDrawer = () => {
+      document.getElementById('mobile-preset-drawer')?.classList.remove('open');
+      document.getElementById('mobile-drawer-backdrop')?.classList.remove('open');
+      document.getElementById('mobile-drawer-backdrop')?.classList.add('hidden');
+    };
     const openLibraryMine = () => this.openPresetLibrary('mine');
     const openLibraryExplore = () => this.openPresetLibrary('explore');
     document.getElementById('btn-presets')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-preset-library')?.addEventListener('click', openLibraryMine);
     document.getElementById('btn-explore-presets')?.addEventListener('click', openLibraryExplore);
     document.getElementById('btn-default-presets')?.addEventListener('click', openLibraryMine);
-    document.getElementById('btn-drawer-presets')?.addEventListener('click', openLibraryMine);
-    document.getElementById('btn-drawer-my-presets')?.addEventListener('click', openLibraryMine);
-    document.getElementById('btn-drawer-explore')?.addEventListener('click', openLibraryExplore);
-    document.getElementById('btn-drawer-defaults')?.addEventListener('click', openLibraryMine);
+    document.getElementById('btn-drawer-presets')?.addEventListener('click', () => { closeDrawer(); openLibraryMine(); });
+    document.getElementById('btn-drawer-my-presets')?.addEventListener('click', () => { closeDrawer(); openLibraryMine(); });
+    document.getElementById('btn-drawer-explore')?.addEventListener('click', () => { closeDrawer(); openLibraryExplore(); });
+    document.getElementById('btn-drawer-defaults')?.addEventListener('click', () => { closeDrawer(); openLibraryMine(); });
 
     document.getElementById('btn-close-preset-library')?.addEventListener('click', () => {
       document.getElementById('preset-library-modal')?.classList.add('hidden');
