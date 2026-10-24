@@ -1,4 +1,6 @@
 // High-Performance Hardware-Accelerated Video & Audio Recorder
+import fixWebmDuration from 'fix-webm-duration';
+
 export class VideoRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
@@ -6,9 +8,11 @@ export class VideoRecorder {
   private chosenMime = '';
   private compositeCanvas: HTMLCanvasElement | null = null;
   private compositeFrame = 0;
+  private startTime = 0;
 
   startRecording(canvas: HTMLCanvasElement, audioStream?: MediaStream | null, overlayCanvas?: HTMLCanvasElement): void {
     this.recordedChunks = [];
+    this.startTime = Date.now();
 
     let captureCanvas = canvas;
     if (overlayCanvas) {
@@ -43,10 +47,9 @@ export class VideoRecorder {
       /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
 
-    // Codec negotiation:
-    // Prioritize MP4 (H.264/AVC + AAC) across all platforms (iOS, Android, desktop)
-    // for direct compatibility with social platforms (Instagram, WeChat, TikTok) without transcoding.
-    // Falls back gracefully to WebM (VP8/VP9/H.264 + Opus) if the browser's MediaRecorder lacks MP4 support.
+    // Prioritize standard MP4 (H.264 / AVC + AAC) across all devices for direct compatibility
+    // with social media platforms (Instagram, WeChat, TikTok, Photos).
+    // Falls back to WebM only if MP4 is completely unsupported by the browser.
     const preferredMimes = [
       'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
       'video/mp4;codecs=avc1,mp4a.40.2',
@@ -102,7 +105,8 @@ export class VideoRecorder {
         try {
           const opts: MediaRecorderOptions = { mimeType: mime };
           if (!isIOSorSafari) {
-            opts.videoBitsPerSecond = 3_000_000;
+            // Target 2.5 Mbps to avoid choking mobile GPU encoders
+            opts.videoBitsPerSecond = 2_500_000;
           }
           recorder = new MediaRecorder(combinedStream, opts);
           this.chosenMime = mime;
@@ -134,13 +138,16 @@ export class VideoRecorder {
       console.error('MediaRecorder error event:', e);
     };
 
+    // For MP4 containers, do NOT pass a timeslice (e.g. 1000) on Chromium:
+    // Chromium's fMP4 muxer drops fragments or stalls after ~14 seconds when timeslices force slice boundaries.
+    // For continuous recording without timeslices, start() lets the browser write a continuous stream cleanly.
     try {
-      this.mediaRecorder.start(1000);
+      this.mediaRecorder.start();
       this.isRecording = true;
     } catch (e) {
-      console.warn('MediaRecorder.start(1000) failed, attempting start() without timeslice:', e);
+      console.warn('MediaRecorder.start() failed, attempting start(1000):', e);
       try {
-        this.mediaRecorder.start();
+        this.mediaRecorder.start(1000);
         this.isRecording = true;
       } catch (fatalStartErr) {
         console.error('Fatal: Failed to start MediaRecorder:', fatalStartErr);
@@ -159,23 +166,36 @@ export class VideoRecorder {
         return;
       }
 
-      const finish = () => {
+      const finish = async () => {
         const mime = this.mediaRecorder?.mimeType || this.chosenMime || (this.isIOSorSafari() ? 'video/mp4' : 'video/webm');
         const ext = mime.toLowerCase().includes('mp4') ? 'mp4' : 'webm';
-        const blob = new Blob(this.recordedChunks, { type: mime });
+        let blob = new Blob(this.recordedChunks, { type: mime });
         this.isRecording = false;
         if (this.compositeFrame) cancelAnimationFrame(this.compositeFrame);
         this.compositeFrame = 0;
         this.compositeCanvas = null;
+
+        // If WebM format, fix duration metadata so mobile video players and seekbars reflect full duration
+        if (ext === 'webm') {
+          const durationMs = Math.max(100, Date.now() - this.startTime);
+          try {
+            blob = await fixWebmDuration(blob, durationMs, { logger: false });
+          } catch (fixErr) {
+            console.warn('Failed patching WebM duration metadata:', fixErr);
+          }
+        }
+
         resolve({ blob, mime, ext });
       };
 
       if (this.mediaRecorder.state === 'inactive') {
-        finish();
+        void finish();
         return;
       }
 
-      this.mediaRecorder.onstop = finish;
+      this.mediaRecorder.onstop = () => {
+        void finish();
+      };
 
       try {
         this.mediaRecorder.stop();

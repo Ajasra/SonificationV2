@@ -43,6 +43,7 @@ export class MediaController {
 
   private recTimerInterval: number | null = null;
   private recStartTime = 0;
+  private wakeLockSentinel: any = null;
 
   private videoTimeline: VideoTimeline;
 
@@ -538,6 +539,18 @@ export class MediaController {
       btnMobileRec?.classList.add('recording');
       if (recText) recText.textContent = 'STOP';
 
+      // Keep screen awake during recording on mobile to prevent GPU/rAF throttling
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        try {
+          (navigator as any).wakeLock.request('screen').then((lock: any) => {
+            this.wakeLockSentinel = lock;
+            lock.addEventListener('release', () => {
+              if (this.wakeLockSentinel === lock) this.wakeLockSentinel = null;
+            });
+          }).catch(() => {});
+        } catch (_) {}
+      }
+
       this.recStartTime = Date.now();
       recTimerBadge?.classList.remove('hidden');
       mobileRecBadge?.classList.remove('hidden');
@@ -556,6 +569,12 @@ export class MediaController {
       if (this.recTimerInterval) {
         clearInterval(this.recTimerInterval);
         this.recTimerInterval = null;
+      }
+      if (this.wakeLockSentinel) {
+        try {
+          this.wakeLockSentinel.release();
+        } catch (_) {}
+        this.wakeLockSentinel = null;
       }
       recTimerBadge?.classList.add('hidden');
       mobileRecBadge?.classList.add('hidden');

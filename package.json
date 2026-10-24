@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
+    "fix-webm-duration": "^1.0.6",
     "mp4-muxer": "^5.2.2",
     "pocketbase": "^0.28.1",
     "qrcode": "^1.5.4"
